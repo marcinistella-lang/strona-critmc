@@ -3,782 +3,635 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CritMC - Panel Administracyjny</title>
-    <link rel="stylesheet" href="admin.css">
-    <!-- Blokada przed flash contentu bez auth -->
-    <style>
-        #admin-panel { display: none !important; }
-        .auth-ready #admin-panel { display: flex !important; }
-        .auth-ready #login-screen { display: none !important; }
-    </style>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <title>CritMC - Oficjalny Serwer KitPvP</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="home.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Press+Start+2P&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
 
-    <!-- ===== EKRAN LOGOWANIA ===== -->
-    <div id="login-screen" class="login-screen">
-        <div class="login-box">
-            <div class="login-logo">
-                <span class="login-logo-crit">Crit</span><span class="login-logo-mc">MC</span>
-                <div class="login-logo-sub">Panel Administracyjny</div>
+    <div class="decor-glow bg-glow-1"></div>
+    <div class="decor-glow bg-glow-2"></div>
+
+    <!-- Header -->
+    <header>
+        <div class="header-container">
+            <div class="logo-area">
+                <h1 class="logo-main">CritMC</h1>
+                <p class="logo-sub">KitPvP</p>
             </div>
-            <form id="login-form" onsubmit="handleLogin(event)">
-                <div class="login-field">
-                    <label><i class="fa-solid fa-user"></i> Login</label>
-                    <input type="text" id="login-username" placeholder="Wpisz login..." autocomplete="username" required>
-                </div>
-                <div class="login-field">
-                    <label><i class="fa-solid fa-lock"></i> Hasło</label>
-                    <div class="password-wrap">
-                        <input type="password" id="login-password" placeholder="Wpisz hasło..." autocomplete="current-password" required>
-                        <button type="button" class="pw-toggle" onclick="togglePasswordVisibility()" title="Pokaż/ukryj hasło">
-                            <i class="fa-solid fa-eye" id="pw-toggle-icon"></i>
-                        </button>
+            <div class="server-info">
+                <div class="info-box click-to-copy" id="ip-box" data-ip="critmc.pl">
+                    <i class="fa-solid fa-gamepad"></i>
+                    <div>
+                        <span class="info-label">IP SERWERA</span>
+                        <span class="info-value">critmc.pl</span>
                     </div>
+                    <span class="copy-tooltip">Kliknij, aby skopiowac!</span>
                 </div>
-                <div id="login-error" class="login-error" style="display:none;">
-                    <i class="fa-solid fa-circle-exclamation"></i> Błędny login lub hasło!
-                </div>
-                <button type="submit" class="login-btn">
-                    <i class="fa-solid fa-right-to-bracket"></i> Zaloguj się
-                </button>
-            </form>
+            </div>
         </div>
-    </div>
+    </header>
 
-    <!-- ===== PANEL GŁÓWNY ===== -->
-    <div id="admin-panel" class="admin-panel" style="display:none;">
+    <!-- Nawigacja -->
+    <nav class="tabs-nav">
+        <div class="nav-container">
+            <button class="tab-button active" data-tab="nowosci">
+                <i class="fa-solid fa-star"></i> Nowosci
+            </button>
+            <button class="tab-button" data-tab="sklep">
+                <i class="fa-solid fa-shop"></i> Sklep
+            </button>
+            <button class="tab-button" data-tab="regulamin">
+                <i class="fa-solid fa-scale-balanced"></i> Regulamin + Administracja
+            </button>
+            <button class="tab-button" data-tab="media">
+                <i class="fa-solid fa-photo-film"></i> Media
+            </button>
+            <button class="tab-button" data-tab="inne-strona">
+                <i class="fa-solid fa-ellipsis"></i> Inne
+            </button>
+        </div>
+    </nav>
 
-        <!-- SIDEBAR -->
-        <aside class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                <div class="sidebar-logo">
-                    <span class="sl-crit">Crit</span><span class="sl-mc">MC</span>
-                </div>
-                <div class="sidebar-sub">Admin Panel</div>
+    <main class="shop-content">
+
+        <!-- NOWOSCI -->
+        <section id="nowosci" class="tab-content active">
+            <div class="home-placeholder">
+                <div class="launch-banner">PLANOWANY START<br>POD KONIEC SIERPNIA</div>
             </div>
 
-            <nav class="sidebar-nav">
-                <div class="nav-section-label">Zarządzanie</div>
-                <button class="nav-btn active" data-page="players" onclick="switchPage('players')">
-                    <i class="fa-solid fa-users"></i>
-                    <span>Gracze</span>
-                </button>
-                <button class="nav-btn" data-page="bans" onclick="switchPage('bans')">
-                    <i class="fa-solid fa-ban"></i>
-                    <span>Bany</span>
-                    <span class="nav-badge" id="badge-bans">0</span>
-                </button>
-                <button class="nav-btn" data-page="mutes" onclick="switchPage('mutes')">
-                    <i class="fa-solid fa-microphone-slash"></i>
-                    <span>Muty</span>
-                    <span class="nav-badge" id="badge-mutes">0</span>
-                </button>
-
-                <div class="nav-section-label" style="margin-top:1.5rem;">Akcje</div>
-                <button class="nav-btn" data-page="action" onclick="switchPage('action')">
-                    <i class="fa-solid fa-gavel"></i>
-                    <span>Nadaj karę</span>
-                </button>
-
-                <div class="nav-section-label" style="margin-top:1.5rem;">Historia</div>
-                <button class="nav-btn" data-page="logs" onclick="switchPage('logs')">
-                    <i class="fa-solid fa-clock-rotate-left"></i>
-                    <span>Logi akcji</span>
-                </button>
-
-                <div class="nav-section-label" style="margin-top:1.5rem;">Statystyki</div>
-                <button class="nav-btn" data-page="stats" onclick="switchPage('stats')">
-                    <i class="fa-solid fa-chart-bar"></i>
-                    <span>Statystyki adminów</span>
-                </button>
-            </nav>
-
-            <div class="sidebar-footer">
-                <div class="sidebar-user">
-                    <div class="su-avatar" id="su-avatar">A</div>
-                    <div class="su-info">
-                        <div class="su-name" id="su-name">Admin</div>
-                        <div class="su-role" id="su-role">Zarządzający</div>
+            <!-- Karta konkursu -->
+            <div class="contest-card" id="contest-start">
+                <div class="contest-icon"><i class="fa-solid fa-trophy"></i></div>
+                <div class="contest-info">
+                    <div class="contest-title">Konkurs Startowy</div>
+                    <div class="contest-desc">
+                        <div><strong>Nagroda:</strong> Ranga CRIT na 14 dni</div>
+                        <div style="font-size:0.85rem;color:var(--text-muted);margin-top:0.2rem;">Ilosc: <strong style="color:#f2c84a;">2 szt.</strong></div>
+                    </div>
+                    <div class="contest-meta">
+                        <span class="contest-timer" id="contest-timer"><i class="fa-solid fa-clock"></i> Ladowanie...</span>
+                        <span class="contest-count"><i class="fa-solid fa-users"></i> <span id="contest-count-start">0</span> uczestnikow</span>
                     </div>
                 </div>
-                <button class="logout-btn" onclick="handleLogout()">
-                    <i class="fa-solid fa-right-from-bracket"></i>
-                </button>
+                <div class="contest-btns">
+                    <button class="contest-btn" onclick="openContest('start')"><i class="fa-solid fa-trophy"></i> Wez udzial</button>
+                    <button class="contest-admin-btn" onclick="openContestAdmin()"><i class="fa-solid fa-gear"></i> Zarzadzaj</button>
+                </div>
             </div>
-        </aside>
 
-        <!-- MAIN CONTENT -->
-        <main class="main-content">
-
-            <!-- TOP BAR -->
-            <div class="topbar">
-                <button class="sidebar-toggle" onclick="toggleSidebar()">
-                    <i class="fa-solid fa-bars"></i>
-                </button>
-                <div class="topbar-title" id="topbar-title">Gracze</div>
-                <div class="topbar-right">
-                    <div class="server-status" id="server-status">
-                        <span class="status-dot offline"></span>
-                        <span id="status-text">Łączenie...</span>
+            <!-- Karta wynikow -->
+            <div class="contest-card" id="contest-winners" style="display:none; flex-direction:column; align-items:flex-start; gap:1rem;">
+                <div style="display:flex;align-items:center;gap:1rem;width:100%;">
+                    <div class="contest-icon" style="color:#f2c84a;"><i class="fa-solid fa-trophy"></i></div>
+                    <div class="contest-info">
+                        <div class="contest-title">Wyniki Konkursu Startowego</div>
+                        <div class="contest-desc">Nagroda: 2x Ranga CRIT na 14 dni</div>
                     </div>
-                    <a href="../index.html" class="back-to-main-btn" title="Wróć do strony głównej">
-                        <i class="fa-solid fa-house"></i>
-                        <span>Strona główna</span>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;width:100%;">
+                    <div style="background:linear-gradient(135deg,rgba(242,200,74,0.15),rgba(255,140,0,0.08));border:1px solid rgba(242,200,74,0.3);border-radius:14px;padding:1.2rem;text-align:center;">
+                        <div style="font-size:2rem;margin-bottom:0.3rem;">&#x1F947;</div>
+                        <div style="font-size:0.7rem;font-weight:800;color:#f2c84a;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.3rem;">Zwyciezca #1</div>
+                        <div style="font-size:1.1rem;font-weight:900;color:#fff;" id="winner-1">--</div>
+                    </div>
+                    <div style="background:linear-gradient(135deg,rgba(242,200,74,0.15),rgba(255,140,0,0.08));border:1px solid rgba(242,200,74,0.3);border-radius:14px;padding:1.2rem;text-align:center;">
+                        <div style="font-size:2rem;margin-bottom:0.3rem;">&#x1F948;</div>
+                        <div style="font-size:0.7rem;font-weight:800;color:#f2c84a;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.3rem;">Zwyciezca #2</div>
+                        <div style="font-size:1.1rem;font-weight:900;color:#fff;" id="winner-2">--</div>
+                    </div>
+                </div>
+                <div style="font-size:0.8rem;color:var(--text-muted);text-align:center;width:100%;">Gratulacje! Skontaktuj sie z administracja na Discordzie po nagrode.</div>
+            </div>
+
+            <!-- Modal: Formularz konkursu -->
+            <div class="changes-overlay" id="contest-overlay" onclick="closeContest(event)">
+                <div class="changes-panel-box" style="max-width:480px;">
+                    <div class="changes-panel-header">
+                        <span><i class="fa-solid fa-trophy"></i> Dolacz do konkursu</span>
+                        <button class="changes-close-btn" onclick="closeContest()"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:1rem;">
+                        <div style="background:rgba(242,200,74,0.08);border:1px solid rgba(242,200,74,0.2);border-radius:10px;padding:0.8rem 1rem;">
+                            <div style="font-weight:800;color:#f2c84a;margin-bottom:0.3rem;"><i class="fa-solid fa-gift"></i> Nagroda: 2x Ranga CRIT na 14 dni</div>
+                            <div style="font-size:0.82rem;color:var(--text-muted);">Wyniki: 25 sierpnia 2026</div>
+                        </div>
+                        <div>
+                            <label style="font-size:0.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;display:block;margin-bottom:0.4rem;">Nick Minecraft *</label>
+                            <input id="contest-nick-mc" type="text" placeholder="Twoj nick MC..." style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#fff;padding:0.7rem 1rem;border-radius:8px;font-size:1rem;outline:none;width:100%;box-sizing:border-box;">
+                        </div>
+                        <div>
+                            <label style="font-size:0.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;display:block;margin-bottom:0.4rem;">Nick Discord *</label>
+                            <input id="contest-nick-dc" type="text" placeholder="Twoj nick Discord..." style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#fff;padding:0.7rem 1rem;border-radius:8px;font-size:1rem;outline:none;width:100%;box-sizing:border-box;">
+                        </div>
+                        <div>
+                            <label style="font-size:0.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;display:block;margin-bottom:0.4rem;">Slowo weryfikacyjne * <span style="font-weight:400;text-transform:none;color:#9f97ad;font-size:0.75rem;">(zapamietaj - uzyjem przy wygranej)</span></label>
+                            <input id="contest-secret" type="text" placeholder="Wpisz dowolne tajne slowo..." style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#fff;padding:0.7rem 1rem;border-radius:8px;font-size:1rem;outline:none;width:100%;box-sizing:border-box;">
+                            <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.3rem;">Nikt tego nie zobaczy - tylko my przy weryfikacji wygranego.</div>
+                        </div>
+                        <button onclick="submitContest()" style="background:linear-gradient(135deg,#f2c84a,#ff8c00);color:#000;font-weight:900;padding:0.85rem;border:none;border-radius:10px;font-size:1rem;cursor:pointer;"><i class="fa-solid fa-trophy"></i> Dolacz do konkursu</button>
+                        <div id="contest-msg" style="text-align:center;font-size:0.9rem;color:var(--text-muted);"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal: Admin konkursu -->
+            <div class="changes-overlay" id="contest-admin-overlay" onclick="closeContestAdmin(event)">
+                <div class="changes-panel-box" style="max-width:600px;">
+                    <div class="changes-panel-header">
+                        <span><i class="fa-solid fa-gear"></i> Zarzadzaj konkursem</span>
+                        <button class="changes-close-btn" onclick="closeContestAdmin()"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                    <div id="admin-login-form">
+                        <div style="display:flex;flex-direction:column;gap:0.8rem;">
+                            <input id="admin-login" type="text" placeholder="Login..." style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#fff;padding:0.7rem 1rem;border-radius:8px;font-size:1rem;outline:none;">
+                            <input id="admin-pass" type="password" placeholder="Haslo..." style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#fff;padding:0.7rem 1rem;border-radius:8px;font-size:1rem;outline:none;">
+                            <button onclick="adminLogin()" style="background:linear-gradient(135deg,#fc84fb,#ff1744);color:#fff;border:none;padding:0.8rem;border-radius:8px;font-weight:900;cursor:pointer;">Zaloguj</button>
+                            <div id="admin-login-err" style="color:#ff5252;font-size:0.85rem;display:none;">Bledny login lub haslo!</div>
+                        </div>
+                    </div>
+                    <div id="admin-panel-content" style="display:none;flex-direction:column;gap:1rem;">
+                        <div style="margin-bottom:1rem;">
+                            <label style="font-size:0.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;display:block;margin-bottom:0.4rem;">Nagroda</label>
+                            <div style="display:flex;gap:0.5rem;">
+                                <input id="admin-nagroda" type="text" placeholder="Nagroda..." style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#fff;padding:0.6rem 1rem;border-radius:8px;font-size:0.9rem;outline:none;">
+                                <button onclick="adminUpdateNagroda()" style="background:rgba(0,230,118,0.15);border:1px solid rgba(0,230,118,0.3);color:#00e676;padding:0.6rem 1rem;border-radius:8px;cursor:pointer;font-weight:700;">Zapisz</button>
+                            </div>
+                        </div>
+                        <div style="margin-bottom:1rem;">
+                            <label style="font-size:0.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;display:block;margin-bottom:0.4rem;">Ilosc zwyciezcow</label>
+                            <div style="display:flex;gap:0.5rem;">
+                                <input id="admin-ilosc" type="number" min="1" max="10" value="2" placeholder="np. 2" style="width:100px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#fff;padding:0.6rem 1rem;border-radius:8px;font-size:0.9rem;outline:none;" onchange="adminUpdateIlosc()">
+                                <button onclick="adminUpdateIlosc()" style="background:rgba(0,230,118,0.15);border:1px solid rgba(0,230,118,0.3);color:#00e676;padding:0.6rem 1rem;border-radius:8px;cursor:pointer;font-weight:700;">Zastosuj</button>
+                            </div>
+                        </div>
+                        <div style="margin-bottom:1rem;">
+                            <label style="font-size:0.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;display:block;margin-bottom:0.4rem;">Data wynikow</label>
+                            <div style="display:flex;gap:0.5rem;">
+                                <input id="admin-data" type="date" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#fff;padding:0.6rem 1rem;border-radius:8px;font-size:0.9rem;outline:none;">
+                                <button onclick="adminUpdateData()" style="background:rgba(0,230,118,0.15);border:1px solid rgba(0,230,118,0.3);color:#00e676;padding:0.6rem 1rem;border-radius:8px;cursor:pointer;font-weight:700;">Zapisz</button>
+                            </div>
+                        </div>
+                        <div style="margin-bottom:1rem;background:rgba(242,200,74,0.06);border:1px solid rgba(242,200,74,0.2);border-radius:10px;padding:1rem;">
+                            <div style="font-size:0.78rem;font-weight:700;color:#f2c84a;text-transform:uppercase;margin-bottom:0.7rem;"><i class="fa-solid fa-trophy"></i> Oglos zwyciezcow</div>
+                            <div id="winners-inputs" style="display:flex;flex-direction:column;gap:0.5rem;">
+                                <input class="winner-input" type="text" placeholder="Nick zwyciezcy #1" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#fff;padding:0.6rem 1rem;border-radius:8px;font-size:0.9rem;outline:none;">
+                                <input class="winner-input" type="text" placeholder="Nick zwyciezcy #2" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#fff;padding:0.6rem 1rem;border-radius:8px;font-size:0.9rem;outline:none;">
+                            </div>
+                            <button onclick="adminAnnounceWinners()" style="background:linear-gradient(135deg,#f2c84a,#ff8c00);color:#000;border:none;padding:0.6rem 1.2rem;border-radius:8px;cursor:pointer;font-weight:900;margin-top:0.7rem;width:100%;"><i class="fa-solid fa-trophy"></i> Oglos i zakoncz konkurs</button>
+                        </div>
+                        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+                            <button onclick="adminEndContest()" style="background:rgba(255,183,0,0.15);border:1px solid rgba(255,183,0,0.3);color:#ffb700;padding:0.6rem 1.2rem;border-radius:8px;cursor:pointer;font-weight:700;"><i class="fa-solid fa-flag-checkered"></i> Zakoncz bez wynikow</button>
+                            <button onclick="adminDeleteContest()" style="background:rgba(255,23,68,0.15);border:1px solid rgba(255,23,68,0.3);color:#ff5252;padding:0.6rem 1.2rem;border-radius:8px;cursor:pointer;font-weight:700;"><i class="fa-solid fa-trash"></i> Usun konkurs</button>
+                        </div>
+                        <div>
+                            <div style="font-size:0.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:0.8rem;">Uczestnicy</div>
+                            <div id="admin-entries-list" style="display:flex;flex-direction:column;gap:0.5rem;max-height:280px;overflow-y:auto;"></div>
+                        </div>
+                        <div id="admin-action-msg" style="text-align:center;font-size:0.9rem;margin-top:1rem;color:var(--text-muted);"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SKLEP -->
+        <section id="sklep" class="tab-content">
+            <div class="section-header">
+                <h2>Sklep</h2>
+                <p>Rangi, klucze, zestawy i wiecej</p>
+            </div>
+            <div class="home-placeholder">
+                <a href="shop.html" class="home-shop-btn">
+                    <i class="fa-solid fa-shop"></i> Przejdz do Sklepu
+                </a>
+            </div>
+        </section>
+
+        <!-- REGULAMIN + ADMINISTRACJA -->
+        <section id="regulamin" class="tab-content">
+
+            <h3 class="team-section-title" style="margin-bottom:1rem;"><i class="fa-solid fa-scroll"></i> Regulaminy</h3>
+
+            <div class="changes-card" onclick="openRegulamin()" style="margin-bottom:2.5rem;">
+                <div class="changes-card-icon"><i class="fa-solid fa-scroll"></i></div>
+                <div class="changes-card-text">
+                    <div class="changes-card-title">Tymczasowy Regulamin</div>
+                    <div class="changes-card-sub">Regulamin CritMC.PL - rozgrywka, Discord, mody i backupy</div>
+                </div>
+                <i class="fa-solid fa-arrow-right changes-card-arrow"></i>
+            </div>
+
+            <!-- Modal regulaminu -->
+            <div class="changes-overlay" id="regulamin-overlay" onclick="closeRegulamin(event)">
+                <div class="changes-panel-box" style="max-height:85vh;">
+                    <div class="changes-panel-header">
+                        <span><i class="fa-solid fa-scroll"></i> Regulamin CritMC.PL</span>
+                        <button class="changes-close-btn" onclick="closeRegulamin()"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                    <div class="regulamin-content">
+                        <div class="reg-section">
+                            <h4 class="reg-title"><i class="fa-solid fa-gamepad"></i> ROZGRYWKA</h4>
+                            <ul class="reg-list">
+                                <li><span class="reg-par">1</span> Zabronione jest uzywanie wspomagaczy uznawanych za cheaty oraz wszelkich skryptow/modyfikacji</li>
+                                <li><span class="reg-par">2</span> Zabronione jest wykorzystywania bledow serwera oraz nie zglaszania ich</li>
+                                <li><span class="reg-par">3</span> Zabronione jest tworzenie i bycie online na wiecej niz trzech kontach oraz omijanie bana</li>
+                                <li><span class="reg-par">4</span> Zabronione jest podszywanie sie pod innych graczy</li>
+                                <li><span class="reg-par">5</span> Zabronione jest obrazanie innych czlonkow serwera w tym administracji</li>
+                                <li><span class="reg-par">6</span> Zabronione jest reklamowanie sie jesli tresci nie maja powiazania z CritMc.pl</li>
+                                <li><span class="reg-par">7</span> Zabronione jest ujawnianie danych osobowych, wizerunku innych uzytkownikow</li>
+                                <li><span class="reg-par">8</span> Zabronione jest uzywanie wulgaryzmow na czacie</li>
+                                <li><span class="reg-par">9</span> Zabronione jest nabijanie statystyk w nieodpowiedni sposob</li>
+                                <li><span class="reg-par">10</span> Zabronione jest nadmierne korzystanie z komendy /helpop</li>
+                                <li><span class="reg-par">11</span> Zabronione jest sprzedawanie kont i przedmiotow w grze za realne pieniadze</li>
+                                <li><span class="reg-par">12</span> Administrator ma prawo ukara uzytkownika za rzecz niewymieniona w regulaminie</li>
+                            </ul>
+                        </div>
+                        <div class="reg-section">
+                            <h4 class="reg-title"><i class="fa-brands fa-discord"></i> DISCORD</h4>
+                            <ul class="reg-list">
+                                <li><span class="reg-par">1</span> Zabrania sie wulgaryzmow, tresci o charakterze NSFW, rasistowskich, politycznych itp.</li>
+                                <li><span class="reg-par">2</span> Zabrania sie reklamowania tresci niezwiazanych z serwerem</li>
+                                <li><span class="reg-par">3</span> Zabrania sie spamowania, powtarzania tych samych wiadomosci oraz pisania capslockiem</li>
+                                <li><span class="reg-par">4</span> Zabrania sie ujawniania danych osobowych, wizerunku innych uzytkownikow</li>
+                                <li><span class="reg-par">5</span> Zabrania sie podszywania pod innych uzytkownikow/administracje</li>
+                                <li><span class="reg-par">6</span> Zabrania sie pisania rzeczy niezgodnych z tematyka kanalu</li>
+                                <li><span class="reg-par">7</span> Zabrania sie tworzenia ticketow bez uzasadnienia i trollowania w ich tresci</li>
+                                <li><span class="reg-par">8</span> Awatar oraz nick nie moga zawierac tresci z podpunktu pierwszego</li>
+                                <li><span class="reg-par">9</span> Zabrania sie robienia bezsensownych ticketow</li>
+                            </ul>
+                        </div>
+                        <div class="reg-section reg-two-col">
+                            <div>
+                                <h4 class="reg-title reg-green"><i class="fa-solid fa-check"></i> DOZWOLONE MODYFIKACJE</h4>
+                                <ul class="reg-list">
+                                    <li>Widocznosc zycia przeciwnika</li>
+                                    <li>Widocznosc zuzycia zbroi przeciwnika</li>
+                                    <li>Mouse Tweaks</li>
+                                    <li>Better PvP</li>
+                                    <li>Soup Api</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 class="reg-title reg-red"><i class="fa-solid fa-xmark"></i> ZABRONIONE MODYFIKACJE</h4>
+                                <ul class="reg-list">
+                                    <li>Minimapa</li>
+                                    <li>InvMove</li>
+                                    <li>Baritone i inne boty do kopania</li>
+                                    <li>SwingThrought</li>
+                                    <li>Accurate Block Placement</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="reg-section">
+                            <h4 class="reg-title"><i class="fa-solid fa-box-archive"></i> BACKUPY EKWIPUNKU</h4>
+                            <ol class="reg-list reg-ordered">
+                                <li>Stworz ticket w odpowiedniej kategorii</li>
+                                <li>Opisz sytuacje oraz wyslij nagranie z momentu smierci</li>
+                                <li>Nagranie musi zawierac: moment smierci, moment teleportacji (jesli wystepuje), pelen obraz z gry</li>
+                                <li>Nie otrzymasz backupa jesli: nie posiadasz nagrania, nagranie z replay moda, nagranie telefonem, nie widac pelnego ekranu</li>
+                                <li>Uzyj komendy <code>/backupodbierz</code> na serwerze (pusty ekwipunek)</li>
+                            </ol>
+                        </div>
+                        <div class="reg-footer">
+                            <i class="fa-solid fa-circle-info"></i> Brak znajomosci regulaminu nie zwalnia z obowiazku jego przestrzegania.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <h3 class="team-section-title" style="margin-bottom:1rem;"><i class="fa-solid fa-crown"></i> Ekipa</h3>
+
+            <div class="team-owner">
+                <div class="team-owner-inner">
+                    <img src="https://visage.surgeplay.com/bust/256/sosenka8" alt="sosenka8" class="team-owner-head">
+                    <div class="team-owner-info">
+                        <div class="team-owner-role">Wlasciciel</div>
+                        <div class="team-owner-name">sosenka8</div>
+                        <div class="team-owner-socials">
+                            <a href="https://www.youtube.com/@Critmc.pl_1" target="_blank" class="team-social-btn team-yt"><i class="fa-brands fa-youtube"></i> YouTube</a>
+                            <a href="https://www.tiktok.com/@critmc.pl" target="_blank" class="team-social-btn team-tt"><i class="fa-brands fa-tiktok"></i> TikTok</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="team-cowowner">
+                <div class="team-cowowner-inner">
+                    <img src="https://mc-heads.net/avatar/Steve/64" alt="Wspolwlasciciel" class="team-cowowner-head">
+                    <div class="team-cowowner-info">
+                        <div class="team-cowowner-role">Wspolwlasciciel</div>
+                        <div class="team-cowowner-name">???</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="team-admins-section">
+                <h3 class="team-section-title"><i class="fa-solid fa-user-shield"></i> Personel</h3>
+                <div class="team-admins-grid" id="section-admins-dynamic">
+                    <div class="team-admin-card" onclick="toggleAdmin(this)">
+                        <div class="team-admin-header">
+                            <img src="https://mc-heads.net/avatar/Steve/48" alt="Admin" class="team-admin-head">
+                            <div>
+                                <div class="team-admin-name">Admin1</div>
+                                <div class="team-admin-rank">Administrator</div>
+                            </div>
+                            <i class="fa-solid fa-chevron-down team-admin-arrow"></i>
+                        </div>
+                        <div class="team-admin-details">
+                            <p><i class="fa-solid fa-circle-info"></i> <strong>Opis:</strong> Brak opisu.</p>
+                            <p><i class="fa-solid fa-crown"></i> <strong>Ranga:</strong> Administrator</p>
+                            <p><i class="fa-solid fa-key"></i> <strong>Uprawnienia:</strong> /ban, /kick, /mute, /tp</p>
+                            <p><i class="fa-solid fa-calendar"></i> <strong>Od:</strong> --</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="team-recruit-banner">
+                <div class="team-recruit-inner">
+                    <div class="team-recruit-text">
+                        <div class="team-recruit-title"><i class="fa-solid fa-shield-halved"></i> Dolacz do Administracji</div>
+                        <div class="team-recruit-sub">Wypelnij formularz i zglos swoja kandydature na administratora CritMC</div>
+                    </div>
+                    <a href="https://forms.gle/NS5dWS1E3mVjthKE7" target="_blank" class="team-recruit-btn">
+                        <i class="fa-solid fa-file-pen"></i> Wypelnij formularz
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- MEDIA -->
+        <section id="media" class="tab-content">
+            <div class="section-header">
+                <h2>Media</h2>
+                <p>Nasze kanaly, social media i tworcy serwera</p>
+            </div>
+            <div class="home-media-layout">
+                <a href="https://dc.critmc.pl" target="_blank" class="home-media-discord">
+                    <i class="fa-brands fa-discord"></i>
+                    <div>
+                        <span class="home-media-discord-title">Discord</span>
+                        <span class="home-media-discord-sub">dc.critmc.pl &mdash; Dolacz do spolecznosci!</span>
+                    </div>
+                </a>
+                <div class="home-media-row">
+                    <a href="https://www.youtube.com/@Critmc.pl_1" target="_blank" class="home-media-card">
+                        <i class="fa-brands fa-youtube" style="color:#ff0000;"></i>
+                        <span>YouTube</span>
+                        <span class="home-media-handle">@Critmc.pl_1</span>
+                    </a>
+                    <a href="https://www.tiktok.com/@critmc.pl" target="_blank" class="home-media-card">
+                        <i class="fa-brands fa-tiktok" style="color:#00f0ff;"></i>
+                        <span>TikTok</span>
+                        <span class="home-media-handle">@critmc.pl</span>
                     </a>
                 </div>
             </div>
 
-            <!-- ===== STRONA: GRACZE ===== -->
-            <div id="page-players" class="page active">
-                <div class="page-header">
-                    <h1>Gracze</h1>
-                    <p>Przeglądaj i zarządzaj graczami serwera</p>
-                </div>
-
-                <!-- Filtry -->
-                <div class="filters-bar">
-                    <div class="filter-search">
-                        <i class="fa-solid fa-magnifying-glass"></i>
-                        <input type="text" id="players-search" placeholder="Szukaj po nicku..." oninput="filterPlayers()">
-                    </div>
-                    <div class="filter-group">
-                        <select id="players-filter-rank" onchange="filterPlayers()">
-                            <option value="">Wszystkie rangi</option>
-                            <option value="default">Gracz</option>
-                            <option value="vip">VIP</option>
-                            <option value="boss">BOSS</option>
-                            <option value="crit">CRIT</option>
-                            <option value="chatmod">ChatMod</option>
-                            <option value="pomocnik">Pomocnik</option>
-                            <option value="moderator">Moderator</option>
-                            <option value="admin">Admin</option>
-                            <option value="zarzadzajacy">Zarządzający</option>
-                        </select>
-                        <select id="players-filter-status" onchange="filterPlayers()">
-                            <option value="">Wszystkie statusy</option>
-                            <option value="online">Online</option>
-                            <option value="offline">Offline</option>
-                            <option value="banned">Zbanowani</option>
-                            <option value="muted">Zmutowani</option>
-                        </select>
-                    </div>
-                </div>
-
-                <!-- Tabela graczy -->
-                <div class="table-card">
-                    <div class="table-wrap">
-                        <table class="data-table" id="players-table">
-                            <thead>
-                                <tr>
-                                    <th>Gracz</th>
-                                    <th>Ranga</th>
-                                    <th>Status</th>
-                                    <th>Ostatnie logowanie</th>
-                                    <th>Akcje</th>
-                                </tr>
-                            </thead>
-                            <tbody id="players-tbody">
-                                <tr>
-                                    <td colspan="5" class="table-loading">
-                                        <i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ===== STRONA: BANY ===== -->
-            <div id="page-bans" class="page">
-                <div class="page-header">
-                    <h1>Aktywne Bany</h1>
-                    <p>Lista aktualnie zbanowanych graczy</p>
-                </div>
-
-                <div class="filters-bar">
-                    <div class="filter-search">
-                        <i class="fa-solid fa-magnifying-glass"></i>
-                        <input type="text" id="bans-search" placeholder="Szukaj po nicku lub powodzie..." oninput="filterBans()">
-                    </div>
-                    <div class="filter-group">
-                        <select id="bans-filter-type" onchange="filterBans()">
-                            <option value="">Wszystkie typy</option>
-                            <option value="permanent">Permanentne</option>
-                            <option value="temporary">Czasowe</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="table-card">
-                    <div class="table-wrap">
-                        <table class="data-table" id="bans-table">
-                            <thead>
-                                <tr>
-                                    <th>Gracz</th>
-                                    <th>Powód</th>
-                                    <th>Przez kogo</th>
-                                    <th>Data</th>
-                                    <th>Wygasa</th>
-                                    <th>Akcje</th>
-                                </tr>
-                            </thead>
-                            <tbody id="bans-tbody">
-                                <tr>
-                                    <td colspan="6" class="table-loading">
-                                        <i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ===== STRONA: MUTY ===== -->
-            <div id="page-mutes" class="page">
-                <div class="page-header">
-                    <h1>Aktywne Muty</h1>
-                    <p>Lista aktualnie zmutowanych graczy</p>
-                </div>
-
-                <div class="filters-bar">
-                    <div class="filter-search">
-                        <i class="fa-solid fa-magnifying-glass"></i>
-                        <input type="text" id="mutes-search" placeholder="Szukaj po nicku lub powodzie..." oninput="filterMutes()">
-                    </div>
-                    <div class="filter-group">
-                        <select id="mutes-filter-type" onchange="filterMutes()">
-                            <option value="">Wszystkie typy</option>
-                            <option value="permanent">Permanentne</option>
-                            <option value="temporary">Czasowe</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="table-card">
-                    <div class="table-wrap">
-                        <table class="data-table" id="mutes-table">
-                            <thead>
-                                <tr>
-                                    <th>Gracz</th>
-                                    <th>Powód</th>
-                                    <th>Przez kogo</th>
-                                    <th>Data</th>
-                                    <th>Wygasa</th>
-                                    <th>Akcje</th>
-                                </tr>
-                            </thead>
-                            <tbody id="mutes-tbody">
-                                <tr>
-                                    <td colspan="6" class="table-loading">
-                                        <i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ===== STRONA: NADAJ KARĘ ===== -->
-            <div id="page-action" class="page">
-                <div class="page-header">
-                    <h1>Nadaj karę</h1>
-                    <p>Zbanuj, zmutuj, wyrzuć lub ostrzeż gracza</p>
-                </div>
-
-                <div class="action-page-grid">
-                    <!-- Formularz -->
-                    <div class="table-card" style="padding:1.5rem;">
-
-                        <div class="modal-field" style="margin-bottom:1.2rem;">
-                            <label>Nick gracza</label>
-                            <div style="position:relative;">
-                                <i class="fa-solid fa-user" style="position:absolute;left:0.85rem;top:50%;transform:translateY(-50%);color:var(--text-secondary);font-size:0.9rem;"></i>
-                                <input type="text" id="ap-nick" placeholder="Wpisz nick gracza..."
-                                    style="width:100%;padding:0.7rem 0.9rem 0.7rem 2.4rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:0.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);"
-                                    oninput="apSearchPlayer(this.value)">
+            <div class="team-creators-section">
+                <h3 class="team-section-title"><i class="fa-solid fa-video"></i> Tworcy</h3>
+                <div class="team-admins-grid" id="section-creators-dynamic">
+                    <div class="team-admin-card" onclick="toggleAdmin(this)">
+                        <div class="team-admin-header">
+                            <img src="https://mc-heads.net/avatar/Steve/48" alt="Tworcy" class="team-admin-head">
+                            <div>
+                                <div class="team-admin-name">Tworcy1</div>
+                                <div class="team-admin-rank" style="color:#ff00ff;">Tworcy Serwerowy</div>
                             </div>
-                            <!-- Podgląd gracza -->
-                            <div id="ap-player-preview" style="display:none;margin-top:0.6rem;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.7rem 1rem;display:none;align-items:center;gap:0.75rem;">
+                            <i class="fa-solid fa-chevron-down team-admin-arrow"></i>
+                        </div>
+                        <div class="team-admin-details">
+                            <div class="creator-skin-wrap">
+                                <img src="https://visage.surgeplay.com/bust/120/Steve" alt="skin" class="creator-skin">
                             </div>
-                        </div>
-
-                        <div class="modal-field" style="margin-bottom:1.2rem;">
-                            <label>Rodzaj akcji</label>
-                            <div class="action-btns">
-                                <button class="action-btn ban-btn"    onclick="apSetAction('ban')">   <i class="fa-solid fa-ban"></i> Ban</button>
-                                <button class="action-btn unban-btn"  onclick="apSetAction('unban')"> <i class="fa-solid fa-ban" style="opacity:.4"></i> Unban</button>
-                                <button class="action-btn mute-btn"   onclick="apSetAction('mute')">  <i class="fa-solid fa-microphone-slash"></i> Mute</button>
-                                <button class="action-btn unmute-btn" onclick="apSetAction('unmute')"><i class="fa-solid fa-microphone"></i> Unmute</button>
-                                <button class="action-btn kick-btn"   onclick="apSetAction('kick')">  <i class="fa-solid fa-door-open"></i> Kick</button>
-                                <button class="action-btn warn-btn"   onclick="apSetAction('warn')">  <i class="fa-solid fa-triangle-exclamation"></i> Ostrzeżenie</button>
-                                <button class="action-btn check-btn"  onclick="apSetAction('check')"> <i class="fa-solid fa-magnifying-glass"></i> Sprawdź</button>
-                            </div>
-                        </div>
-
-                        <div class="modal-field" id="ap-duration-field" style="margin-bottom:1.2rem;">
-                            <label>Czas trwania</label>
-                            <div class="duration-options">
-                                <button class="dur-btn" onclick="apSetDuration('1h',this)">1h</button>
-                                <button class="dur-btn" onclick="apSetDuration('6h',this)">6h</button>
-                                <button class="dur-btn" onclick="apSetDuration('12h',this)">12h</button>
-                                <button class="dur-btn" onclick="apSetDuration('1d',this)">1 dzień</button>
-                                <button class="dur-btn" onclick="apSetDuration('3d',this)">3 dni</button>
-                                <button class="dur-btn" onclick="apSetDuration('7d',this)">7 dni</button>
-                                <button class="dur-btn" onclick="apSetDuration('30d',this)">30 dni</button>
-                                <button class="dur-btn perm-btn" onclick="apSetDuration('permanent',this)">Permanentny</button>
-                            </div>
-                            <input type="text" id="ap-duration-custom" placeholder="Lub wpisz własny: 2h, 5d..."
-                                style="width:100%;margin-top:0.5rem;padding:0.7rem 0.9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:0.88rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
-                        </div>
-
-                        <div class="modal-field" style="margin-bottom:1.5rem;">
-                            <label>Powód <span style="color:#999;font-weight:400;">(wymagany)</span></label>
-                            <input type="text" id="ap-reason" placeholder="Wpisz powód..."
-                                style="width:100%;padding:0.7rem 0.9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:0.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
-                        </div>
-
-                        <div id="ap-msg" style="display:none;margin-bottom:1rem;padding:0.7rem 1rem;border-radius:var(--radius-sm);font-size:0.88rem;font-weight:600;"></div>
-
-                        <button onclick="apSubmit()" style="width:100%;padding:0.9rem;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:0.95rem;font-weight:800;cursor:pointer;transition:all .2s;font-family:var(--font);">
-                            <i class="fa-solid fa-check"></i> Wykonaj akcję
-                        </button>
-                    </div>
-
-                    <!-- Ostatnie akcje (mini log) -->
-                    <div class="table-card" style="overflow:hidden;">
-                        <div style="padding:1rem 1.2rem;border-bottom:1px solid var(--border);font-size:0.8rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;">
-                            <i class="fa-solid fa-clock-rotate-left"></i> Ostatnie akcje
-                        </div>
-                        <div id="ap-recent-logs" style="max-height:420px;overflow-y:auto;">
-                            <div style="text-align:center;padding:2rem;color:var(--text-secondary);font-size:0.88rem;">
-                                <i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...
+                            <p><i class="fa-solid fa-circle-info"></i> <strong>Opis:</strong> Brak opisu.</p>
+                            <div class="creator-socials">
+                                <a href="#" target="_blank" class="team-social-btn team-yt"><i class="fa-brands fa-youtube"></i> YouTube</a>
+                                <a href="#" target="_blank" class="team-social-btn team-tt"><i class="fa-brands fa-tiktok"></i> TikTok</a>
+                                <a href="#" target="_blank" class="team-social-btn team-dc"><i class="fa-brands fa-discord"></i> Discord</a>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
-
-            <!-- ===== STRONA: LOGI ===== -->
-            <div id="page-logs" class="page">
-                <div class="page-header">
-                    <h1>Logi Akcji</h1>
-                    <p>Historia wszystkich akcji administracyjnych</p>
-                </div>
-
-                <div class="filters-bar">
-                    <div class="filter-search">
-                        <i class="fa-solid fa-magnifying-glass"></i>
-                        <input type="text" id="logs-search" placeholder="Szukaj po graczu lub adminie..." oninput="filterLogs()">
-                    </div>
-                    <div class="filter-group">
-                        <select id="logs-filter-action" onchange="filterLogs()">
-                            <option value="">Wszystkie akcje</option>
-                            <option value="ban">Ban</option>
-                            <option value="unban">Unban</option>
-                            <option value="mute">Mute</option>
-                            <option value="unmute">Unmute</option>
-                            <option value="kick">Kick</option>
-                            <option value="warn">Warn</option>
-                        </select>
-                        <select id="logs-filter-admin" onchange="filterLogs()">
-                            <option value="">Wszyscy admini</option>
-                        </select>
-                        <input type="date" id="logs-filter-date" onchange="filterLogs()" title="Filtruj po dacie">
-                    </div>
-                </div>
-
-                <div class="table-card">
-                    <div class="table-wrap">
-                        <table class="data-table" id="logs-table">
-                            <thead>
-                                <tr>
-                                    <th>Akcja</th>
-                                    <th>Gracz</th>
-                                    <th>Admin</th>
-                                    <th>Powód</th>
-                                    <th>Czas trwania</th>
-                                    <th>Data</th>
-                                </tr>
-                            </thead>
-                            <tbody id="logs-tbody">
-                                <tr>
-                                    <td colspan="6" class="table-loading">
-                                        <i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                <div class="team-recruit-banner" style="margin-top:1.5rem;border-color:rgba(255,0,255,0.2);background:linear-gradient(135deg,rgba(255,0,255,0.07) 0%,rgba(136,197,255,0.05) 100%);">
+                    <div class="team-recruit-inner">
+                        <div class="team-recruit-text">
+                            <div class="team-recruit-title"><i class="fa-solid fa-star" style="color:#ff00ff;"></i> Zostan Tworcy Serwerowym</div>
+                            <div class="team-recruit-sub">Tworz content o CritMC i zdobadz specjalne benefity! Zglos sie na naszym Discordzie.</div>
+                        </div>
+                        <a href="https://dc.critmc.pl" target="_blank" class="team-recruit-btn" style="background:linear-gradient(135deg,#aa00ff,#ff00ff);">
+                            <i class="fa-brands fa-discord"></i> Zglos sie na Discord
+                        </a>
                     </div>
                 </div>
             </div>
+        </section>
 
-            <!-- ===== STRONA: STATYSTYKI ADMINÓW ===== -->
-            <div id="page-stats" class="page">
-                <div class="page-header">
-                    <h1>Statystyki Adminów</h1>
-                    <p>Aktywność i efektywność administracji</p>
+        <!-- INNE -->
+        <section id="inne-strona" class="tab-content">
+            <div class="section-header">
+                <h2>Inne</h2>
+                <p>Zmiany serwerowe i wiecej</p>
+            </div>
+
+            <div style="display:flex;gap:0.8rem;align-items:stretch;flex-wrap:wrap;">
+                <div class="changes-card" style="flex:1;" onclick="openChanges()">
+                    <div class="changes-card-icon"><i class="fa-solid fa-list-check"></i></div>
+                    <div class="changes-card-text">
+                        <div class="changes-card-title">Zmiany Serwerowe</div>
+                        <div class="changes-card-sub">Sprawdz co nowego pojawilo sie na serwerze</div>
+                    </div>
+                    <i class="fa-solid fa-arrow-right changes-card-arrow"></i>
                 </div>
+                <button class="contest-admin-btn" onclick="openChangesAdmin()" style="padding:0 1.2rem;border-radius:16px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.04);color:var(--text-muted);cursor:pointer;font-weight:700;"><i class="fa-solid fa-gear"></i> Zarzadzaj</button>
+            </div>
 
-                <!-- Karty ogólne -->
-                <div class="stats-overview" id="stats-overview">
-                    <div class="stat-card">
-                        <div class="stat-icon" style="background:rgba(239,68,68,.12);color:#ef4444;"><i class="fa-solid fa-ban"></i></div>
-                        <div class="stat-info">
-                            <div class="stat-value" id="stat-total-bans">—</div>
-                            <div class="stat-label">Łączne bany</div>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon" style="background:rgba(245,158,11,.12);color:#f59e0b;"><i class="fa-solid fa-microphone-slash"></i></div>
-                        <div class="stat-info">
-                            <div class="stat-value" id="stat-total-mutes">—</div>
-                            <div class="stat-label">Łączne muty</div>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon" style="background:rgba(99,102,241,.12);color:#6366f1;"><i class="fa-solid fa-door-open"></i></div>
-                        <div class="stat-info">
-                            <div class="stat-value" id="stat-total-kicks">—</div>
-                            <div class="stat-label">Łączne kicki</div>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon" style="background:rgba(16,185,129,.12);color:#10b981;"><i class="fa-solid fa-shield-halved"></i></div>
-                        <div class="stat-info">
-                            <div class="stat-value" id="stat-total-admins">—</div>
-                            <div class="stat-label">Aktywnych adminów</div>
-                        </div>
-                    </div>
+            <!-- Link do panelu admina -->
+            <a href="admin/index.html" style="
+                display:flex;align-items:center;gap:1.2rem;
+                margin-top:1rem;
+                background:linear-gradient(135deg,rgba(255,23,68,0.1) 0%,rgba(252,132,251,0.07) 100%);
+                border:1px solid rgba(255,23,68,0.25);
+                border-radius:16px;padding:1.2rem 1.8rem;
+                text-decoration:none;color:#fff;
+                transition:all 0.25s ease;">
+                <div style="font-size:1.8rem;color:#ff1744;flex-shrink:0;">
+                    <i class="fa-solid fa-shield-halved"></i>
                 </div>
+                <div style="flex:1;">
+                    <div style="font-size:1rem;font-weight:800;margin-bottom:0.2rem;">Panel Administracyjny</div>
+                    <div style="font-size:0.82rem;color:var(--text-muted);font-weight:500;">Dostep tylko dla administracji CritMC</div>
+                </div>
+                <i class="fa-solid fa-arrow-right" style="color:var(--text-muted);font-size:1rem;"></i>
+            </a>
 
-                <!-- Tabela adminów -->
-                <div class="table-card" style="margin-top:1.5rem;">
-                    <div style="padding:.9rem 1.2rem;border-bottom:1px solid var(--border);font-size:.8rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;">
-                        Ranking aktywności
+            <!-- Panel zmian publiczny -->
+            <div class="changes-overlay" id="changes-overlay" onclick="closeChanges(event)">
+                <div class="changes-panel-box">
+                    <div class="changes-panel-header">
+                        <span><i class="fa-solid fa-list-check"></i> Zmiany Serwerowe</span>
+                        <button class="changes-close-btn" onclick="closeChanges()"><i class="fa-solid fa-xmark"></i></button>
                     </div>
-                    <div class="table-wrap">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>#</th>
-                                    <th>Admin</th>
-                                    <th>Bany</th>
-                                    <th>Unban</th>
-                                    <th>Muty</th>
-                                    <th>Kicki</th>
-                                    <th>Ostrzeżenia</th>
-                                    <th>Sprawdzenia</th>
-                                    <th>Razem</th>
-                                    <th>Ostatnia akcja</th>
-                                </tr>
-                            </thead>
-                            <tbody id="stats-tbody">
-                                <tr><td colspan="10" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>
-                            </tbody>
-                        </table>
+                    <div class="changes-mode-tabs">
+                        <button class="changes-tab active" data-mode="zwykle">Zwykle</button>
+                        <button class="changes-tab" data-mode="szczegolowe">Szczegolowe</button>
+                        <button class="changes-tab" data-mode="najmocniejsze">Najmocniejsze</button>
+                    </div>
+                    <div class="changes-content">
+                        <div class="changes-panel active" id="mode-zwykle"><p>Brak zmian &mdash; wroc wkrotce!</p></div>
+                        <div class="changes-panel" id="mode-szczegolowe"><p>Brak szczegolowych zmian &mdash; wroc wkrotce!</p></div>
+                        <div class="changes-panel" id="mode-najmocniejsze"><p>Brak zmian w trybie najmocniejszym &mdash; wroc wkrotce!</p></div>
                     </div>
                 </div>
             </div>
 
-        </main>
-    </div>
-
-    <!-- ===== MODAL: NOTATKA DO GRACZA ===== -->
-    <div class="modal-overlay" id="note-modal" onclick="closeModal(event)">
-        <div class="modal-box" style="max-width:480px;">
-            <div class="modal-header">
-                <div class="modal-title"><i class="fa-solid fa-note-sticky" style="color:var(--accent-yellow);margin-right:.5rem;"></i> Dodaj notatkę</div>
-                <button class="modal-close" onclick="closeNoteModal()"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <div class="modal-body">
-                <div class="modal-player-info" id="note-player-info"></div>
-                <div class="modal-field">
-                    <label>Treść notatki <span style="color:#999;font-weight:400;">(nie można usunąć)</span></label>
-                    <textarea id="note-content" rows="4" placeholder="Wpisz notatkę o graczu..."
-                        style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea>
+            <!-- Panel admin zmian -->
+            <div class="changes-overlay" id="changes-admin-overlay" onclick="closeChangesAdmin(event)">
+                <div class="changes-panel-box" style="max-width:600px;">
+                    <div class="changes-panel-header">
+                        <span><i class="fa-solid fa-gear"></i> Zarzadzaj zmianami</span>
+                        <button class="changes-close-btn" onclick="closeChangesAdmin()"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                    <div id="changes-admin-login">
+                        <div style="display:flex;flex-direction:column;gap:0.8rem;">
+                            <input id="changes-admin-l" type="text" placeholder="Login..." style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#fff;padding:0.7rem 1rem;border-radius:8px;font-size:1rem;outline:none;">
+                            <input id="changes-admin-p" type="password" placeholder="Haslo..." style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#fff;padding:0.7rem 1rem;border-radius:8px;font-size:1rem;outline:none;">
+                            <button onclick="changesAdminLogin()" style="background:linear-gradient(135deg,#88c5ff,#5865F2);color:#fff;border:none;padding:0.8rem;border-radius:8px;font-weight:900;cursor:pointer;">Zaloguj</button>
+                            <div id="changes-admin-err" style="color:#ff5252;font-size:0.85rem;display:none;">Bledny login lub haslo!</div>
+                        </div>
+                    </div>
+                    <div id="changes-admin-panel" style="display:none;flex-direction:column;gap:1rem;">
+                        <div>
+                            <label style="font-size:0.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;display:block;margin-bottom:0.4rem;">Tryb: Zwykle</label>
+                            <textarea id="edit-zwykle" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:#fff;padding:0.7rem 1rem;border-radius:8px;font-size:0.9rem;outline:none;min-height:80px;resize:vertical;font-family:inherit;box-sizing:border-box;"></textarea>
+                        </div>
+                        <div>
+                            <label style="font-size:0.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;display:block;margin-bottom:0.4rem;">Tryb: Szczegolowe</label>
+                            <textarea id="edit-szczegolowe" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:#fff;padding:0.7rem 1rem;border-radius:8px;font-size:0.9rem;outline:none;min-height:80px;resize:vertical;font-family:inherit;box-sizing:border-box;"></textarea>
+                        </div>
+                        <div>
+                            <label style="font-size:0.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;display:block;margin-bottom:0.4rem;">Tryb: Najmocniejsze</label>
+                            <textarea id="edit-najmocniejsze" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:#fff;padding:0.7rem 1rem;border-radius:8px;font-size:0.9rem;outline:none;min-height:80px;resize:vertical;font-family:inherit;box-sizing:border-box;"></textarea>
+                        </div>
+                        <button onclick="saveChangesAdmin()" style="background:linear-gradient(135deg,#00e676,#00b0ff);color:#000;border:none;padding:0.85rem;border-radius:10px;font-weight:900;font-size:1rem;cursor:pointer;"><i class="fa-solid fa-floppy-disk"></i> Zapisz zmiany</button>
+                        <div id="changes-save-msg" style="text-align:center;font-size:0.9rem;color:var(--text-muted);"></div>
+                    </div>
                 </div>
-                <div id="note-msg" style="display:none;" class="modal-msg"></div>
-                <button class="modal-submit-btn" onclick="submitNote()" style="background:var(--accent-yellow);color:#000;">
-                    <i class="fa-solid fa-floppy-disk"></i> Zapisz notatkę
-                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <footer>
+        <div class="footer-container">
+            <p>&copy; 2026 CritMC. Wszelkie prawa zastrzezone.</p>
+            <p class="footer-sub">Serwer nie jest powiazany z Mojang AB ani Microsoft.</p>
+            <div class="footer-links">
+                <a href="#">Regulamin</a>
+                <a href="#">Polityka Prywatnosci</a>
+                <a href="https://dc.critmc.pl" target="_blank">Discord Pomoc</a>
             </div>
         </div>
-    </div>
+    </footer>
 
-    <!-- ===== MODAL: AKCJA NA GRACZU ===== -->
-    <div class="modal-overlay" id="action-modal" onclick="closeModal(event)">
-        <div class="modal-box">
-            <div class="modal-header">
-                <div class="modal-title" id="modal-title">Akcja</div>
-                <button class="modal-close" onclick="closeActionModal()"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <div class="modal-body">
-                <div class="modal-player-info" id="modal-player-info"></div>
+    <script src="home.js"></script>
+    <script type="module">
+        import { joinContest, getContestCount, getEntries, removeEntry, updateContest, endContest, deleteContest, getContest, setWinners } from './firebase.js';
 
-                <div class="modal-field">
-                    <label>Akcja</label>
-                    <div class="action-btns" id="modal-action-btns">
-                        <button class="action-btn ban-btn" onclick="setAction('ban')"><i class="fa-solid fa-ban"></i> Ban</button>
-                        <button class="action-btn unban-btn" onclick="setAction('unban')"><i class="fa-solid fa-ban" style="opacity:0.4"></i> Unban</button>
-                        <button class="action-btn mute-btn" onclick="setAction('mute')"><i class="fa-solid fa-microphone-slash"></i> Mute</button>
-                        <button class="action-btn unmute-btn" onclick="setAction('unmute')"><i class="fa-solid fa-microphone"></i> Unmute</button>
-                        <button class="action-btn kick-btn" onclick="setAction('kick')"><i class="fa-solid fa-door-open"></i> Kick</button>
-                        <button class="action-btn warn-btn" onclick="setAction('warn')"><i class="fa-solid fa-triangle-exclamation"></i> Ostrzeżenie</button>
-                        <button class="action-btn check-btn" onclick="setAction('check')"><i class="fa-solid fa-magnifying-glass"></i> Sprawdź</button>
-                    </div>
-                </div>
+        const CONTEST_ID = 'start';
+        const ADMIN_LOGIN = 'test';
+        const ADMIN_PASS = 'test';
+        const WYNIKI_DATE = new Date('2026-08-25T12:00:00');
+        const HIDE_DATE = new Date('2026-09-30T00:00:00');
 
-                <div class="modal-field" id="duration-field">
-                    <label>Czas trwania</label>
-                    <div class="duration-options">
-                        <button class="dur-btn" onclick="setDuration('1h')">1h</button>
-                        <button class="dur-btn" onclick="setDuration('6h')">6h</button>
-                        <button class="dur-btn" onclick="setDuration('12h')">12h</button>
-                        <button class="dur-btn" onclick="setDuration('1d')">1 dzień</button>
-                        <button class="dur-btn" onclick="setDuration('3d')">3 dni</button>
-                        <button class="dur-btn" onclick="setDuration('7d')">7 dni</button>
-                        <button class="dur-btn" onclick="setDuration('30d')">30 dni</button>
-                        <button class="dur-btn perm-btn" onclick="setDuration('permanent')">Permanentny</button>
-                    </div>
-                    <input type="text" id="duration-custom" placeholder="Lub wpisz własny np. 2h, 5d..." style="margin-top:0.5rem;">
-                </div>
-
-                <div class="modal-field">
-                    <label>Powód <span style="color:#888;font-weight:400;">(wymagany)</span></label>
-                    <input type="text" id="action-reason" placeholder="Podaj powód...">
-                </div>
-
-                <div id="modal-msg" class="modal-msg" style="display:none;"></div>
-
-                <button class="modal-submit-btn" id="modal-submit" onclick="submitAction()">
-                    <i class="fa-solid fa-check"></i> Wykonaj akcję
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- ===== MODAL: SZCZEGÓŁY GRACZA ===== -->
-    <div class="modal-overlay" id="player-detail-modal" onclick="closeModal(event)">
-        <div class="modal-box" style="max-width:520px;">
-            <div class="modal-header">
-                <div class="modal-title">Szczegóły gracza</div>
-                <button class="modal-close" onclick="closePlayerDetail()"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <div class="modal-body" id="player-detail-body">
-            </div>
-        </div>
-    </div>
-
-    <!-- TOAST NOTIFICATIONS -->
-    <div id="toast-container" class="toast-container"></div>
-
-    <!-- Firebase Admin Module -->
-    <script type="module" src="admin.js"></script>
-
-    <!-- Funkcje globalne — MUSZĄ być poza type="module" -->
-    <script>
-        // Podgląd hasła
-        function togglePasswordVisibility() {
-            const input = document.getElementById('login-password');
-            const icon  = document.getElementById('pw-toggle-icon');
-            if (input.type === 'password') {
-                input.type = 'text';
-                icon.className = 'fa-solid fa-eye-slash';
+        function updateTimer() {
+            const el = document.getElementById('contest-timer');
+            if (!el) return;
+            const diff = WYNIKI_DATE - new Date();
+            if (diff <= 0) { el.innerHTML = '<i class="fa-solid fa-flag-checkered"></i> Wyniki juz ogloszone!'; return; }
+            const d = Math.floor(diff/86400000), h = Math.floor((diff%86400000)/3600000), m = Math.floor((diff%3600000)/60000);
+            if (d >= 10) {
+                el.innerHTML = '<i class="fa-solid fa-clock"></i> ' + d + 'd ' + h + 'h';
             } else {
-                input.type = 'password';
-                icon.className = 'fa-solid fa-eye';
+                el.innerHTML = '<i class="fa-solid fa-clock"></i> ' + d + 'd ' + h + 'h ' + m + 'm';
             }
         }
+        updateTimer();
+        setInterval(updateTimer, 30000);
 
-        // Konta adminów — hardcoded (tymczasowo)
-        const ADMINS = [
-            { login: 'test', password: 'test', displayName: 'Test Admin', role: 'Zarządzający' }
-        ];
-
-        // Logowanie
-        function handleLogin(e) {
-            e.preventDefault();
-            const login    = document.getElementById('login-username').value.trim();
-            const password = document.getElementById('login-password').value;
-            const errEl    = document.getElementById('login-error');
-
-            const account = ADMINS.find(a => a.login === login && a.password === password);
-
-            if (!account) {
-                errEl.style.display = 'flex';
-                document.getElementById('login-password').value = '';
-                return;
-            }
-
-            errEl.style.display = 'none';
-            // NIE zapisujemy do sessionStorage — sesja żyje tylko w tej karcie
-            window._adminUser = account;
-            document.body.classList.add('auth-ready');
-            window.dispatchEvent(new CustomEvent('adminLogin', { detail: account }));
+        async function initContest() {
+            try {
+                const contest = await Promise.race([getContest(CONTEST_ID), new Promise(r=>setTimeout(()=>r(null),5000))]);
+                const card = document.getElementById('contest-start');
+                const win = document.getElementById('contest-winners');
+                if (new Date() >= HIDE_DATE) { if(card)card.style.display='none'; if(win)win.style.display='none'; return; }
+                if(contest && !contest.aktywny && contest.winners && contest.winners.length>0) {
+                    if(card)card.style.display='none';
+                    if(win){win.style.display='flex'; document.getElementById('winner-1').textContent=contest.winners[0]||'--'; document.getElementById('winner-2').textContent=contest.winners[1]||'--';}
+                    return;
+                }
+                // Jeśli konkurs nieaktywny ale BEZ zwycięzców — po prostu pokaż kartę
+                if(card)card.style.display='flex'; if(win)win.style.display='none';
+            } catch(e) { const c=document.getElementById('contest-start'); if(c)c.style.display='flex'; }
         }
+        initContest();
 
-        // Wylogowanie
-        function handleLogout() {
-            window._adminUser = null;
-            document.body.classList.remove('auth-ready');
-            document.getElementById('login-username').value = '';
-            document.getElementById('login-password').value = '';
+        async function loadCount() {
+            try { const c=await getContestCount(CONTEST_ID); const el=document.getElementById('contest-count-start'); if(el)el.textContent=c; } catch(e){}
         }
+        loadCount();
 
-        // Nawigacja między stronami
-        function switchPage(pageName) {
-            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            const btn  = document.querySelector('.nav-btn[data-page="' + pageName + '"]');
-            const page = document.getElementById('page-' + pageName);
-            if (btn)  btn.classList.add('active');
-            if (page) page.classList.add('active');
-            const titles = {
-                players: 'Gracze',
-                bans:    'Bany',
-                mutes:   'Muty',
-                action:  'Nadaj karę',
-                logs:    'Logi Akcji'
-            };
-            document.getElementById('topbar-title').textContent = titles[pageName] || pageName;
+        let currentContest=null;
+        window.openContest=function(id){currentContest=id;document.getElementById('contest-overlay').classList.add('open');document.getElementById('contest-msg').textContent='';['contest-nick-mc','contest-nick-dc','contest-secret'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});};
+        window.closeContest=function(e){if(!e||e.target===document.getElementById('contest-overlay'))document.getElementById('contest-overlay').classList.remove('open');};
+        window.submitContest=async function(){
+            const mc=document.getElementById('contest-nick-mc').value.trim(), dc=document.getElementById('contest-nick-dc').value.trim(), sec=document.getElementById('contest-secret').value.trim(), msg=document.getElementById('contest-msg');
+            if(!mc||!dc||!sec){msg.textContent='Wypelnij wszystkie pola!';msg.style.color='#ff5252';return;}
+            msg.textContent='Zapisuje...';msg.style.color='var(--text-muted)';
+            try{const r=await joinContest(window._currentContest||'start',{nickMC:mc,nickDC:dc,secret:sec});msg.textContent=r.message;msg.style.color=r.success?'#00e676':'#ff5252';if(r.success){loadCount();setTimeout(()=>document.getElementById('contest-overlay').classList.remove('open'),2500);}}
+            catch(e){msg.textContent='Blad polaczenia. Sprobuj ponownie.';msg.style.color='#ff5252';}
+        };
+
+        let adminLogged=false;
+        window.openContestAdmin=function(){document.getElementById('contest-admin-overlay').classList.add('open');if(!window._adminLogged){document.getElementById('admin-login-form').style.display='block';document.getElementById('admin-panel-content').style.display='none';document.getElementById('admin-login-err').style.display='none';}else{loadAdminPanel();}};
+        window.closeContestAdmin=function(e){if(!e||e.target===document.getElementById('contest-admin-overlay'))document.getElementById('contest-admin-overlay').classList.remove('open');};
+        window.adminLogin=async function(){
+            const l=document.getElementById('admin-login').value, p=document.getElementById('admin-pass').value;
+            if(l===ADMIN_LOGIN&&p===ADMIN_PASS){window._adminLogged=true;document.getElementById('admin-login-form').style.display='none';document.getElementById('admin-panel-content').style.display='flex';await loadAdminPanel();}
+            else{document.getElementById('admin-login-err').style.display='block';}
+        };
+        document.getElementById('admin-pass').addEventListener('keydown',e=>{if(e.key==='Enter')window.adminLogin();});
+        window.loadAdminPanel=async function(){
+            try{
+                const contest=await getContest(CONTEST_ID);
+                if(contest){const n=document.getElementById('admin-nagroda');const d=document.getElementById('admin-data');if(n)n.value=contest.nagroda||'2x Ranga CRIT na 14 dni';if(d&&contest.wyniki)d.value=contest.wyniki;}
+                const entries=await getEntries(CONTEST_ID);
+                const list=document.getElementById('admin-entries-list');
+                if(!list)return;
+                if(entries.length===0){list.innerHTML='<div style="color:var(--text-muted);font-size:0.9rem;padding:0.5rem;">Brak uczestnikow.</div>';return;}
+                list.innerHTML=entries.map(e=>'<div class="admin-entry"><div class="admin-entry-info"><div class="admin-entry-nick"><i class="fa-solid fa-cube"></i> '+(e.nickMC||e.id||'--')+'</div><div class="admin-entry-dc"><i class="fa-brands fa-discord"></i> '+(e.nickDC||'--')+'</div><div class="admin-entry-secret"><i class="fa-solid fa-key"></i> Slowo: '+(e.secret||'--')+'</div></div><button class="admin-entry-remove" onclick="adminRemoveEntry(\''+(e.nickMC||e.id)+'\')"><i class="fa-solid fa-trash"></i> Usun</button></div>').join('');
+            }catch(err){showAdminMsg('Blad Firebase','#ff5252');}
         }
+        window.adminRemoveEntry=async function(n){if(!confirm('Usunac '+n+'?'))return;await removeEntry(CONTEST_ID,n);await loadAdminPanel();loadCount();showAdminMsg('Usunieto.','#00e676');};
+        window.adminUpdateNagroda=async function(){const v=document.getElementById('admin-nagroda').value.trim();if(!v)return;await updateContest(CONTEST_ID,{nagroda:v});showAdminMsg('Nagroda zaktualizowana!','#00e676');};
+        window.adminUpdateData=async function(){const v=document.getElementById('admin-data').value;if(!v)return;await updateContest(CONTEST_ID,{wyniki:v});showAdminMsg('Data zaktualizowana!','#00e676');};
+        window.adminEndContest=async function(){if(!confirm('Zakonczyc konkurs?'))return;await endContest(CONTEST_ID);showAdminMsg('Konkurs zakonczony!','#ffb700');document.getElementById('contest-admin-overlay').classList.remove('open');initContest();};
+        window.adminAnnounceWinners=async function(){const w1=document.getElementById('winner-input-1').value.trim(),w2=document.getElementById('winner-input-2').value.trim();if(!w1||!w2){showAdminMsg('Wpisz oba nicki!','#ff5252');return;}if(!confirm('Oglosic: '+w1+' i '+w2+'?'))return;await setWinners(CONTEST_ID,[w1,w2]);showAdminMsg('Zwyciezcy ogloseni!','#00e676');document.getElementById('contest-admin-overlay').classList.remove('open');initContest();};
+        window.adminDeleteContest=async function(){if(!confirm('Usunac caly konkurs?'))return;await deleteContest(CONTEST_ID);document.getElementById('contest-admin-overlay').classList.remove('open');const c=document.getElementById('contest-start');if(c)c.style.display='none';};
+        function showAdminMsg(t,c){const el=document.getElementById('admin-action-msg');if(!el)return;el.textContent=t;el.style.color=c;setTimeout(()=>{if(el)el.textContent='';},3000);}
 
-        // Sidebar toggle (mobile)
-        function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('open');
-        }
-
-        // Zamknij modal klikając w tło
-        function closeModal(e) {
-            if (e.target.classList.contains('modal-overlay')) {
-                e.target.classList.remove('open');
-            }
-        }
-
-        function closeActionModal() {
-            document.getElementById('action-modal').classList.remove('open');
-        }
-
-        function closePlayerDetail() {
-            document.getElementById('player-detail-modal').classList.remove('open');
-        }
-
-        // Guard — przy każdym wejściu na stronę wymagane logowanie
-        // Brak sessionStorage = brak auto-login = zawsze loguj od nowa
-        (function checkAuth() {
-            // Wyczyść ewentualną starą sesję
-            sessionStorage.removeItem('admin_user');
-            // Panel zawsze ukryty na start — CSS !important to gwarantuje
-        })();
-
-        // =====================================================================
-        // PRZYCISKI AKCJI I CZASU — muszą być globalne (poza type="module")
-        // =====================================================================
-
-        // Zaznaczanie akcji (ban/mute/kick/warn/unban/unmute) w modalu
-        window.setAction = function(action) {
-            window._selectedAction = action;
-            document.querySelectorAll('#modal-action-btns .action-btn').forEach(b => b.classList.remove('selected'));
-            const btn = document.querySelector('#modal-action-btns .' + action + '-btn');
-            if (btn) btn.classList.add('selected');
-            // Ukryj duration dla unban/unmute/kick
-            const noDuration = ['unban', 'unmute', 'kick'];
-            document.getElementById('duration-field').style.display =
-                noDuration.includes(action) ? 'none' : 'block';
-        };
-
-        // Zaznaczanie czasu w modalu
-        window.setDuration = function(dur) {
-            window._selectedDuration = dur;
-            document.querySelectorAll('#duration-field .dur-btn').forEach(b => b.classList.remove('selected'));
-            event.target.classList.add('selected');
-            document.getElementById('duration-custom').value = '';
-        };
-
-        // Zaznaczanie akcji na stronie "Nadaj karę"
-        window.apSetAction = function(action) {
-            window._apAction = action;
-            document.querySelectorAll('#page-action .action-btn').forEach(b => b.classList.remove('selected'));
-            const btn = document.querySelector('#page-action .' + action + '-btn');
-            if (btn) btn.classList.add('selected');
-            // Ukryj duration dla unban/unmute/kick
-            const noDuration = ['unban', 'unmute', 'kick'];
-            const durField = document.getElementById('ap-duration-field');
-            if (durField) durField.style.display = noDuration.includes(action) ? 'none' : 'block';
-        };
-
-        // Zaznaczanie czasu na stronie "Nadaj karę"
-        window.apSetDuration = function(dur, btn) {
-            window._apDuration = dur;
-            document.querySelectorAll('#ap-duration-field .dur-btn').forEach(b => b.classList.remove('selected'));
-            if (btn) btn.classList.add('selected');
-            const custom = document.getElementById('ap-duration-custom');
-            if (custom) custom.value = '';
-        };
-
-        // Szukaj gracza na stronie "Nadaj karę" (podgląd avatara)
-        window.apSearchPlayer = function(nick) {
-            const preview = document.getElementById('ap-player-preview');
-            if (!preview) return;
-            if (!nick || nick.length < 2) {
-                preview.style.display = 'none';
-                return;
-            }
-            preview.style.display = 'flex';
-            preview.innerHTML =
-                '<img src="https://mc-heads.net/avatar/' + encodeURIComponent(nick) + '/36" ' +
-                'style="width:36px;height:36px;border-radius:6px;border:1px solid var(--border);image-rendering:pixelated;" ' +
-                'onerror="this.src=\'https://mc-heads.net/avatar/Steve/36\'">' +
-                '<span style="font-weight:700;font-size:0.92rem;">' + nick + '</span>';
-        };
-
-        // Wykonaj akcję ze strony "Nadaj karę"
-        window.apSubmit = function() {
-            window.dispatchEvent(new CustomEvent('apSubmitAction'));
-        };
-
-        // Wykonaj akcję z modala
-        window.submitAction = function() {
-            window.dispatchEvent(new CustomEvent('submitModalAction'));
-        };
-
-        // Otwórz modal akcji na graczu (z tabeli)
-        window.openActionModal = function(nick, uuid) {
-            window._actionModalPlayer = { nick, uuid };
-            window._selectedAction   = null;
-            window._selectedDuration = null;
-            document.getElementById('modal-title').textContent = 'Akcja na graczu: ' + nick;
-            document.getElementById('modal-player-info').innerHTML =
-                '<img src="https://mc-heads.net/avatar/' + encodeURIComponent(nick) + '/36" ' +
-                'style="width:36px;height:36px;border-radius:6px;border:1px solid var(--border);image-rendering:pixelated;" ' +
-                'onerror="this.src=\'https://mc-heads.net/avatar/Steve/36\'">' +
-                '<div><div style="font-weight:700;">' + nick + '</div>' +
-                '<div style="font-size:0.72rem;color:var(--text-secondary);font-family:monospace;">' + (uuid || 'UUID nieznany') + '</div></div>';
-            document.querySelectorAll('#modal-action-btns .action-btn').forEach(b => b.classList.remove('selected'));
-            document.querySelectorAll('#duration-field .dur-btn').forEach(b => b.classList.remove('selected'));
-            document.getElementById('action-reason').value   = '';
-            document.getElementById('duration-custom').value = '';
-            document.getElementById('modal-msg').style.display = 'none';
-            document.getElementById('duration-field').style.display = 'block';
-            document.getElementById('action-modal').classList.add('open');
-        };
-
-        window.openPlayerDetail = function(playerId) {
-            window.dispatchEvent(new CustomEvent('openPlayerDetail', { detail: playerId }));
-        };
-
-        window.quickUnban = function(nick, banId) {
-            window.dispatchEvent(new CustomEvent('quickUnban', { detail: { nick, banId } }));
-        };
-
-        window.quickUnmute = function(nick, muteId) {
-            window.dispatchEvent(new CustomEvent('quickUnmute', { detail: { nick, muteId } }));
-        };
+        const CHANGES_KEY='critmc-changes';
+        let changesLogged=false;
+        function loadChanges(){const d=JSON.parse(localStorage.getItem(CHANGES_KEY)||'{}');const map={zwykle:'mode-zwykle',szczegolowe:'mode-szczegolowe',najmocniejsze:'mode-najmocniejsze'};Object.entries(map).forEach(([k,id])=>{const el=document.getElementById(id);if(el&&d[k])el.innerHTML='<p style="white-space:pre-line">'+d[k]+'</p>';});}
+        loadChanges();
+        window.openChangesAdmin=function(){document.getElementById('changes-admin-overlay').classList.add('open');if(!changesLogged){document.getElementById('changes-admin-login').style.display='block';document.getElementById('changes-admin-panel').style.display='none';document.getElementById('changes-admin-err').style.display='none';}else{const d=JSON.parse(localStorage.getItem(CHANGES_KEY)||'{}');['zwykle','szczegolowe','najmocniejsze'].forEach(m=>{const el=document.getElementById('edit-'+m);if(el)el.value=d[m]||'';});}};
+        window.closeChangesAdmin=function(e){if(!e||e.target===document.getElementById('changes-admin-overlay'))document.getElementById('changes-admin-overlay').classList.remove('open');};
+        window.changesAdminLogin=function(){if(document.getElementById('changes-admin-l').value===ADMIN_LOGIN&&document.getElementById('changes-admin-p').value===ADMIN_PASS){changesLogged=true;document.getElementById('changes-admin-login').style.display='none';document.getElementById('changes-admin-panel').style.display='flex';const d=JSON.parse(localStorage.getItem(CHANGES_KEY)||'{}');['zwykle','szczegolowe','najmocniejsze'].forEach(m=>{const el=document.getElementById('edit-'+m);if(el)el.value=d[m]||'';});}else{document.getElementById('changes-admin-err').style.display='block';}};
+        document.getElementById('changes-admin-p').addEventListener('keydown',e=>{if(e.key==='Enter')window.changesAdminLogin();});
+        window.saveChangesAdmin=function(){const d={zwykle:document.getElementById('edit-zwykle').value,szczegolowe:document.getElementById('edit-szczegolowe').value,najmocniejsze:document.getElementById('edit-najmocniejsze').value};localStorage.setItem(CHANGES_KEY,JSON.stringify(d));loadChanges();const msg=document.getElementById('changes-save-msg');msg.textContent='Zapisano!';msg.style.color='#00e676';setTimeout(()=>{msg.textContent='';document.getElementById('changes-admin-overlay').classList.remove('open');},1500);};
     </script>
 </body>
 </html>
