@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CritMC - Oficjalny Serwer KitPvP</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="home.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+    <div class="decor-glow bg-glow-1"></div>
+    <div class="decor-glow bg-glow-2"></div>
+
+    <!-- Nagłówek -->
+    <header>
+        <div class="header-container">
+            <div class="logo-area">
+                <h1 class="logo-main">CritMC</h1>
+                <p class="logo-sub">KitPvP</p>
+            </div>
+            <div class="server-info">
+                <div class="info-box click-to-copy" id="ip-box" data-ip="critmc.pl">
+                    <i class="fa-solid fa-gamepad"></i>
+                    <div>
+                        <span class="info-label">IP SERWERA</span>
+                        <span class="info-value">critmc.pl</span>
+                    </div>
+                    <span class="copy-tooltip">Kliknij, aby skopiować!</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Nawigacja główna -->
+    <nav class="tabs-nav">
+        <div class="nav-container">
+            <button class="tab-button active" data-tab="nowosci">
+                <i class="fa-solid fa-star"></i> Nowości
+            </button>
+            <button class="tab-button" data-tab="sklep">
+                <i class="fa-solid fa-shop"></i> Sklep
+            </button>
+            <button class="tab-button" data-tab="regulamin">
+                <i class="fa-solid fa-scale-balanced"></i> Regulamin + Administracja
+            </button>
+            <button class="tab-button" data-tab="media">
+                <i class="fa-solid fa-photo-film"></i> Media
+            </button>
+            <button class="tab-button" data-tab="inne-strona">
+                <i class="fa-solid fa-ellipsis"></i> Inne
+            </button>
+        </div>
+    </nav>
+
+    <main class="shop-content">
+
+        <!-- Nowości -->
+        <section id="nowosci" class="tab-content active">
+            <div class="section-header">
+                <h2>Nowości</h2>
+                <p>Najnowsze informacje o serwerze</p>
+            </div>
+            <div class="home-placeholder">
+                <div class="launch-banner">PLANOWANY START<br>POD KONIEC SIERPNIA</div>
+                <i class="fa-solid fa-newspaper"></i>
+                <p>Brak nowości — wróć wkrótce!</p>
+            </div>
+        </section>
+
+        <!-- Sklep -->
+        <section id="sklep" class="tab-content">
+            <div class="section-header">
+                <h2>Sklep</h2>
+                <p>Rangi, klucze, zestawy i więcej</p>
+            </div>
+            <div class="home-placeholder">
+                <a href="shop.html" class="home-shop-btn">
+                    <i class="fa-solid fa-shop"></i> Przejdź do Sklepu
+                </a>
+            </div>
+        </section>
+
+        <!-- Regulamin -->
+        <section id="regulamin" class="tab-content">
+
+            <!-- REGULAMINY -->
+            <h3 class="team-section-title" style="margin-bottom:1rem;"><i class="fa-solid fa-scroll"></i> Regulaminy</h3>
+
+            <div class="changes-card" onclick="openRegulamin()" style="margin-bottom:2.5rem;">
+                <div class="changes-card-icon"><i class="fa-solid fa-scroll"></i></div>
+                <div class="changes-card-text">
+                    <div class="changes-card-title">Tymczasowy Regulamin</div>
+                    <div class="changes-card-sub">Regulamin CritMC.PL — rozgrywka, Discord, mody i backupy</div>
+                </div>
+                <i class="fa-solid fa-arrow-right changes-card-arrow"></i>
+            </div>
+
+            <!-- Overlay regulaminu -->
+            <div class="changes-overlay" id="regulamin-overlay" onclick="closeRegulamin(event)">
+                <div class="changes-panel-box" style="max-height:85vh;">
+                    <div class="changes-panel-header">
+                        <span><i class="fa-solid fa-scroll"></i> Regulamin CritMC.PL</span>
+                        <button class="changes-close-btn" onclick="closeRegulamin()"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                    <div class="regulamin-content">
+                        <div class="reg-section">
+                            <h4 class="reg-title"><i class="fa-solid fa-gamepad"></i> ROZGRYWKA</h4>
+                            <ul class="reg-list">
+                                <li><span class="reg-par">§1</span> Zabronione jest używanie wspomagaczy uznawanych za cheaty oraz wszelkich skryptów/modyfikacji</li>
+                                <li><span class="reg-par">§2</span> Zabronione jest wykorzystywania błędów serwera oraz nie zgłaszania ich</li>
+                                <li><span class="reg-par">§3</span> Zabronione jest tworzenie i bycie online na więcej niż trzech kontach oraz omijanie bana</li>
+                                <li><span class="reg-par">§4</span> Zabronione jest podszywanie się pod innych graczy</li>
+                                <li><span class="reg-par">§5</span> Zabronione jest obrażanie innych członków serwera w tym administracji</li>
+                                <li><span class="reg-par">§6</span> Zabronione jest reklamowanie się jeśli treści nie mają powiązania z CritMc.pl</li>
+                                <li><span class="reg-par">§7</span> Zabronione jest ujawnianie danych osobowych, wizerunku innych użytkowników</li>
+                                <li><span class="reg-par">§8</span> Zabronione jest używanie wulgaryzmów na czacie</li>
+                                <li><span class="reg-par">§9</span> Zabronione jest nabijanie statystyk w nieodpowiedni sposób</li>
+                                <li><span class="reg-par">§10</span> Zabronione jest nadmierne korzystanie z komendy /helpop</li>
+                                <li><span class="reg-par">§11</span> Zabronione jest sprzedawanie kont i przedmiotów w grze za realne pieniądze</li>
+                                <li><span class="reg-par">§12</span> Administrator ma prawo ukarać użytkownika za rzecz niewymienioną w regulaminie</li>
+                            </ul>
+                        </div>
+                        <div class="reg-section">
+                            <h4 class="reg-title"><i class="fa-brands fa-discord"></i> DISCORD</h4>
+                            <ul class="reg-list">
+                                <li><span class="reg-par">§1</span> Zabrania się wulgaryzmów, treści o charakterze NSFW, rasistowskich, politycznych itp.</li>
+                                <li><span class="reg-par">§2</span> Zabrania się reklamowania treści niezwiązanych z serwerem</li>
+                                <li><span class="reg-par">§3</span> Zabrania się spamowania, powtarzania tych samych wiadomości oraz pisania capslockiem</li>
+                                <li><span class="reg-par">§4</span> Zabrania się ujawniania danych osobowych, wizerunku innych użytkowników</li>
+                                <li><span class="reg-par">§5</span> Zabrania się podszywania pod innych użytkowników/administrację</li>
+                                <li><span class="reg-par">§6</span> Zabrania się pisania rzeczy niezgodnych z tematyką kanału</li>
+                                <li><span class="reg-par">§7</span> Zabrania się tworzenia ticketów bez uzasadnienia i trollowania w ich treści</li>
+                                <li><span class="reg-par">§8</span> Awatar oraz nick nie mogą zawierać treści z podpunktu pierwszego</li>
+                                <li><span class="reg-par">§9</span> Zabrania się robienia bezsensownych ticketów</li>
+                            </ul>
+                        </div>
+                        <div class="reg-section reg-two-col">
+                            <div>
+                                <h4 class="reg-title reg-green"><i class="fa-solid fa-check"></i> DOZWOLONE MODYFIKACJE</h4>
+                                <ul class="reg-list">
+                                    <li>Widoczność życia przeciwnika</li>
+                                    <li>Widoczność zużycia zbroi przeciwnika</li>
+                                    <li>Mouse Tweaks</li>
+                                    <li>Better PvP</li>
+                                    <li>Soup Api</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 class="reg-title reg-red"><i class="fa-solid fa-xmark"></i> ZABRONIONE MODYFIKACJE</h4>
+                                <ul class="reg-list">
+                                    <li>Minimapa</li>
+                                    <li>InvMove</li>
+                                    <li>Baritone i inne boty do kopania</li>
+                                    <li>SwingThrought</li>
+                                    <li>Accurate Block Placement</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="reg-section">
+                            <h4 class="reg-title"><i class="fa-solid fa-box-archive"></i> BACKUPY EKWIPUNKU</h4>
+                            <ol class="reg-list reg-ordered">
+                                <li>Stwórz ticket w odpowiedniej kategorii</li>
+                                <li>Opisz sytuację oraz wyślij nagranie z momentu śmierci</li>
+                                <li>Nagranie musi zawierać: moment śmierci, moment teleportacji (jeśli występuje), pełen obraz z gry</li>
+                                <li>Nie otrzymasz backupa jeśli: nie posiadasz nagrania, nagranie z replay moda, nagranie telefonem, nie widać pełnego ekranu</li>
+                                <li>Użyj komendy <code>/backupodbierz</code> na serwerze (pusty ekwipunek)</li>
+                            </ol>
+                        </div>
+                        <div class="reg-footer">
+                            <i class="fa-solid fa-circle-info"></i> Brak znajomości regulaminu nie zwalnia z obowiązku jego przestrzegania.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ADMINISTRACJA -->
+            <h3 class="team-section-title" style="margin-bottom:1rem;"><i class="fa-solid fa-crown"></i> Ekipa</h3>
+
+            <div class="team-owner">
+                <div class="team-owner-inner">
+                    <img src="https://visage.surgeplay.com/bust/256/sosenka8" alt="sosenka8" class="team-owner-head">
+                    <div class="team-owner-info">
+                        <div class="team-owner-role">Właściciel</div>
+                        <div class="team-owner-name">sosenka8</div>
+                        <div class="team-owner-socials">
+                            <a href="https://youtube.com/@sosenka8" target="_blank" class="team-social-btn team-yt"><i class="fa-brands fa-youtube"></i> YouTube</a>
+                            <a href="https://tiktok.com/@sosenka8" target="_blank" class="team-social-btn team-tt"><i class="fa-brands fa-tiktok"></i> TikTok</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="team-cowowner">
+                <div class="team-cowowner-inner">
+                    <img src="https://mc-heads.net/avatar/Steve/64" alt="Współwłaściciel" class="team-cowowner-head">
+                    <div class="team-cowowner-info">
+                        <div class="team-cowowner-role">Współwłaściciel</div>
+                        <div class="team-cowowner-name">???</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="team-admins-section">
+                <h3 class="team-section-title"><i class="fa-solid fa-user-shield"></i> Personel</h3>
+                <div class="team-admins-grid">
+                    <div class="team-admin-card" onclick="toggleAdmin(this)">
+                        <div class="team-admin-header">
+                            <img src="https://mc-heads.net/avatar/Steve/48" alt="Admin" class="team-admin-head">
+                            <div>
+                                <div class="team-admin-name">Admin1</div>
+                                <div class="team-admin-rank">Administrator</div>
+                            </div>
+                            <i class="fa-solid fa-chevron-down team-admin-arrow"></i>
+                        </div>
+                        <div class="team-admin-details">
+                            <p><i class="fa-solid fa-circle-info"></i> <strong>Opis:</strong> Brak opisu.</p>
+                            <p><i class="fa-solid fa-crown"></i> <strong>Ranga:</strong> Administrator</p>
+                            <p><i class="fa-solid fa-key"></i> <strong>Uprawnienia:</strong> /ban, /kick, /mute, /tp</p>
+                            <p><i class="fa-solid fa-calendar"></i> <strong>Od:</strong> —</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="team-recruit-banner">
+                <div class="team-recruit-inner">
+                    <div class="team-recruit-text">
+                        <div class="team-recruit-title"><i class="fa-solid fa-shield-halved"></i> Dołącz do Administracji</div>
+                        <div class="team-recruit-sub">Wypełnij formularz i zgłoś swoją kandydaturę na administratora CritMC</div>
+                    </div>
+                    <a href="https://forms.gle/NS5dWS1E3mVjthKE7" target="_blank" class="team-recruit-btn">
+                        <i class="fa-solid fa-file-pen"></i> Wypełnij formularz
+                    </a>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- Media -->
+        <section id="media" class="tab-content">
+            <div class="section-header">
+                <h2>Media</h2>
+                <p>Nasze kanały, social media i twórcy serwera</p>
+            </div>
+            <div class="home-media-layout">
+                <a href="https://dc.critmc.pl" target="_blank" class="home-media-discord">
+                    <i class="fa-brands fa-discord"></i>
+                    <div>
+                        <span class="home-media-discord-title">Discord</span>
+                        <span class="home-media-discord-sub">dc.critmc.pl — Dołącz do społeczności!</span>
+                    </div>
+                </a>
+                <div class="home-media-row">
+                    <a href="https://www.youtube.com/@Critmc.pl_1" target="_blank" class="home-media-card">
+                        <i class="fa-brands fa-youtube" style="color:#ff0000;"></i>
+                        <span>YouTube</span>
+                        <span class="home-media-handle">@Critmc.pl_1</span>
+                    </a>
+                    <a href="https://www.tiktok.com/@critmc.pl" target="_blank" class="home-media-card">
+                        <i class="fa-brands fa-tiktok" style="color:#00f0ff;"></i>
+                        <span>TikTok</span>
+                        <span class="home-media-handle">@critmc.pl</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- TWÓRCY -->
+            <div class="team-creators-section">
+                <h3 class="team-section-title"><i class="fa-solid fa-video"></i> Twórcy</h3>
+                <div class="team-admins-grid">
+                    <div class="team-admin-card" onclick="toggleAdmin(this)">
+                        <div class="team-admin-header">
+                            <img src="https://mc-heads.net/avatar/Steve/48" alt="Twórca" class="team-admin-head">
+                            <div>
+                                <div class="team-admin-name">Twórca1</div>
+                                <div class="team-admin-rank" style="color:#ff00ff;">Twórca Serwerowy</div>
+                            </div>
+                            <i class="fa-solid fa-chevron-down team-admin-arrow"></i>
+                        </div>
+                        <div class="team-admin-details">
+                            <div class="creator-skin-wrap">
+                                <img src="https://visage.surgeplay.com/bust/120/Steve" alt="skin" class="creator-skin">
+                            </div>
+                            <p><i class="fa-solid fa-circle-info"></i> <strong>Opis:</strong> Brak opisu.</p>
+                            <div class="creator-socials">
+                                <a href="#" target="_blank" class="team-social-btn team-yt"><i class="fa-brands fa-youtube"></i> YouTube</a>
+                                <a href="#" target="_blank" class="team-social-btn team-tt"><i class="fa-brands fa-tiktok"></i> TikTok</a>
+                                <a href="#" target="_blank" class="team-social-btn team-dc"><i class="fa-brands fa-discord"></i> Discord</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="team-recruit-banner" style="margin-top:1.5rem; border-color:rgba(255,0,255,0.2); background:linear-gradient(135deg,rgba(255,0,255,0.07) 0%,rgba(136,197,255,0.05) 100%);">
+                    <div class="team-recruit-inner">
+                        <div class="team-recruit-text">
+                            <div class="team-recruit-title"><i class="fa-solid fa-star" style="color:#ff00ff;"></i> Zostań Twórcą Serwerowym</div>
+                            <div class="team-recruit-sub">Twórz content o CritMC i zdobądź specjalne benefity! Zgłoś się na naszym Discordzie.</div>
+                        </div>
+                        <a href="https://dc.critmc.pl" target="_blank" class="team-recruit-btn" style="background:linear-gradient(135deg,#aa00ff,#ff00ff);">
+                            <i class="fa-brands fa-discord"></i> Zgłoś się na Discord
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Inne -->
+        <section id="inne-strona" class="tab-content">
+            <div class="section-header">
+                <h2>Inne</h2>
+                <p>Zmiany serwerowe i więcej</p>
+            </div>
+
+            <!-- Zmiany serwerowe -->
+            <div class="changes-card" onclick="openChanges()">
+                <div class="changes-card-icon"><i class="fa-solid fa-list-check"></i></div>
+                <div class="changes-card-text">
+                    <div class="changes-card-title">Zmiany Serwerowe</div>
+                    <div class="changes-card-sub">Sprawdź co nowego pojawiło się na serwerze</div>
+                </div>
+                <i class="fa-solid fa-arrow-right changes-card-arrow"></i>
+            </div>
+
+            <!-- Panel zmian - overlay -->
+            <div class="changes-overlay" id="changes-overlay" onclick="closeChanges(event)">
+                <div class="changes-panel-box">
+                    <div class="changes-panel-header">
+                        <span><i class="fa-solid fa-list-check"></i> Zmiany Serwerowe</span>
+                        <button class="changes-close-btn" onclick="closeChanges()"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                    <div class="changes-mode-tabs">
+                        <button class="changes-tab active" data-mode="zwykle">Zwykłe</button>
+                        <button class="changes-tab" data-mode="szczegolowe">Szczegółowe</button>
+                        <button class="changes-tab" data-mode="najmocniejsze">Najmocniejsze</button>
+                    </div>
+                    <div class="changes-content">
+                        <div class="changes-panel active" id="mode-zwykle">
+                            <p>Brak zmian — wróć wkrótce!</p>
+                        </div>
+                        <div class="changes-panel" id="mode-szczegolowe">
+                            <p>Brak szczegółowych zmian — wróć wkrótce!</p>
+                        </div>
+                        <div class="changes-panel" id="mode-najmocniejsze">
+                            <p>Brak zmian w trybie najmocniejszym — wróć wkrótce!</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer>
+        <div class="footer-container">
+            <p>&copy; 2026 CritMC. Wszelkie prawa zastrzeżone.</p>
+            <p class="footer-sub">Serwer nie jest powiązany z Mojang AB ani Microsoft.</p>
+            <div class="footer-links">
+                <a href="#">Regulamin</a>
+                <a href="#">Polityka Prywatności</a>
+                <a href="https://dc.critmc.pl" target="_blank">Discord Pomoc</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="home.js"></script>
+</body>
+</html>
+
