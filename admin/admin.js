@@ -1124,11 +1124,14 @@ window.loadSitePage = async function() {
 };
 
 window.switchSiteTab = function(tab) {
+    // Przyciski
     document.querySelectorAll('.site-tab-btn').forEach(b => {
-        b.classList.toggle('active', b.dataset.siteTab === tab);
+        b.classList.toggle('active', b.getAttribute('data-site-tab') === tab);
     });
+    // Panele — użyj sp-active żeby nie kolidować z CSS .page.active
     document.querySelectorAll('.site-tab-panel').forEach(p => {
-        p.style.display = p.id === 'site-tab-' + tab ? 'block' : 'none';
+        const isTarget = p.id === 'site-tab-' + tab;
+        p.classList.toggle('sp-active', isTarget);
     });
 };
 
