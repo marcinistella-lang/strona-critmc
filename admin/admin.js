@@ -20,58 +20,116 @@ const db = getFirestore(app);
 let currentUser = null;
 let allPlayers = [], allBans = [], allMutes = [], allLogs = [];
 
+// ─── Domyślne konta (fallback gdy Firestore puste) ──────────────────
+const DEFAULT_ACCOUNTS = [
+    { login: 'test', password: 'test', displayName: 'Test Admin', role: 'Zarządzający', permissions: ['all'] }
+];
+
+// ─── Uprawnienia per ranga ────────────────────────────────────────────
+const ROLE_PERMISSIONS = {
+    'ChatMod':      ['mute', 'unmute', 'warn', 'check'],
+    'Pomocnik':     ['mute', 'unmute', 'kick', 'warn', 'check', 'players'],
+    'Moderator':    ['ban', 'unban', 'mute', 'unmute', 'kick', 'warn', 'check', 'players', 'logs'],
+    'Admin':        ['ban', 'unban', 'mute', 'unmute', 'kick', 'warn', 'check', 'players', 'logs', 'notes'],
+    'Zarządzający': ['all']
+};
+
+function hasPermission(perm) {
+    if (!currentUser) return false;
+    const perms = currentUser.permissions || [];
+    return perms.includes('all') || perms.includes(perm);
+}
+
 // ─── Nasłuch na login z inline scriptu ──────────────────────────────
 window.addEventListener('adminLogin', async (e) => {
-    // Weryfikacja w Firestore
     const { login, password } = e.detail;
+
+    // Najpierw sprawdź Firestore
     try {
         const snap = await getDocs(query(collection(db, 'admins'), where('login','==',login)));
-        if (snap.empty) { showLoginError('Błędny login lub hasło!'); return; }
-        const adminDoc = snap.docs[0];
-        const data = adminDoc.data();
 
-        // Sprawdź hasło (plain text na razie — potem bcrypt przez backend)
-        if (data.password !== password) { showLoginError('Błędny login lub hasło!'); return; }
-        if (data.disabled) { showLoginError('Konto zablokowane!'); return; }
-
-        currentUser = {
-            id: adminDoc.id,
-            login: data.login,
-            displayName: data.displayName || data.login,
-            role: data.role || 'Admin',
-            permissions: data.permissions || []
-        };
-
-        // Zaloguj — pokaż panel
-        document.body.classList.add('auth-ready');
-        document.getElementById('su-name').textContent   = currentUser.displayName;
-        document.getElementById('su-role').textContent   = currentUser.role;
-        document.getElementById('su-avatar').textContent = currentUser.displayName.charAt(0).toUpperCase();
-        updateServerStatus('loading', 'Łączenie...');
-        loadAll();
-        setTimeout(() => updateServerStatus('online', 'Serwer online'), 1500);
-    } catch (err) {
-        // Fallback na hardcoded konto jeśli Firestore niedostępny
-        if (login === 'test' && password === 'test') {
-            currentUser = { id:'local', login:'test', displayName:'Test Admin', role:'Zarządzający', permissions:['all'] };
-            document.body.classList.add('auth-ready');
-            document.getElementById('su-name').textContent   = currentUser.displayName;
-            document.getElementById('su-role').textContent   = currentUser.role;
-            document.getElementById('su-avatar').textContent = 'T';
-            updateServerStatus('loading', 'Łączenie...');
-            loadAll();
-            setTimeout(() => updateServerStatus('online', 'Serwer online'), 1500);
-        } else {
-            showLoginError('Błąd połączenia z bazą danych!');
+        if (!snap.empty) {
+            const adminDoc = snap.docs[0];
+            const data = adminDoc.data();
+            if (data.password !== password) { showLoginError('Błędny login lub hasło!'); return; }
+            if (data.disabled) { showLoginError('Konto zablokowane!'); return; }
+            currentUser = {
+                id: adminDoc.id, login: data.login,
+                displayName: data.displayName || data.login,
+                role: data.role || 'Admin',
+                permissions: data.permissions || ROLE_PERMISSIONS[data.role] || []
+            };
+            initPanelUI();
+            return;
         }
+    } catch (err) {
+        console.warn('[CritMC] Firestore niedostępny, próba fallback:', err.message);
+    }
+
+    // Fallback — konta lokalne
+    const local = DEFAULT_ACCOUNTS.find(a => a.login === login && a.password === password);
+    if (local) {
+        currentUser = { ...local };
+        initPanelUI();
+        // Utwórz konto w Firestore jeśli nie istnieje
+        try {
+            const check = await getDocs(query(collection(db, 'admins'), where('login','==',login)));
+            if (check.empty) {
+                await addDoc(collection(db, 'admins'), {
+                    login: local.login, password: local.password,
+                    displayName: local.displayName, role: local.role,
+                    permissions: local.permissions, disabled: false,
+                    createdAt: serverTimestamp(), createdBy: 'system'
+                });
+            }
+        } catch(e) { /* silent */ }
+    } else {
+        showLoginError('Błędny login lub hasło!');
     }
 });
 
+function initPanelUI() {
+    document.body.classList.add('auth-ready');
+    document.getElementById('su-name').textContent   = currentUser.displayName;
+    document.getElementById('su-role').textContent   = currentUser.role;
+    document.getElementById('su-avatar').textContent = currentUser.displayName.charAt(0).toUpperCase();
+    applyPermissions();
+    updateServerStatus('loading', 'Łączenie...');
+    loadAll();
+    setTimeout(() => updateServerStatus('online', 'Serwer online'), 1500);
+}
+
+// Ukryj elementy na podstawie uprawnień
+function applyPermissions() {
+    // Przyciski akcji
+    const actionMap = {
+        '.ban-btn':    'ban',
+        '.unban-btn':  'unban',
+        '.mute-btn':   'mute',
+        '.unmute-btn': 'unmute',
+        '.kick-btn':   'kick',
+        '.warn-btn':   'warn',
+        '.check-btn':  'check'
+    };
+    Object.entries(actionMap).forEach(([sel, perm]) => {
+        document.querySelectorAll(sel).forEach(el => {
+            el.style.display = hasPermission(perm) ? '' : 'none';
+        });
+    });
+    // Zakładka Administratorzy — tylko Zarządzający
+    const adminsNav = document.querySelector('.nav-btn[data-page="admins"]');
+    if (adminsNav) adminsNav.style.display = hasPermission('all') ? '' : 'none';
+    // Logi — tylko moderator+
+    const logsNav = document.querySelector('.nav-btn[data-page="logs"]');
+    if (logsNav) logsNav.style.display = hasPermission('logs') ? '' : 'none';
+}
+
 function showLoginError(msg) {
-    // Ukryj panel, pokaż ekran logowania z błędem
     document.body.classList.remove('auth-ready');
-    const err = document.getElementById('login-error');
-    if (err) { err.style.display = 'flex'; err.querySelector('i').nextSibling.textContent = ' ' + msg; }
+    // Wywołaj licznik prób z inline scriptu
+    if (typeof window.recordFailedAttempt === 'function') {
+        window.recordFailedAttempt();
+    }
     const pwEl = document.getElementById('login-password');
     if (pwEl) pwEl.value = '';
 }

@@ -700,31 +700,93 @@
             }
         }
 
-        // Konta adminów — hardcoded (tymczasowo)
-        const ADMINS = [
-            { login: 'test', password: 'test', displayName: 'Test Admin', role: 'Zarządzający' }
-        ];
+        // ─── Zabezpieczenie brute-force ──────────────────────────────
+        const BLOCK_KEY   = 'ap_block';
+        const ATTEMPT_KEY = 'ap_attempts';
+        const MAX_BEFORE_KICK   = 3;
+        const MAX_BEFORE_BLOCK  = 10;
+        const BLOCK_DURATION_MS = 20 * 60 * 60 * 1000;
 
-        // Logowanie
-        function handleLogin(e) {
-            e.preventDefault();
-            const login    = document.getElementById('login-username').value.trim();
-            const password = document.getElementById('login-password').value;
-            const errEl    = document.getElementById('login-error');
+        function checkBlocked() {
+            const block = JSON.parse(localStorage.getItem(BLOCK_KEY) || 'null');
+            if (!block) return false;
+            if (Date.now() < block.until) return true;
+            localStorage.removeItem(BLOCK_KEY);
+            localStorage.removeItem(ATTEMPT_KEY);
+            return false;
+        }
 
-            const account = ADMINS.find(a => a.login === login && a.password === password);
+        function getAttempts() {
+            return parseInt(localStorage.getItem(ATTEMPT_KEY) || '0');
+        }
 
-            if (!account) {
-                errEl.style.display = 'flex';
-                document.getElementById('login-password').value = '';
+        window.recordFailedAttempt = function() {
+            const attempts = getAttempts() + 1;
+            localStorage.setItem(ATTEMPT_KEY, String(attempts));
+
+            if (attempts >= MAX_BEFORE_BLOCK) {
+                const until = Date.now() + BLOCK_DURATION_MS;
+                localStorage.setItem(BLOCK_KEY, JSON.stringify({ until }));
+                localStorage.removeItem(ATTEMPT_KEY);
+                showBlockedScreen(until);
                 return;
             }
 
-            errEl.style.display = 'none';
-            // NIE zapisujemy do sessionStorage — sesja żyje tylko w tej karcie
+            if (attempts >= MAX_BEFORE_KICK) {
+                document.body.innerHTML = `
+                    <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0f0c1a;flex-direction:column;gap:1.5rem;padding:2rem;text-align:center;">
+                        <div style="font-size:3rem;">🚫</div>
+                        <div style="font-size:1.2rem;font-weight:800;color:#ef4444;">Zbyt wiele błędnych prób</div>
+                        <div style="color:#9ca3af;font-size:.9rem;">Zostałeś wylogowany ze strony po ${MAX_BEFORE_KICK} nieudanych próbach logowania.</div>
+                        <div style="color:#6b7280;font-size:.82rem;">Pozostało prób do blokady: ${MAX_BEFORE_BLOCK - attempts}</div>
+                        <button onclick="location.reload()" style="background:#ef4444;color:#fff;border:none;padding:.75rem 2rem;border-radius:8px;font-size:.95rem;font-weight:700;cursor:pointer;margin-top:.5rem;">
+                            Spróbuj ponownie
+                        </button>
+                    </div>`;
+                return;
+            }
+
+            const remaining = MAX_BEFORE_KICK - attempts;
+            const errEl = document.getElementById('login-error');
+            if (errEl) {
+                errEl.style.display = 'flex';
+                errEl.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> Błędny login lub hasło! (${remaining} prób do wyrzutu)`;
+            }
+        };
+
+        function showBlockedScreen(until) {
+            const timeLeft = Math.ceil((until - Date.now()) / 3600000);
+            document.body.innerHTML = `
+                <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0f0c1a;flex-direction:column;gap:1.5rem;padding:2rem;text-align:center;">
+                    <div style="font-size:3rem;">⛔</div>
+                    <div style="font-size:1.2rem;font-weight:800;color:#ef4444;">Dostęp zablokowany</div>
+                    <div style="color:#9ca3af;font-size:.9rem;">Przekroczono limit błędnych prób logowania.</div>
+                    <div style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:10px;padding:1rem 2rem;">
+                        <div style="color:#ef4444;font-weight:800;font-size:1.1rem;">Blokada: ~${timeLeft}h</div>
+                        <div style="color:#6b7280;font-size:.78rem;margin-top:.3rem;">Wygasa: ${new Date(until).toLocaleString('pl-PL')}</div>
+                    </div>
+                </div>`;
+        }
+
+        // Logowanie — tylko brute-force check + przekazanie do admin.js (moduł)
+        function handleLogin(e) {
+            e.preventDefault();
+
+            if (checkBlocked()) {
+                const block = JSON.parse(localStorage.getItem(BLOCK_KEY));
+                showBlockedScreen(block.until);
+                return;
+            }
+
+            const login    = document.getElementById('login-username').value.trim();
+            const password = document.getElementById('login-password').value;
+
+            // Przekaż do admin.js (moduł) który sprawdza Firestore
+            // admin.js wywoła recordFailedAttempt() jeśli błąd
+            window.dispatchEvent(new CustomEvent('adminLogin', { detail: { login, password } }));
+        }
             window._adminUser = account;
-            document.body.classList.add('auth-ready');
-            window.dispatchEvent(new CustomEvent('adminLogin', { detail: account }));
+            window.dispatchEvent(new CustomEvent('adminLogin', { detail: { login, password } }));
         }
 
         // Wylogowanie
@@ -748,7 +810,9 @@
                 bans:    'Bany',
                 mutes:   'Muty',
                 action:  'Nadaj karę',
-                logs:    'Logi Akcji'
+                logs:    'Logi Akcji',
+                stats:   'Statystyki Adminów',
+                admins:  'Administratorzy'
             };
             document.getElementById('topbar-title').textContent = titles[pageName] || pageName;
         }

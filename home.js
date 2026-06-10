@@ -119,32 +119,32 @@ function closeContestAdmin(e) {
     }
 }
 
-// --- ZMIANY ADMIN ---
-function openChangesAdmin() {
-    document.getElementById('changes-admin-overlay').classList.add('open');
-    if (!window._changesLogged) {
-        document.getElementById('changes-admin-login').style.display = 'block';
-        document.getElementById('changes-admin-panel').style.display = 'none';
-        document.getElementById('changes-admin-err').style.display = 'none';
-    }
-}
-function closeChangesAdmin(e) {
-    if (!e || e.target === document.getElementById('changes-admin-overlay')) {
-        document.getElementById('changes-admin-overlay').classList.remove('open');
-    }
-}
-
-// --- ZMIANY SERWEROWE LOGIKA ---
-const CHANGES_KEY = 'critmc-changes';
+// --- ZMIANY SERWEROWE LOGIKA — Firestore (real-time) ---
+const CHANGES_KEY = 'critmc-changes'; // fallback tylko
 const ADMIN_LOGIN_CH = 'test';
 const ADMIN_PASS_CH = 'test';
 
-function loadChanges() {
-    const d = JSON.parse(localStorage.getItem(CHANGES_KEY) || '{}');
-    ['zwykle','szczegolowe','najmocniejsze'].forEach(mode => {
-        const el = document.getElementById('mode-' + mode);
-        if (el && d[mode]) el.innerHTML = '<p style="white-space:pre-line">' + d[mode] + '</p>';
-    });
+// Pobierz zmiany z Firestore
+async function loadChanges() {
+    try {
+        // Spróbuj z Firestore przez moduł
+        if (typeof window._loadChangesFromFirestore === 'function') {
+            await window._loadChangesFromFirestore();
+            return;
+        }
+        // Fallback: localStorage
+        const d = JSON.parse(localStorage.getItem(CHANGES_KEY) || '{}');
+        ['zwykle','szczegolowe','najmocniejsze'].forEach(mode => {
+            const el = document.getElementById('mode-' + mode);
+            if (el && d[mode]) el.innerHTML = '<p style="white-space:pre-line">' + d[mode] + '</p>';
+        });
+    } catch(e) {
+        const d = JSON.parse(localStorage.getItem(CHANGES_KEY) || '{}');
+        ['zwykle','szczegolowe','najmocniejsze'].forEach(mode => {
+            const el = document.getElementById('mode-' + mode);
+            if (el && d[mode]) el.innerHTML = '<p style="white-space:pre-line">' + d[mode] + '</p>';
+        });
+    }
 }
 
 function changesAdminLogin() {
@@ -154,17 +154,27 @@ function changesAdminLogin() {
         window._changesLogged = true;
         document.getElementById('changes-admin-login').style.display = 'none';
         document.getElementById('changes-admin-panel').style.display = 'flex';
-        const d = JSON.parse(localStorage.getItem(CHANGES_KEY) || '{}');
-        ['zwykle','szczegolowe','najmocniejsze'].forEach(m => {
-            const el = document.getElementById('edit-' + m);
-            if (el) el.value = d[m] || '';
-        });
+        // Załaduj istniejące
+        if (typeof window._loadChangesForEdit === 'function') {
+            window._loadChangesForEdit();
+        } else {
+            const d = JSON.parse(localStorage.getItem(CHANGES_KEY) || '{}');
+            ['zwykle','szczegolowe','najmocniejsze'].forEach(m => {
+                const el = document.getElementById('edit-' + m);
+                if (el) el.value = d[m] || '';
+            });
+        }
     } else {
         document.getElementById('changes-admin-err').style.display = 'block';
     }
 }
 
 function saveChangesAdmin() {
+    if (typeof window._saveChangesToFirestore === 'function') {
+        window._saveChangesToFirestore();
+        return;
+    }
+    // Fallback localStorage
     const d = {
         zwykle: document.getElementById('edit-zwykle').value,
         szczegolowe: document.getElementById('edit-szczegolowe').value,

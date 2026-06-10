@@ -543,6 +543,19 @@
     <script src="home.js"></script>
     <script type="module">
         import { joinContest, getContestCount, getEntries, removeEntry, updateContest, endContest, deleteContest, getContest, setWinners } from './firebase.js';
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
+        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
+
+        // Udostępnij db globalnie dla loadChanges/saveChanges
+        const _fbApp = initializeApp({
+            apiKey: "AIzaSyBdwzCGhUtqGm0Ggfmrl2MC8_u10c_AuMQ",
+            authDomain: "stronacritmcpl.firebaseapp.com",
+            projectId: "stronacritmcpl",
+            storageBucket: "stronacritmcpl.firebasestorage.app",
+            messagingSenderId: "674591154096",
+            appId: "1:674591154096:web:fee55d9cf1c83dcfbe8075"
+        }, 'main-app');
+        window._firestoreDb = getFirestore(_fbApp);
 
         const CONTEST_ID = 'start';
         const ADMIN_LOGIN = 'test';
@@ -638,19 +651,115 @@
         window.adminUpdateNagroda=async function(){const v=document.getElementById('admin-nagroda').value.trim();if(!v)return;await updateContest(CONTEST_ID,{nagroda:v});showAdminMsg('Nagroda zaktualizowana!','#00e676');};
         window.adminUpdateData=async function(){const v=document.getElementById('admin-data').value;if(!v)return;await updateContest(CONTEST_ID,{wyniki:v});showAdminMsg('Data zaktualizowana!','#00e676');};
         window.adminEndContest=async function(){if(!confirm('Zakonczyc konkurs?'))return;await endContest(CONTEST_ID);showAdminMsg('Konkurs zakonczony!','#ffb700');document.getElementById('contest-admin-overlay').classList.remove('open');initContest();};
-        window.adminAnnounceWinners=async function(){const w1=document.getElementById('winner-input-1').value.trim(),w2=document.getElementById('winner-input-2').value.trim();if(!w1||!w2){showAdminMsg('Wpisz oba nicki!','#ff5252');return;}if(!confirm('Oglosic: '+w1+' i '+w2+'?'))return;await setWinners(CONTEST_ID,[w1,w2]);showAdminMsg('Zwyciezcy ogloseni!','#00e676');document.getElementById('contest-admin-overlay').classList.remove('open');initContest();};
+        window.adminAnnounceWinners=async function(){
+            const inputs=document.querySelectorAll('.winner-input');
+            const winners=[];
+            inputs.forEach(inp=>{const v=inp.value.trim();if(v)winners.push(v);});
+            if(winners.length===0){showAdminMsg('Wpisz nicki zwyciezcow!','#ff5252');return;}
+            if(!confirm('Oglosic zwyciezcow: '+winners.join(', ')+'?'))return;
+            await setWinners(CONTEST_ID,winners);
+            showAdminMsg('Zwyciezcy ogloseni!','#00e676');
+            document.getElementById('contest-admin-overlay').classList.remove('open');
+            initContest();
+        };
         window.adminDeleteContest=async function(){if(!confirm('Usunac caly konkurs?'))return;await deleteContest(CONTEST_ID);document.getElementById('contest-admin-overlay').classList.remove('open');const c=document.getElementById('contest-start');if(c)c.style.display='none';};
         function showAdminMsg(t,c){const el=document.getElementById('admin-action-msg');if(!el)return;el.textContent=t;el.style.color=c;setTimeout(()=>{if(el)el.textContent='';},3000);}
 
         const CHANGES_KEY='critmc-changes';
         let changesLogged=false;
-        function loadChanges(){const d=JSON.parse(localStorage.getItem(CHANGES_KEY)||'{}');const map={zwykle:'mode-zwykle',szczegolowe:'mode-szczegolowe',najmocniejsze:'mode-najmocniejsze'};Object.entries(map).forEach(([k,id])=>{const el=document.getElementById(id);if(el&&d[k])el.innerHTML='<p style="white-space:pre-line">'+d[k]+'</p>';});}
+
+        // Ładuj zmiany z Firestore real-time
+        async function loadChanges() {
+            try {
+                const { getDoc: gd, doc: d2 } = await import("https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js");
+                const { initializeApp: ia } = await import("https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js");
+                const { getFirestore: gf } = await import("https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js");
+                // Użyj już istniejącej instancji Firebase (ta sama config)
+                const dbRef = window._firestoreDb;
+                if (!dbRef) throw new Error('brak db');
+                const snap = await gd(d2(dbRef, 'server_content', 'changes'));
+                if (snap.exists()) {
+                    const data = snap.data();
+                    ['zwykle','szczegolowe','najmocniejsze'].forEach(mode => {
+                        const el = document.getElementById('mode-' + mode);
+                        if (el) el.innerHTML = '<p style="white-space:pre-line">' + (data[mode] || 'Brak zmian — wróć wkrótce!') + '</p>';
+                    });
+                    return;
+                }
+            } catch(e) { /* fallback poniżej */ }
+            // Fallback localStorage
+            const d = JSON.parse(localStorage.getItem(CHANGES_KEY) || '{}');
+            ['zwykle','szczegolowe','najmocniejsze'].forEach(mode => {
+                const el = document.getElementById('mode-' + mode);
+                if (el && d[mode]) el.innerHTML = '<p style="white-space:pre-line">' + d[mode] + '</p>';
+            });
+        }
         loadChanges();
-        window.openChangesAdmin=function(){document.getElementById('changes-admin-overlay').classList.add('open');if(!changesLogged){document.getElementById('changes-admin-login').style.display='block';document.getElementById('changes-admin-panel').style.display='none';document.getElementById('changes-admin-err').style.display='none';}else{const d=JSON.parse(localStorage.getItem(CHANGES_KEY)||'{}');['zwykle','szczegolowe','najmocniejsze'].forEach(m=>{const el=document.getElementById('edit-'+m);if(el)el.value=d[m]||'';});}};
+
+        window.openChangesAdmin=function(){document.getElementById('changes-admin-overlay').classList.add('open');if(!changesLogged){document.getElementById('changes-admin-login').style.display='block';document.getElementById('changes-admin-panel').style.display='none';document.getElementById('changes-admin-err').style.display='none';}else{loadChangesForEdit();}};
         window.closeChangesAdmin=function(e){if(!e||e.target===document.getElementById('changes-admin-overlay'))document.getElementById('changes-admin-overlay').classList.remove('open');};
-        window.changesAdminLogin=function(){if(document.getElementById('changes-admin-l').value===ADMIN_LOGIN&&document.getElementById('changes-admin-p').value===ADMIN_PASS){changesLogged=true;document.getElementById('changes-admin-login').style.display='none';document.getElementById('changes-admin-panel').style.display='flex';const d=JSON.parse(localStorage.getItem(CHANGES_KEY)||'{}');['zwykle','szczegolowe','najmocniejsze'].forEach(m=>{const el=document.getElementById('edit-'+m);if(el)el.value=d[m]||'';});}else{document.getElementById('changes-admin-err').style.display='block';}};
+        window.changesAdminLogin=function(){
+            const l=document.getElementById('changes-admin-l').value;
+            const p=document.getElementById('changes-admin-p').value;
+            if(l===ADMIN_LOGIN&&p===ADMIN_PASS){
+                changesLogged=true;
+                document.getElementById('changes-admin-login').style.display='none';
+                document.getElementById('changes-admin-panel').style.display='flex';
+                loadChangesForEdit();
+            }else{document.getElementById('changes-admin-err').style.display='block';}
+        };
         document.getElementById('changes-admin-p').addEventListener('keydown',e=>{if(e.key==='Enter')window.changesAdminLogin();});
-        window.saveChangesAdmin=function(){const d={zwykle:document.getElementById('edit-zwykle').value,szczegolowe:document.getElementById('edit-szczegolowe').value,najmocniejsze:document.getElementById('edit-najmocniejsze').value};localStorage.setItem(CHANGES_KEY,JSON.stringify(d));loadChanges();const msg=document.getElementById('changes-save-msg');msg.textContent='Zapisano!';msg.style.color='#00e676';setTimeout(()=>{msg.textContent='';document.getElementById('changes-admin-overlay').classList.remove('open');},1500);};
+
+        async function loadChangesForEdit() {
+            try {
+                const dbRef = window._firestoreDb;
+                if (dbRef) {
+                    const { getDoc: gd, doc: d2 } = await import("https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js");
+                    const snap = await gd(d2(dbRef, 'server_content', 'changes'));
+                    if (snap.exists()) {
+                        const data = snap.data();
+                        ['zwykle','szczegolowe','najmocniejsze'].forEach(m => {
+                            const el = document.getElementById('edit-' + m);
+                            if (el) el.value = data[m] || '';
+                        });
+                        return;
+                    }
+                }
+            } catch(e) {}
+            const d = JSON.parse(localStorage.getItem(CHANGES_KEY) || '{}');
+            ['zwykle','szczegolowe','najmocniejsze'].forEach(m => {
+                const el = document.getElementById('edit-' + m);
+                if (el) el.value = d[m] || '';
+            });
+        }
+
+        window.saveChangesAdmin=async function(){
+            const vals = {
+                zwykle: document.getElementById('edit-zwykle').value,
+                szczegolowe: document.getElementById('edit-szczegolowe').value,
+                najmocniejsze: document.getElementById('edit-najmocniejsze').value,
+                updatedAt: new Date().toISOString()
+            };
+            // Zapisz do Firestore
+            try {
+                const dbRef = window._firestoreDb;
+                if (dbRef) {
+                    const { setDoc: sd, doc: d2 } = await import("https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js");
+                    await sd(d2(dbRef, 'server_content', 'changes'), vals);
+                    await loadChanges();
+                    const msg=document.getElementById('changes-save-msg');
+                    msg.textContent='Zapisano i opublikowano!';msg.style.color='#00e676';
+                    setTimeout(()=>{msg.textContent='';document.getElementById('changes-admin-overlay').classList.remove('open');},1500);
+                    return;
+                }
+            } catch(e) { console.error('saveChanges Firestore err:', e); }
+            // Fallback localStorage
+            localStorage.setItem(CHANGES_KEY, JSON.stringify(vals));
+            loadChanges();
+            const msg=document.getElementById('changes-save-msg');
+            msg.textContent='Zapisano (lokalnie)!';msg.style.color='#ffb700';
+            setTimeout(()=>{msg.textContent='';document.getElementById('changes-admin-overlay').classList.remove('open');},1500);
+        };
     </script>
 </body>
 </html>
