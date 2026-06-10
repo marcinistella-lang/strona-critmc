@@ -309,24 +309,27 @@
 
             <div class="team-owner">
                 <div class="team-owner-inner">
-                    <img src="https://visage.surgeplay.com/bust/256/sosenka8" alt="sosenka8" class="team-owner-head">
+                    <img src="https://visage.surgeplay.com/bust/256/sosenka8" alt="sosenka8" class="team-owner-head" id="owner-head-img">
                     <div class="team-owner-info">
                         <div class="team-owner-role">Wlasciciel</div>
-                        <div class="team-owner-name">sosenka8</div>
-                        <div class="team-owner-socials">
-                            <a href="https://www.youtube.com/@Critmc.pl_1" target="_blank" class="team-social-btn team-yt"><i class="fa-brands fa-youtube"></i> YouTube</a>
-                            <a href="https://www.tiktok.com/@critmc.pl" target="_blank" class="team-social-btn team-tt"><i class="fa-brands fa-tiktok"></i> TikTok</a>
+                        <div class="team-owner-name" id="owner-nick-display">sosenka8</div>
+                        <div id="owner-desc-display" style="font-size:.88rem;color:var(--text-muted);margin-bottom:.75rem;max-width:400px;line-height:1.5;"></div>
+                        <div class="team-owner-socials" id="owner-socials-display">
+                            <a href="https://www.youtube.com/@Critmc.pl_1" target="_blank" class="team-social-btn team-yt" id="owner-yt-btn"><i class="fa-brands fa-youtube"></i> YouTube</a>
+                            <a href="https://www.tiktok.com/@critmc.pl" target="_blank" class="team-social-btn team-tt" id="owner-tt-btn"><i class="fa-brands fa-tiktok"></i> TikTok</a>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="team-cowowner">
+            <div class="team-cowowner" id="cowowner-card">
                 <div class="team-cowowner-inner">
-                    <img src="https://mc-heads.net/avatar/Steve/64" alt="Wspolwlasciciel" class="team-cowowner-head">
+                    <img src="https://mc-heads.net/avatar/Steve/64" alt="Wspolwlasciciel" class="team-cowowner-head" id="cowowner-head-img">
                     <div class="team-cowowner-info">
                         <div class="team-cowowner-role">Wspolwlasciciel</div>
-                        <div class="team-cowowner-name">???</div>
+                        <div class="team-cowowner-name" id="cowowner-nick-display">???</div>
+                        <div id="cowowner-desc-display" style="font-size:.85rem;color:var(--text-muted);margin-top:.3rem;"></div>
+                        <div id="cowowner-socials-display" style="display:flex;gap:.5rem;margin-top:.6rem;flex-wrap:wrap;"></div>
                     </div>
                 </div>
             </div>
@@ -334,22 +337,7 @@
             <div class="team-admins-section">
                 <h3 class="team-section-title"><i class="fa-solid fa-user-shield"></i> Personel</h3>
                 <div class="team-admins-grid" id="section-admins-dynamic">
-                    <div class="team-admin-card" onclick="toggleAdmin(this)">
-                        <div class="team-admin-header">
-                            <img src="https://mc-heads.net/avatar/Steve/48" alt="Admin" class="team-admin-head">
-                            <div>
-                                <div class="team-admin-name">Admin1</div>
-                                <div class="team-admin-rank">Administrator</div>
-                            </div>
-                            <i class="fa-solid fa-chevron-down team-admin-arrow"></i>
-                        </div>
-                        <div class="team-admin-details">
-                            <p><i class="fa-solid fa-circle-info"></i> <strong>Opis:</strong> Brak opisu.</p>
-                            <p><i class="fa-solid fa-crown"></i> <strong>Ranga:</strong> Administrator</p>
-                            <p><i class="fa-solid fa-key"></i> <strong>Uprawnienia:</strong> /ban, /kick, /mute, /tp</p>
-                            <p><i class="fa-solid fa-calendar"></i> <strong>Od:</strong> --</p>
-                        </div>
-                    </div>
+                    <div style="text-align:center;padding:2rem;color:var(--text-muted);font-size:.9rem;grid-column:1/-1;"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</div>
                 </div>
             </div>
 
@@ -372,24 +360,24 @@
                 <h2>Media</h2>
                 <p>Nasze kanaly, social media i tworcy serwera</p>
             </div>
-            <div class="home-media-layout">
-                <a href="https://dc.critmc.pl" target="_blank" class="home-media-discord">
+            <div class="home-media-layout" id="media-links-layout">
+                <a href="https://dc.critmc.pl" target="_blank" class="home-media-discord" id="media-discord-link">
                     <i class="fa-brands fa-discord"></i>
                     <div>
                         <span class="home-media-discord-title">Discord</span>
-                        <span class="home-media-discord-sub">dc.critmc.pl &mdash; Dolacz do spolecznosci!</span>
+                        <span class="home-media-discord-sub" id="media-discord-sub">dc.critmc.pl &mdash; Dolacz do spolecznosci!</span>
                     </div>
                 </a>
                 <div class="home-media-row">
-                    <a href="https://www.youtube.com/@Critmc.pl_1" target="_blank" class="home-media-card">
+                    <a href="https://www.youtube.com/@Critmc.pl_1" target="_blank" class="home-media-card" id="media-yt-link">
                         <i class="fa-brands fa-youtube" style="color:#ff0000;"></i>
                         <span>YouTube</span>
-                        <span class="home-media-handle">@Critmc.pl_1</span>
+                        <span class="home-media-handle" id="media-yt-handle">@Critmc.pl_1</span>
                     </a>
-                    <a href="https://www.tiktok.com/@critmc.pl" target="_blank" class="home-media-card">
+                    <a href="https://www.tiktok.com/@critmc.pl" target="_blank" class="home-media-card" id="media-tt-link">
                         <i class="fa-brands fa-tiktok" style="color:#00f0ff;"></i>
                         <span>TikTok</span>
-                        <span class="home-media-handle">@critmc.pl</span>
+                        <span class="home-media-handle" id="media-tt-handle">@critmc.pl</span>
                     </a>
                 </div>
             </div>
@@ -397,27 +385,7 @@
             <div class="team-creators-section">
                 <h3 class="team-section-title"><i class="fa-solid fa-video"></i> Tworcy</h3>
                 <div class="team-admins-grid" id="section-creators-dynamic">
-                    <div class="team-admin-card" onclick="toggleAdmin(this)">
-                        <div class="team-admin-header">
-                            <img src="https://mc-heads.net/avatar/Steve/48" alt="Tworcy" class="team-admin-head">
-                            <div>
-                                <div class="team-admin-name">Tworcy1</div>
-                                <div class="team-admin-rank" style="color:#ff00ff;">Tworcy Serwerowy</div>
-                            </div>
-                            <i class="fa-solid fa-chevron-down team-admin-arrow"></i>
-                        </div>
-                        <div class="team-admin-details">
-                            <div class="creator-skin-wrap">
-                                <img src="https://visage.surgeplay.com/bust/120/Steve" alt="skin" class="creator-skin">
-                            </div>
-                            <p><i class="fa-solid fa-circle-info"></i> <strong>Opis:</strong> Brak opisu.</p>
-                            <div class="creator-socials">
-                                <a href="#" target="_blank" class="team-social-btn team-yt"><i class="fa-brands fa-youtube"></i> YouTube</a>
-                                <a href="#" target="_blank" class="team-social-btn team-tt"><i class="fa-brands fa-tiktok"></i> TikTok</a>
-                                <a href="#" target="_blank" class="team-social-btn team-dc"><i class="fa-brands fa-discord"></i> Discord</a>
-                            </div>
-                        </div>
-                    </div>
+                    <div style="text-align:center;padding:2rem;color:var(--text-muted);font-size:.9rem;grid-column:1/-1;"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</div>
                 </div>
                 <div class="team-recruit-banner" style="margin-top:1.5rem;border-color:rgba(255,0,255,0.2);background:linear-gradient(135deg,rgba(255,0,255,0.07) 0%,rgba(136,197,255,0.05) 100%);">
                     <div class="team-recruit-inner">
@@ -804,6 +772,219 @@
             const msg=document.getElementById('changes-save-msg');
             msg.textContent='Zapisano (lokalnie)!';msg.style.color='#ffb700';
             setTimeout(()=>{msg.textContent='';document.getElementById('changes-admin-overlay').classList.remove('open');},1500);
+        };
+
+        // ─── PERSONEL I MEDIA — ładowanie z Firestore ─────────────────────
+        async function loadSiteData() {
+            const db2 = window._firestoreDb;
+            if (!db2) return;
+            const { getDoc: gd, doc: d2, getDocs: gds, collection: col, query: q2, orderBy: ob } =
+                await import("https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js");
+            try {
+                // Właściciel i współwłaściciel
+                const ownSnap = await gd(d2(db2, 'server_content', 'owners'));
+                if (ownSnap.exists()) {
+                    const o = ownSnap.data();
+                    if (o.owner) {
+                        const nick = o.owner.nick || 'sosenka8';
+                        const ownerHead = document.getElementById('owner-head-img');
+                        const ownerNick = document.getElementById('owner-nick-display');
+                        const ownerDesc = document.getElementById('owner-desc-display');
+                        const ownerYt   = document.getElementById('owner-yt-btn');
+                        const ownerTt   = document.getElementById('owner-tt-btn');
+                        if (ownerHead) ownerHead.src = `https://visage.surgeplay.com/bust/256/${encodeURIComponent(nick)}`;
+                        if (ownerNick) ownerNick.textContent = nick;
+                        if (ownerDesc && o.owner.desc) ownerDesc.textContent = o.owner.desc;
+                        if (ownerYt && o.owner.yt) { ownerYt.href = o.owner.yt; ownerYt.style.display = ''; } else if (ownerYt) ownerYt.style.display = 'none';
+                        if (ownerTt && o.owner.tt) { ownerTt.href = o.owner.tt; ownerTt.style.display = ''; } else if (ownerTt) ownerTt.style.display = 'none';
+                    }
+                    if (o.cowowner) {
+                        const cnick = o.cowowner.nick || '???';
+                        const cowHead = document.getElementById('cowowner-head-img');
+                        const cowNick = document.getElementById('cowowner-nick-display');
+                        const cowDesc = document.getElementById('cowowner-desc-display');
+                        const cowSocials = document.getElementById('cowowner-socials-display');
+                        if (cowHead && cnick !== '???') cowHead.src = `https://mc-heads.net/avatar/${encodeURIComponent(cnick)}/64`;
+                        if (cowNick) cowNick.textContent = cnick;
+                        if (cowDesc && o.cowowner.desc) cowDesc.textContent = o.cowowner.desc;
+                        if (cowSocials) {
+                            const links = [];
+                            if (o.cowowner.yt) links.push(`<a href="${o.cowowner.yt}" target="_blank" class="team-social-btn team-yt"><i class="fa-brands fa-youtube"></i> YouTube</a>`);
+                            if (o.cowowner.dc) links.push(`<a href="${o.cowowner.dc}" target="_blank" class="team-social-btn team-dc"><i class="fa-brands fa-discord"></i> Discord</a>`);
+                            cowSocials.innerHTML = links.join('');
+                        }
+                    }
+                }
+            } catch(e) { console.warn('loadOwners:', e.message); }
+
+            // Personel
+            try {
+                const perSnap = await gds(q2(col(db2, 'personel'), ob('order', 'asc')));
+                const grid = document.getElementById('section-admins-dynamic');
+                if (grid) {
+                    if (perSnap.empty) {
+                        grid.innerHTML = '<div style="text-align:center;padding:1.5rem;color:var(--text-muted);font-size:.9rem;grid-column:1/-1;">Brak personelu.</div>';
+                    } else {
+                        const RANK_C = { 'ChatMod':'#059669','Pomocnik':'#047857','Moderator':'#7c3aed','Admin':'#b91c1c','Technik':'#0284c7','Zarządzający':'#ff1744' };
+                        grid.innerHTML = perSnap.docs.map(d => {
+                            const p = { id: d.id, ...d.data() };
+                            const rc = RANK_C[p.rank] || '#9ca3af';
+                            const socials = [p.yt&&`<a href="${p.yt}" target="_blank" class="team-social-btn team-yt"><i class="fa-brands fa-youtube"></i> YT</a>`,
+                                p.tt&&`<a href="${p.tt}" target="_blank" class="team-social-btn team-tt"><i class="fa-brands fa-tiktok"></i> TT</a>`,
+                                p.dc&&`<a href="${p.dc}" target="_blank" class="team-social-btn team-dc"><i class="fa-brands fa-discord"></i> DC</a>`
+                            ].filter(Boolean).join('');
+                            const sinceStr = p.since ? new Date(p.since).toLocaleDateString('pl-PL',{day:'2-digit',month:'2-digit',year:'numeric'}) : '--';
+                            return `<div class="team-admin-card" onclick="toggleAdmin(this)">
+                                <div class="team-admin-header">
+                                    <img src="https://mc-heads.net/avatar/${encodeURIComponent(p.nick||'Steve')}/48" alt="${p.nick}" class="team-admin-head" onerror="this.src='https://mc-heads.net/avatar/Steve/48'">
+                                    <div><div class="team-admin-name">${p.nick||'—'}</div>
+                                    <div class="team-admin-rank" style="color:${rc};">${p.rank||'—'}</div></div>
+                                    <i class="fa-solid fa-chevron-down team-admin-arrow"></i>
+                                </div>
+                                <div class="team-admin-details">
+                                    ${p.desc ? `<p><i class="fa-solid fa-circle-info"></i> <strong>Opis:</strong> ${p.desc}</p>` : ''}
+                                    <p><i class="fa-solid fa-crown"></i> <strong>Ranga:</strong> ${p.rank||'—'}</p>
+                                    ${p.perms ? `<p><i class="fa-solid fa-key"></i> <strong>Uprawnienia:</strong> ${p.perms}</p>` : ''}
+                                    <p><i class="fa-solid fa-calendar"></i> <strong>Od:</strong> ${sinceStr}</p>
+                                    ${socials ? `<div class="creator-socials">${socials}</div>` : ''}
+                                </div>
+                            </div>`;
+                        }).join('');
+                    }
+                }
+            } catch(e) { console.warn('loadPersonel:', e.message); }
+
+            // Twórcy
+            try {
+                const crSnap = await gds(col(db2, 'creators'));
+                const crGrid = document.getElementById('section-creators-dynamic');
+                if (crGrid) {
+                    if (crSnap.empty) {
+                        crGrid.innerHTML = '<div style="text-align:center;padding:1.5rem;color:var(--text-muted);font-size:.9rem;grid-column:1/-1;">Brak twórców.</div>';
+                    } else {
+                        crGrid.innerHTML = crSnap.docs.map(d => {
+                            const c = { id: d.id, ...d.data() };
+                            const socials = [c.yt&&`<a href="${c.yt}" target="_blank" class="team-social-btn team-yt"><i class="fa-brands fa-youtube"></i> YouTube</a>`,
+                                c.tt&&`<a href="${c.tt}" target="_blank" class="team-social-btn team-tt"><i class="fa-brands fa-tiktok"></i> TikTok</a>`,
+                                c.dc&&`<a href="${c.dc}" target="_blank" class="team-social-btn team-dc"><i class="fa-brands fa-discord"></i> Discord</a>`
+                            ].filter(Boolean).join('');
+                            return `<div class="team-admin-card" onclick="toggleAdmin(this)">
+                                <div class="team-admin-header">
+                                    <img src="https://mc-heads.net/avatar/${encodeURIComponent(c.nick||'Steve')}/48" alt="${c.nick}" class="team-admin-head" onerror="this.src='https://mc-heads.net/avatar/Steve/48'">
+                                    <div><div class="team-admin-name">${c.nick||'—'}</div>
+                                    <div class="team-admin-rank" style="color:#ff00ff;">Twórca Serwerowy</div></div>
+                                    <i class="fa-solid fa-chevron-down team-admin-arrow"></i>
+                                </div>
+                                <div class="team-admin-details">
+                                    <div class="creator-skin-wrap">
+                                        <img src="https://visage.surgeplay.com/bust/120/${encodeURIComponent(c.nick||'Steve')}" alt="skin" class="creator-skin" onerror="this.src='https://visage.surgeplay.com/bust/120/Steve'">
+                                    </div>
+                                    ${c.desc ? `<p><i class="fa-solid fa-circle-info"></i> <strong>Opis:</strong> ${c.desc}</p>` : ''}
+                                    ${socials ? `<div class="creator-socials">${socials}</div>` : ''}
+                                </div>
+                            </div>`;
+                        }).join('');
+                    }
+                }
+            } catch(e) { console.warn('loadCreators:', e.message); }
+
+            // Media linki
+            try {
+                const medSnap = await gd(d2(db2, 'server_content', 'media'));
+                if (medSnap.exists()) {
+                    const m = medSnap.data();
+                    if (m.discord?.url) { const el = document.getElementById('media-discord-link'); if (el) el.href = m.discord.url; }
+                    if (m.discord?.sub) { const el = document.getElementById('media-discord-sub'); if (el) el.textContent = m.discord.sub + ' — Dołącz do społeczności!'; }
+                    if (m.youtube?.url) { const el = document.getElementById('media-yt-link'); if (el) el.href = m.youtube.url; }
+                    if (m.youtube?.handle) { const el = document.getElementById('media-yt-handle'); if (el) el.textContent = m.youtube.handle; }
+                    if (m.tiktok?.url) { const el = document.getElementById('media-tt-link'); if (el) el.href = m.tiktok.url; }
+                    if (m.tiktok?.handle) { const el = document.getElementById('media-tt-handle'); if (el) el.textContent = m.tiktok.handle; }
+                }
+            } catch(e) { console.warn('loadMedia:', e.message); }
+
+            // Propozycje
+            await _loadProposals(db2);
+        }
+
+        loadSiteData();
+
+        // ─── PROPOZYCJE GRACZY ──────────────────────────────────────────────
+        const PROPOSAL_KEY = 'critmc_proposal_last';
+        const PROPOSAL_VOTE_KEY = 'critmc_votes';
+        const PROPOSAL_LIMIT_MS = 6 * 60 * 60 * 1000;
+
+        async function _loadProposals(db2) {
+            const list = document.getElementById('proposals-list');
+            if (!list) return;
+            if (!db2) { list.innerHTML = '<div style="text-align:center;padding:1.5rem;color:var(--text-muted);">Ładowanie...</div>'; return; }
+            try {
+                const { getDocs: gds2, collection: col2, orderBy: ob2, query: q3 } =
+                    await import("https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js");
+                const snap = await gds2(q3(col2(db2, 'proposals'), ob2('createdAt', 'desc')));
+                if (snap.empty) { list.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-muted);font-size:.9rem;">Brak propozycji. Bądź pierwszy!</div>'; return; }
+                const myVotes = JSON.parse(localStorage.getItem(PROPOSAL_VOTE_KEY) || '{}');
+                list.innerHTML = snap.docs.map(d => {
+                    const p = { id: d.id, ...d.data() };
+                    const voted = myVotes[p.id];
+                    const yes = p.yes||0, no = p.no||0, total = yes+no;
+                    const yesPct = total ? Math.round(yes/total*100) : 0;
+                    const date = p.createdAt ? new Date(p.createdAt).toLocaleString('pl-PL',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+                    return `<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:1rem 1.2rem;">
+                        <div style="font-size:.92rem;color:#fff;margin-bottom:.7rem;line-height:1.5;">${p.text||''}</div>
+                        <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+                            <div style="display:flex;gap:.5rem;">
+                                <button onclick="voteProposal('${p.id}','yes')" ${voted?'disabled':''} style="background:${voted==='yes'?'rgba(0,230,118,0.2)':'rgba(0,230,118,0.08)'};border:1px solid rgba(0,230,118,${voted==='yes'?'0.5':'0.2'});color:#00e676;padding:.35rem .9rem;border-radius:8px;cursor:${voted?'default':'pointer'};font-weight:700;font-size:.85rem;"><i class="fa-solid fa-thumbs-up"></i> TAK ${yes}</button>
+                                <button onclick="voteProposal('${p.id}','no')" ${voted?'disabled':''} style="background:${voted==='no'?'rgba(255,23,68,0.2)':'rgba(255,23,68,0.06)'};border:1px solid rgba(255,23,68,${voted==='no'?'0.5':'0.15'});color:#ff5252;padding:.35rem .9rem;border-radius:8px;cursor:${voted?'default':'pointer'};font-weight:700;font-size:.85rem;"><i class="fa-solid fa-thumbs-down"></i> NIE ${no}</button>
+                            </div>
+                            ${total>0 ? `<div style="flex:1;min-width:80px;height:6px;background:rgba(255,255,255,0.06);border-radius:999px;overflow:hidden;"><div style="width:${yesPct}%;height:100%;background:linear-gradient(90deg,#00e676,#00b0ff);border-radius:999px;transition:width .4s;"></div></div>` : ''}
+                            <div style="font-size:.75rem;color:var(--text-muted);margin-left:auto;">${date}</div>
+                        </div>
+                    </div>`;
+                }).join('');
+            } catch(e) { list.innerHTML = `<div style="text-align:center;padding:1rem;color:#ff5252;font-size:.88rem;">Błąd ładowania.</div>`; }
+        }
+
+        window.openProposalForm = function() {
+            document.getElementById('proposal-overlay').classList.add('open');
+            const t = document.getElementById('proposal-overlay-text'); if (t) t.value = '';
+            const m = document.getElementById('proposal-overlay-msg'); if (m) m.textContent = '';
+        };
+        window.closeProposalOverlay = function(e) {
+            if (!e || e.target === document.getElementById('proposal-overlay'))
+                document.getElementById('proposal-overlay').classList.remove('open');
+        };
+
+        window.submitProposalOverlay = async function() {
+            const text = (document.getElementById('proposal-overlay-text').value || '').trim();
+            const msg = document.getElementById('proposal-overlay-msg');
+            if (!text) { msg.textContent = 'Wpisz treść!'; msg.style.color = '#ff5252'; return; }
+            if (text.length > 500) { msg.textContent = 'Maks. 500 znaków!'; msg.style.color = '#ff5252'; return; }
+            const last = parseInt(localStorage.getItem(PROPOSAL_KEY) || '0');
+            if (Date.now() - last < PROPOSAL_LIMIT_MS) {
+                const left = Math.ceil((PROPOSAL_LIMIT_MS-(Date.now()-last))/60000);
+                msg.textContent = `Poczekaj jeszcze ${left} min. (limit: 1 / 6h)`; msg.style.color = '#ffb700'; return;
+            }
+            msg.textContent = 'Wysyłanie...'; msg.style.color = 'var(--text-muted)';
+            try {
+                const { addDoc: ad2, collection: col3 } = await import("https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js");
+                await ad2(col3(window._firestoreDb, 'proposals'), { text, yes: 0, no: 0, createdAt: new Date().toISOString() });
+                localStorage.setItem(PROPOSAL_KEY, String(Date.now()));
+                msg.textContent = '✓ Dodano! Dziękujemy.'; msg.style.color = '#00e676';
+                await _loadProposals(window._firestoreDb);
+                setTimeout(() => document.getElementById('proposal-overlay').classList.remove('open'), 2000);
+            } catch(e) { msg.textContent = 'Błąd: ' + e.message; msg.style.color = '#ff5252'; }
+        };
+
+        window.voteProposal = async function(pid, type) {
+            const myVotes = JSON.parse(localStorage.getItem(PROPOSAL_VOTE_KEY) || '{}');
+            if (myVotes[pid]) return;
+            try {
+                const { doc: d3, updateDoc: upd2, increment: inc2 } = await import("https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js");
+                await upd2(d3(window._firestoreDb, 'proposals', pid), { [type]: inc2(1) });
+                myVotes[pid] = type;
+                localStorage.setItem(PROPOSAL_VOTE_KEY, JSON.stringify(myVotes));
+                await _loadProposals(window._firestoreDb);
+            } catch(e) { console.error('vote:', e); }
         };
     </script>
 </body>

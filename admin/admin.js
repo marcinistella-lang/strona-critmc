@@ -94,6 +94,10 @@ function initPanelUI() {
     document.getElementById('su-role').textContent   = currentUser.role;
     document.getElementById('su-avatar').textContent = currentUser.displayName.charAt(0).toUpperCase();
     applyPermissions();
+    // Dodatkowe uprawnienia dla nowych zakładek
+    setTimeout(() => {
+        if (typeof window._extendedApplyPermissions === 'function') window._extendedApplyPermissions();
+    }, 0);
     updateServerStatus('loading', 'Łączenie...');
     loadAll();
     setTimeout(() => updateServerStatus('online', 'Serwer online'), 1500);
@@ -850,3 +854,598 @@ async function ensureDefaultAdmin() {
     } catch (e) { console.log('[CritMC] ensureDefaultAdmin:', e.message); }
 }
 ensureDefaultAdmin();
+
+// ═══════════════════════════════════════════════════════════════════════
+// ─── PERSONEL ──────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════
+
+let allPersonel = [], allCreators = [];
+
+window.loadPersonel = async function() {
+    await Promise.all([_loadPersonelList(), _loadCreatorsList(), _loadOwnerData()]);
+};
+
+async function _loadOwnerData() {
+    try {
+        const snap = await getDoc(doc(db, 'server_content', 'owners'));
+        if (snap.exists()) {
+            const d = snap.data();
+            const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
+            set('owner-nick', d.owner?.nick);
+            set('owner-yt', d.owner?.yt);
+            set('owner-tt', d.owner?.tt);
+            set('owner-desc', d.owner?.desc);
+            set('cowowner-nick', d.cowowner?.nick);
+            set('cowowner-yt', d.cowowner?.yt);
+            set('cowowner-dc', d.cowowner?.dc);
+            set('cowowner-desc', d.cowowner?.desc);
+        }
+    } catch(e) { console.error('loadOwnerData:', e); }
+}
+
+window.saveOwner = async function() {
+    const nick = document.getElementById('owner-nick').value.trim();
+    if (!nick) { showToast('error', 'Podaj nick właściciela!'); return; }
+    try {
+        const ref = doc(db, 'server_content', 'owners');
+        const snap = await getDoc(ref);
+        const existing = snap.exists() ? snap.data() : {};
+        await setDoc(ref, { ...existing, owner: {
+            nick,
+            yt: document.getElementById('owner-yt').value.trim(),
+            tt: document.getElementById('owner-tt').value.trim(),
+            desc: document.getElementById('owner-desc').value.trim()
+        }});
+        showToast('success', 'Właściciel zapisany!');
+    } catch(e) { showToast('error', 'Błąd: ' + e.message); }
+};
+
+window.saveCowowner = async function() {
+    try {
+        const ref = doc(db, 'server_content', 'owners');
+        const snap = await getDoc(ref);
+        const existing = snap.exists() ? snap.data() : {};
+        await setDoc(ref, { ...existing, cowowner: {
+            nick: document.getElementById('cowowner-nick').value.trim() || '???',
+            yt: document.getElementById('cowowner-yt').value.trim(),
+            dc: document.getElementById('cowowner-dc').value.trim(),
+            desc: document.getElementById('cowowner-desc').value.trim()
+        }});
+        showToast('success', 'Współwłaściciel zapisany!');
+    } catch(e) { showToast('error', 'Błąd: ' + e.message); }
+};
+
+async function _loadPersonelList() {
+    try {
+        const snap = await getDocs(query(collection(db, 'personel'), orderBy('order', 'asc')));
+        allPersonel = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        renderPersonelTable(allPersonel);
+        const el = document.getElementById('personel-count');
+        if (el) el.textContent = `(${allPersonel.length})`;
+    } catch(e) {
+        const tb = document.getElementById('personel-tbody');
+        if (tb) tb.innerHTML = `<tr><td colspan="7" class="table-empty" style="color:#ef4444;">Błąd: ${e.message}</td></tr>`;
+    }
+}
+
+const RANK_COLORS = {
+    'ChatMod': '#059669', 'Pomocnik': '#047857', 'Moderator': '#7c3aed',
+    'Admin': '#b91c1c', 'Technik': '#0284c7', 'Zarządzający': '#ff1744'
+};
+
+function renderPersonelTable(list) {
+    const tb = document.getElementById('personel-tbody');
+    if (!tb) return;
+    if (!list.length) { tb.innerHTML = `<tr><td colspan="7" class="table-empty">Brak personelu — dodaj pierwszego!</td></tr>`; return; }
+    tb.innerHTML = list.map(p => {
+        const color = RANK_COLORS[p.rank] || '#6b7280';
+        const socials = [p.dc && `<a href="${p.dc}" target="_blank" style="color:#7289da;text-decoration:none;font-size:.8rem;"><i class="fa-brands fa-discord"></i></a>`,
+            p.yt && `<a href="${p.yt}" target="_blank" style="color:#ff0000;text-decoration:none;font-size:.8rem;"><i class="fa-brands fa-youtube"></i></a>`,
+            p.tt && `<a href="${p.tt}" target="_blank" style="color:#00f0ff;text-decoration:none;font-size:.8rem;"><i class="fa-brands fa-tiktok"></i></a>`
+        ].filter(Boolean).join(' ');
+        return `<tr>
+            <td><img src="https://mc-heads.net/avatar/${encodeURIComponent(p.nick||'Steve')}/36" style="width:36px;height:36px;border-radius:6px;image-rendering:pixelated;" onerror="this.src='https://mc-heads.net/avatar/Steve/36'"></td>
+            <td><span style="font-weight:700;">${p.nick||'—'}</span></td>
+            <td><span class="badge" style="background:${color}22;border:1px solid ${color}44;color:${color};">${p.rank||'—'}</span></td>
+            <td style="max-width:180px;font-size:.82rem;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.desc||'—'}</td>
+            <td style="display:flex;gap:.4rem;padding:.5rem 0;">${socials||'—'}</td>
+            <td style="font-size:.82rem;color:var(--text-secondary);">${p.order ?? 99}</td>
+            <td><div style="display:flex;gap:.4rem;">
+                <button class="tbl-btn" onclick="editPersonelMember('${p.id}')"><i class="fa-solid fa-pen"></i></button>
+                <button class="tbl-btn tbl-btn-red" onclick="deletePersonelMember('${p.id}','${p.nick}')"><i class="fa-solid fa-trash"></i></button>
+            </div></td>
+        </tr>`;
+    }).join('');
+}
+
+window.openPersonelModal = function() {
+    document.getElementById('personel-modal-title').textContent = 'Dodaj członka personelu';
+    document.getElementById('pm-id').value = '';
+    ['pm-nick','pm-desc','pm-dc','pm-yt','pm-tt','pm-perms'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    document.getElementById('pm-rank').value = 'Moderator';
+    document.getElementById('pm-order').value = '99';
+    const d = new Date(); document.getElementById('pm-since').value = d.toISOString().slice(0,10);
+    document.getElementById('pm-msg').style.display = 'none';
+    document.getElementById('personel-modal').classList.add('open');
+};
+
+window.editPersonelMember = function(id) {
+    const p = allPersonel.find(x => x.id === id);
+    if (!p) return;
+    document.getElementById('personel-modal-title').textContent = 'Edytuj członka personelu';
+    document.getElementById('pm-id').value = id;
+    const set = (elId, v) => { const el = document.getElementById(elId); if (el) el.value = v || ''; };
+    set('pm-nick', p.nick); set('pm-desc', p.desc); set('pm-dc', p.dc);
+    set('pm-yt', p.yt); set('pm-tt', p.tt); set('pm-perms', p.perms); set('pm-since', p.since);
+    document.getElementById('pm-rank').value = p.rank || 'Moderator';
+    document.getElementById('pm-order').value = p.order ?? 99;
+    document.getElementById('pm-msg').style.display = 'none';
+    document.getElementById('personel-modal').classList.add('open');
+};
+
+window.savePersonelMember = async function() {
+    const id = document.getElementById('pm-id').value;
+    const nick = document.getElementById('pm-nick').value.trim();
+    if (!nick) { showPmMsg('error', 'Wpisz nick!'); return; }
+    const data = {
+        nick,
+        rank: document.getElementById('pm-rank').value,
+        desc: document.getElementById('pm-desc').value.trim(),
+        dc: document.getElementById('pm-dc').value.trim(),
+        yt: document.getElementById('pm-yt').value.trim(),
+        tt: document.getElementById('pm-tt').value.trim(),
+        perms: document.getElementById('pm-perms').value.trim(),
+        since: document.getElementById('pm-since').value,
+        order: parseInt(document.getElementById('pm-order').value) || 99,
+        updatedAt: serverTimestamp()
+    };
+    try {
+        if (id) { await updateDoc(doc(db, 'personel', id), data); }
+        else { data.createdAt = serverTimestamp(); await addDoc(collection(db, 'personel'), data); }
+        showPmMsg('success', id ? '✓ Zaktualizowano!' : '✓ Dodano!');
+        await _loadPersonelList();
+        setTimeout(() => document.getElementById('personel-modal').classList.remove('open'), 1200);
+    } catch(e) { showPmMsg('error', 'Błąd: ' + e.message); }
+};
+
+window.deletePersonelMember = async function(id, nick) {
+    if (!confirm(`Usunąć ${nick} z personelu?`)) return;
+    try {
+        await deleteDoc(doc(db, 'personel', id));
+        showToast('success', `Usunięto ${nick}`);
+        await _loadPersonelList();
+    } catch(e) { showToast('error', 'Błąd: ' + e.message); }
+};
+
+function showPmMsg(type, text) {
+    const el = document.getElementById('pm-msg');
+    if (!el) return;
+    el.className = `modal-msg ${type}`; el.innerHTML = text; el.style.display = 'block';
+}
+
+// ─── TWÓRCY ──────────────────────────────────────────────────────────
+
+async function _loadCreatorsList() {
+    try {
+        const snap = await getDocs(collection(db, 'creators'));
+        allCreators = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        renderCreatorsTable(allCreators);
+        const el = document.getElementById('creators-count');
+        if (el) el.textContent = `(${allCreators.length})`;
+    } catch(e) {
+        const tb = document.getElementById('creators-tbody');
+        if (tb) tb.innerHTML = `<tr><td colspan="5" class="table-empty" style="color:#ef4444;">Błąd: ${e.message}</td></tr>`;
+    }
+}
+
+function renderCreatorsTable(list) {
+    const tb = document.getElementById('creators-tbody');
+    if (!tb) return;
+    if (!list.length) { tb.innerHTML = `<tr><td colspan="5" class="table-empty">Brak twórców.</td></tr>`; return; }
+    tb.innerHTML = list.map(c => {
+        const socials = [c.yt && `<a href="${c.yt}" target="_blank" style="color:#ff0000;text-decoration:none;font-size:.8rem;"><i class="fa-brands fa-youtube"></i></a>`,
+            c.tt && `<a href="${c.tt}" target="_blank" style="color:#00f0ff;text-decoration:none;font-size:.8rem;"><i class="fa-brands fa-tiktok"></i></a>`,
+            c.dc && `<a href="${c.dc}" target="_blank" style="color:#7289da;text-decoration:none;font-size:.8rem;"><i class="fa-brands fa-discord"></i></a>`
+        ].filter(Boolean).join(' ');
+        return `<tr>
+            <td><img src="https://mc-heads.net/avatar/${encodeURIComponent(c.nick||'Steve')}/36" style="width:36px;height:36px;border-radius:6px;image-rendering:pixelated;" onerror="this.src='https://mc-heads.net/avatar/Steve/36'"></td>
+            <td><span style="font-weight:700;">${c.nick||'—'}</span></td>
+            <td style="max-width:180px;font-size:.82rem;color:var(--text-secondary);">${c.desc||'—'}</td>
+            <td style="display:flex;gap:.4rem;padding:.5rem 0;">${socials||'—'}</td>
+            <td><div style="display:flex;gap:.4rem;">
+                <button class="tbl-btn" onclick="editCreator('${c.id}')"><i class="fa-solid fa-pen"></i></button>
+                <button class="tbl-btn tbl-btn-red" onclick="deleteCreator('${c.id}','${c.nick}')"><i class="fa-solid fa-trash"></i></button>
+            </div></td>
+        </tr>`;
+    }).join('');
+}
+
+window.openCreatorModal = function() {
+    document.getElementById('creator-modal-title').textContent = 'Dodaj twórcę';
+    document.getElementById('cm-id').value = '';
+    ['cm-nick','cm-desc','cm-yt','cm-tt','cm-dc'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    document.getElementById('cm-msg').style.display = 'none';
+    document.getElementById('creator-modal').classList.add('open');
+};
+
+window.editCreator = function(id) {
+    const c = allCreators.find(x => x.id === id);
+    if (!c) return;
+    document.getElementById('creator-modal-title').textContent = 'Edytuj twórcę';
+    document.getElementById('cm-id').value = id;
+    const set = (elId, v) => { const el = document.getElementById(elId); if (el) el.value = v || ''; };
+    set('cm-nick', c.nick); set('cm-desc', c.desc); set('cm-yt', c.yt); set('cm-tt', c.tt); set('cm-dc', c.dc);
+    document.getElementById('cm-msg').style.display = 'none';
+    document.getElementById('creator-modal').classList.add('open');
+};
+
+window.saveCreator = async function() {
+    const id = document.getElementById('cm-id').value;
+    const nick = document.getElementById('cm-nick').value.trim();
+    if (!nick) { showCmMsg('error', 'Wpisz nick!'); return; }
+    const data = {
+        nick,
+        desc: document.getElementById('cm-desc').value.trim(),
+        yt: document.getElementById('cm-yt').value.trim(),
+        tt: document.getElementById('cm-tt').value.trim(),
+        dc: document.getElementById('cm-dc').value.trim(),
+        updatedAt: serverTimestamp()
+    };
+    try {
+        if (id) { await updateDoc(doc(db, 'creators', id), data); }
+        else { data.createdAt = serverTimestamp(); await addDoc(collection(db, 'creators'), data); }
+        showCmMsg('success', id ? '✓ Zaktualizowano!' : '✓ Dodano!');
+        await _loadCreatorsList();
+        setTimeout(() => document.getElementById('creator-modal').classList.remove('open'), 1200);
+    } catch(e) { showCmMsg('error', 'Błąd: ' + e.message); }
+};
+
+window.deleteCreator = async function(id, nick) {
+    if (!confirm(`Usunąć ${nick} z twórców?`)) return;
+    try {
+        await deleteDoc(doc(db, 'creators', id));
+        showToast('success', `Usunięto ${nick}`);
+        await _loadCreatorsList();
+    } catch(e) { showToast('error', 'Błąd: ' + e.message); }
+};
+
+function showCmMsg(type, text) {
+    const el = document.getElementById('cm-msg');
+    if (!el) return;
+    el.className = `modal-msg ${type}`; el.innerHTML = text; el.style.display = 'block';
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// ─── STRONA (SITE PAGE) ────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════
+
+window.loadSitePage = async function() {
+    await Promise.all([siteLoadEntries(), siteLoadChanges(), siteLoadMedia(), siteLoadProposals(), siteLoadContestInfo()]);
+};
+
+window.switchSiteTab = function(tab) {
+    document.querySelectorAll('.site-tab-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.siteTab === tab);
+    });
+    document.querySelectorAll('.site-tab-panel').forEach(p => {
+        p.style.display = p.id === 'site-tab-' + tab ? 'block' : 'none';
+    });
+};
+
+// ─── Konkurs ────────────────────────────────────────────────────────
+
+async function siteLoadContestInfo() {
+    try {
+        const snap = await getDoc(doc(db, 'contests', 'start'));
+        if (snap.exists()) {
+            const d = snap.data();
+            const n = document.getElementById('site-contest-nagroda');
+            const dt = document.getElementById('site-contest-date');
+            const wc = document.getElementById('site-contest-winners-count');
+            if (n) n.value = d.nagroda || '';
+            if (dt && d.wyniki) dt.value = d.wyniki.includes('T') ? d.wyniki.slice(0,16) : d.wyniki + 'T20:00';
+            if (wc) wc.value = d.winnersCount || 2;
+            _buildWinnersInputs(d.winnersCount || 2);
+        } else {
+            _buildWinnersInputs(2);
+        }
+    } catch(e) { console.error('siteLoadContestInfo:', e); _buildWinnersInputs(2); }
+}
+
+function _buildWinnersInputs(n) {
+    const c = document.getElementById('site-winners-inputs');
+    if (!c) return;
+    c.innerHTML = '';
+    for (let i = 1; i <= n; i++) {
+        const inp = document.createElement('input');
+        inp.type = 'text';
+        inp.placeholder = `Nick zwycięzcy #${i}`;
+        inp.style.cssText = 'width:100%;padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);margin-bottom:.3rem;';
+        c.appendChild(inp);
+    }
+}
+
+document.addEventListener('change', e => {
+    if (e.target && e.target.id === 'site-contest-winners-count') {
+        _buildWinnersInputs(parseInt(e.target.value) || 2);
+    }
+});
+
+window.siteUpdateContest = async function() {
+    const nagroda = document.getElementById('site-contest-nagroda').value.trim();
+    const dateVal = document.getElementById('site-contest-date').value;
+    const wc = parseInt(document.getElementById('site-contest-winners-count').value) || 2;
+    try {
+        const ref = doc(db, 'contests', 'start');
+        const snap = await getDoc(ref);
+        const upd = { winnersCount: wc };
+        if (nagroda) upd.nagroda = nagroda;
+        if (dateVal) upd.wyniki = dateVal;
+        if (snap.exists()) { await updateDoc(ref, upd); }
+        else { await setDoc(ref, { participants: 0, aktywny: true, ...upd }); }
+        _buildWinnersInputs(wc);
+        showSiteContestMsg('✓ Zapisano!', '#00e676');
+    } catch(e) { showSiteContestMsg('Błąd: ' + e.message, '#ef4444'); }
+};
+
+window.siteAnnounceWinners = async function() {
+    const inputs = document.querySelectorAll('#site-winners-inputs input');
+    const winners = [...inputs].map(i => i.value.trim()).filter(Boolean);
+    if (!winners.length) { showSiteContestMsg('Wpisz nicki zwycięzców!', '#ef4444'); return; }
+    if (!confirm('Ogłosić zwycięzców: ' + winners.join(', ') + '?')) return;
+    try {
+        const ref = doc(db, 'contests', 'start');
+        const snap = await getDoc(ref);
+        if (snap.exists()) {
+            await updateDoc(ref, { aktywny: false, winners, winnersDate: new Date().toISOString() });
+        } else {
+            await setDoc(ref, { participants: 0, aktywny: false, winners, winnersDate: new Date().toISOString() });
+        }
+        showSiteContestMsg('✓ Zwycięzcy ogłoszeni!', '#00e676');
+    } catch(e) { showSiteContestMsg('Błąd: ' + e.message, '#ef4444'); }
+};
+
+window.siteEndContest = async function() {
+    if (!confirm('Zakończyć konkurs bez wyników?')) return;
+    try {
+        const ref = doc(db, 'contests', 'start');
+        const snap = await getDoc(ref);
+        if (snap.exists()) { await updateDoc(ref, { aktywny: false }); }
+        showSiteContestMsg('Konkurs zakończony.', '#f59e0b');
+    } catch(e) { showSiteContestMsg('Błąd: ' + e.message, '#ef4444'); }
+};
+
+window.siteDeleteContest = async function() {
+    if (!confirm('USUNĄĆ CAŁY KONKURS? Tej operacji nie można cofnąć!')) return;
+    try {
+        const entriesSnap = await getDocs(collection(db, 'contests', 'start', 'entries'));
+        for (const d of entriesSnap.docs) await deleteDoc(d.ref);
+        await deleteDoc(doc(db, 'contests', 'start'));
+        showSiteContestMsg('Konkurs usunięty.', '#ef4444');
+        await siteLoadEntries();
+    } catch(e) { showSiteContestMsg('Błąd: ' + e.message, '#ef4444'); }
+};
+
+window.siteRestartContest = async function() {
+    if (!confirm('Zresetować konkurs (usunąć uczestników i ustawić aktywny)?')) return;
+    try {
+        const entriesSnap = await getDocs(collection(db, 'contests', 'start', 'entries'));
+        for (const d of entriesSnap.docs) await deleteDoc(d.ref);
+        const ref = doc(db, 'contests', 'start');
+        await setDoc(ref, {
+            participants: 0, aktywny: true,
+            winners: [], nagroda: document.getElementById('site-contest-nagroda').value.trim() || '2x Ranga CRIT na 14 dni',
+            winnersCount: parseInt(document.getElementById('site-contest-winners-count').value) || 2
+        });
+        showSiteContestMsg('✓ Konkurs zresetowany!', '#00e676');
+        await siteLoadEntries();
+    } catch(e) { showSiteContestMsg('Błąd: ' + e.message, '#ef4444'); }
+};
+
+function showSiteContestMsg(text, color) {
+    const el = document.getElementById('site-contest-msg');
+    if (!el) return;
+    el.textContent = text; el.style.color = color;
+    setTimeout(() => { el.textContent = ''; }, 3500);
+}
+
+window.siteLoadEntries = async function() {
+    const tb = document.getElementById('site-entries-tbody');
+    const cntEl = document.getElementById('site-entries-count');
+    if (!tb) return;
+    tb.innerHTML = `<tr><td colspan="5" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>`;
+    try {
+        const snap = await getDocs(collection(db, 'contests', 'start', 'entries'));
+        const entries = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        if (cntEl) cntEl.textContent = `(${entries.length})`;
+        if (!entries.length) { tb.innerHTML = `<tr><td colspan="5" class="table-empty">Brak uczestników.</td></tr>`; return; }
+        tb.innerHTML = entries.map(e => `
+            <tr>
+                <td><span style="font-weight:700;">${e.nickMC||e.id}</span></td>
+                <td style="color:var(--text-secondary);">${e.nickDC||'—'}</td>
+                <td><span style="color:#f59e0b;font-style:italic;">${e.secret||'—'}</span></td>
+                <td style="font-size:.8rem;color:var(--text-secondary);">${e.joinedAt ? new Date(e.joinedAt).toLocaleString('pl-PL') : '—'}</td>
+                <td><button class="tbl-btn tbl-btn-red" onclick="siteRemoveEntry('${e.nickMC||e.id}')"><i class="fa-solid fa-trash"></i> Usuń</button></td>
+            </tr>`).join('');
+    } catch(e) { tb.innerHTML = `<tr><td colspan="5" class="table-empty" style="color:#ef4444;">Błąd: ${e.message}</td></tr>`; }
+};
+
+window.siteRemoveEntry = async function(nick) {
+    if (!confirm(`Usunąć ${nick} z konkursu?`)) return;
+    try {
+        await deleteDoc(doc(db, 'contests', 'start', 'entries', nick));
+        const ref = doc(db, 'contests', 'start');
+        const snap = await getDoc(ref);
+        if (snap.exists()) await updateDoc(ref, { participants: Math.max(0, (snap.data().participants||1) - 1) });
+        showToast('success', `Usunięto ${nick}`);
+        await siteLoadEntries();
+    } catch(e) { showToast('error', 'Błąd: ' + e.message); }
+};
+
+// ─── Zmiany serwerowe ────────────────────────────────────────────────
+
+async function siteLoadChanges() {
+    try {
+        const snap = await getDoc(doc(db, 'server_content', 'changes'));
+        if (snap.exists()) {
+            const d = snap.data();
+            ['zwykle','szczegolowe','najmocniejsze'].forEach(m => {
+                const el = document.getElementById('site-edit-' + m);
+                if (el) el.value = d[m] || '';
+            });
+        }
+    } catch(e) { console.error('siteLoadChanges:', e); }
+}
+
+window.siteSaveChanges = async function() {
+    const msgEl = document.getElementById('site-changes-msg');
+    const vals = {
+        zwykle: document.getElementById('site-edit-zwykle').value,
+        szczegolowe: document.getElementById('site-edit-szczegolowe').value,
+        najmocniejsze: document.getElementById('site-edit-najmocniejsze').value,
+        updatedAt: new Date().toISOString(),
+        updatedBy: currentUser?.displayName || 'Admin'
+    };
+    try {
+        await setDoc(doc(db, 'server_content', 'changes'), vals);
+        if (msgEl) { msgEl.textContent = '✓ Opublikowano!'; msgEl.style.color = '#00e676'; setTimeout(() => { msgEl.textContent = ''; }, 3000); }
+        showToast('success', 'Zmiany serwerowe opublikowane!');
+    } catch(e) {
+        if (msgEl) { msgEl.textContent = 'Błąd: ' + e.message; msgEl.style.color = '#ef4444'; }
+    }
+};
+
+// ─── Media ────────────────────────────────────────────────────────────
+
+async function siteLoadMedia() {
+    try {
+        const snap = await getDoc(doc(db, 'server_content', 'media'));
+        if (snap.exists()) {
+            const d = snap.data();
+            const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
+            set('site-dc-url', d.discord?.url); set('site-dc-sub', d.discord?.sub);
+            set('site-yt-url', d.youtube?.url); set('site-yt-handle', d.youtube?.handle);
+            set('site-tt-url', d.tiktok?.url); set('site-tt-handle', d.tiktok?.handle);
+        }
+    } catch(e) { console.error('siteLoadMedia:', e); }
+}
+
+window.siteSaveMedia = async function() {
+    const msgEl = document.getElementById('site-media-msg');
+    const vals = {
+        discord: { url: document.getElementById('site-dc-url').value.trim(), sub: document.getElementById('site-dc-sub').value.trim() },
+        youtube: { url: document.getElementById('site-yt-url').value.trim(), handle: document.getElementById('site-yt-handle').value.trim() },
+        tiktok: { url: document.getElementById('site-tt-url').value.trim(), handle: document.getElementById('site-tt-handle').value.trim() },
+        updatedAt: new Date().toISOString()
+    };
+    try {
+        await setDoc(doc(db, 'server_content', 'media'), vals);
+        if (msgEl) { msgEl.textContent = '✓ Zapisano!'; msgEl.style.color = '#00e676'; setTimeout(() => { msgEl.textContent = ''; }, 2500); }
+        showToast('success', 'Linki mediów zapisane!');
+    } catch(e) {
+        if (msgEl) { msgEl.textContent = 'Błąd: ' + e.message; msgEl.style.color = '#ef4444'; }
+    }
+};
+
+// ─── Propozycje graczy ────────────────────────────────────────────────
+
+window.siteLoadProposals = async function() {
+    const tb = document.getElementById('site-proposals-tbody');
+    if (!tb) return;
+    tb.innerHTML = `<tr><td colspan="5" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>`;
+    try {
+        const snap = await getDocs(query(collection(db, 'proposals'), orderBy('createdAt', 'desc')));
+        if (snap.empty) { tb.innerHTML = `<tr><td colspan="5" class="table-empty">Brak propozycji.</td></tr>`; return; }
+        tb.innerHTML = snap.docs.map(d => {
+            const p = { id: d.id, ...d.data() };
+            const date = p.createdAt ? new Date(p.createdAt).toLocaleString('pl-PL', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+            const total = (p.yes||0) + (p.no||0);
+            const yesPct = total ? Math.round((p.yes||0)/total*100) : 0;
+            return `<tr>
+                <td style="max-width:300px;font-size:.88rem;">${p.text||'—'}</td>
+                <td><span style="color:#00e676;font-weight:700;">${p.yes||0}</span></td>
+                <td><span style="color:#ef4444;font-weight:700;">${p.no||0}</span> ${total > 0 ? `<span style="color:var(--text-secondary);font-size:.75rem;">(${yesPct}% TAK)</span>` : ''}</td>
+                <td style="font-size:.8rem;color:var(--text-secondary);">${date}</td>
+                <td><button class="tbl-btn tbl-btn-red" onclick="siteDeleteProposal('${p.id}')"><i class="fa-solid fa-trash"></i></button></td>
+            </tr>`;
+        }).join('');
+    } catch(e) { tb.innerHTML = `<tr><td colspan="5" class="table-empty" style="color:#ef4444;">Błąd: ${e.message}</td></tr>`; }
+};
+
+window.siteDeleteProposal = async function(id) {
+    if (!confirm('Usunąć tę propozycję?')) return;
+    try {
+        await deleteDoc(doc(db, 'proposals', id));
+        showToast('success', 'Propozycja usunięta');
+        await siteLoadProposals();
+    } catch(e) { showToast('error', 'Błąd: ' + e.message); }
+};
+
+// ═══════════════════════════════════════════════════════════════════════
+// ─── MOJE KONTO ────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════
+
+window.loadMyAccount = function() {
+    const infoEl = document.getElementById('myaccount-info');
+    if (infoEl && currentUser) {
+        infoEl.innerHTML = `<i class="fa-solid fa-circle-user"></i> Zalogowany jako: <strong>${currentUser.displayName}</strong> · login: <code style="background:rgba(59,130,246,.15);padding:.1rem .4rem;border-radius:4px;">${currentUser.login}</code> · ranga: <strong>${currentUser.role}</strong>`;
+    }
+    ['my-new-login','my-new-password','my-confirm-password'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.value = '';
+    });
+    const msg = document.getElementById('myaccount-msg');
+    if (msg) msg.style.display = 'none';
+};
+
+window.saveMyAccount = async function() {
+    const newLogin    = document.getElementById('my-new-login').value.trim();
+    const newPassword = document.getElementById('my-new-password').value;
+    const confirmPw   = document.getElementById('my-confirm-password').value;
+    const msgEl       = document.getElementById('myaccount-msg');
+
+    const showMyMsg = (type, text) => {
+        if (!msgEl) return;
+        msgEl.className = `modal-msg ${type}`;
+        msgEl.innerHTML = `<i class="fa-solid fa-${type==='error'?'circle-exclamation':'check'}"></i> ${text}`;
+        msgEl.style.display = 'block';
+    };
+
+    if (!newLogin && !newPassword) { showMyMsg('error', 'Wpisz nowy login lub hasło!'); return; }
+    if (newPassword && newPassword !== confirmPw) { showMyMsg('error', 'Hasła się nie zgadzają!'); return; }
+    if (newPassword && newPassword.length < 4) { showMyMsg('error', 'Hasło musi mieć min. 4 znaki!'); return; }
+    if (!currentUser?.id) { showMyMsg('error', 'Błąd: brak ID użytkownika!'); return; }
+
+    try {
+        const upd = {};
+        if (newLogin) {
+            // Sprawdź czy login wolny
+            const check = await getDocs(query(collection(db, 'admins'), where('login','==',newLogin)));
+            if (!check.empty && check.docs[0].id !== currentUser.id) { showMyMsg('error', 'Ten login jest już zajęty!'); return; }
+            upd.login = newLogin;
+        }
+        if (newPassword) upd.password = newPassword;
+
+        await updateDoc(doc(db, 'admins', currentUser.id), upd);
+
+        if (newLogin) currentUser.login = newLogin;
+        showMyMsg('success', '✓ Dane zaktualizowane! Przy następnym logowaniu użyj nowych danych.');
+        showToast('success', 'Konto zaktualizowane!');
+        loadMyAccount();
+    } catch(e) { showMyMsg('error', 'Błąd: ' + e.message); }
+};
+
+// ═══════════════════════════════════════════════════════════════════════
+// ─── ROZSZERZENIE applyPermissions O NOWE ZAKŁADKI ─────────────────────
+// ═══════════════════════════════════════════════════════════════════════
+
+// Hookuj się na initPanelUI żeby schować nowe zakładki na podstawie uprawnień
+const _origInitPanelUI = initPanelUI;
+// Nadpisujemy applyPermissions bezpośrednio — dodajemy do już istniejącej
+const _baseApplyPermissions = applyPermissions;
+window._extendedApplyPermissions = function() {
+    _baseApplyPermissions();
+    const siteNav = document.querySelector('.nav-btn[data-page="site"]');
+    const personelNav = document.querySelector('.nav-btn[data-page="personel"]');
+    if (siteNav)    siteNav.style.display    = hasPermission('all') ? '' : 'none';
+    if (personelNav) personelNav.style.display = hasPermission('all') ? '' : 'none';
+};
