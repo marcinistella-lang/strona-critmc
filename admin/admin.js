@@ -21,15 +21,60 @@ let currentUser = null;
 let allPlayers = [], allBans = [], allMutes = [], allLogs = [];
 
 // ─── Nasłuch na login z inline scriptu ──────────────────────────────
-window.addEventListener('adminLogin', (e) => {
-    currentUser = e.detail;
-    document.getElementById('su-name').textContent   = currentUser.displayName;
-    document.getElementById('su-role').textContent   = currentUser.role;
-    document.getElementById('su-avatar').textContent = currentUser.displayName.charAt(0).toUpperCase();
-    updateServerStatus('loading', 'Łączenie...');
-    loadAll();
-    setTimeout(() => updateServerStatus('online', 'Serwer online'), 1500);
+window.addEventListener('adminLogin', async (e) => {
+    // Weryfikacja w Firestore
+    const { login, password } = e.detail;
+    try {
+        const snap = await getDocs(query(collection(db, 'admins'), where('login','==',login)));
+        if (snap.empty) { showLoginError('Błędny login lub hasło!'); return; }
+        const adminDoc = snap.docs[0];
+        const data = adminDoc.data();
+
+        // Sprawdź hasło (plain text na razie — potem bcrypt przez backend)
+        if (data.password !== password) { showLoginError('Błędny login lub hasło!'); return; }
+        if (data.disabled) { showLoginError('Konto zablokowane!'); return; }
+
+        currentUser = {
+            id: adminDoc.id,
+            login: data.login,
+            displayName: data.displayName || data.login,
+            role: data.role || 'Admin',
+            permissions: data.permissions || []
+        };
+
+        // Zaloguj — pokaż panel
+        document.body.classList.add('auth-ready');
+        document.getElementById('su-name').textContent   = currentUser.displayName;
+        document.getElementById('su-role').textContent   = currentUser.role;
+        document.getElementById('su-avatar').textContent = currentUser.displayName.charAt(0).toUpperCase();
+        updateServerStatus('loading', 'Łączenie...');
+        loadAll();
+        setTimeout(() => updateServerStatus('online', 'Serwer online'), 1500);
+    } catch (err) {
+        // Fallback na hardcoded konto jeśli Firestore niedostępny
+        if (login === 'test' && password === 'test') {
+            currentUser = { id:'local', login:'test', displayName:'Test Admin', role:'Zarządzający', permissions:['all'] };
+            document.body.classList.add('auth-ready');
+            document.getElementById('su-name').textContent   = currentUser.displayName;
+            document.getElementById('su-role').textContent   = currentUser.role;
+            document.getElementById('su-avatar').textContent = 'T';
+            updateServerStatus('loading', 'Łączenie...');
+            loadAll();
+            setTimeout(() => updateServerStatus('online', 'Serwer online'), 1500);
+        } else {
+            showLoginError('Błąd połączenia z bazą danych!');
+        }
+    }
 });
+
+function showLoginError(msg) {
+    // Ukryj panel, pokaż ekran logowania z błędem
+    document.body.classList.remove('auth-ready');
+    const err = document.getElementById('login-error');
+    if (err) { err.style.display = 'flex'; err.querySelector('i').nextSibling.textContent = ' ' + msg; }
+    const pwEl = document.getElementById('login-password');
+    if (pwEl) pwEl.value = '';
+}
 
 function loadAll() {
     loadPlayers();
@@ -595,3 +640,150 @@ function showToast(type, message) {
     c.appendChild(t);
     setTimeout(() => t.remove(), 3500);
 }
+
+// ─── ZARZĄDZANIE ADMINAMI ────────────────────────────────────────────
+let allAdmins = [];
+
+window.loadAdminAccounts = async function() {
+    try {
+        const snap = await getDocs(collection(db, 'admins'));
+        allAdmins = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        renderAdminAccounts(allAdmins);
+    } catch (e) {
+        console.error('loadAdminAccounts:', e);
+    }
+};
+
+function renderAdminAccounts(list) {
+    const tb = document.getElementById('admin-accounts-tbody');
+    if (!tb) return;
+    if (!list.length) {
+        tb.innerHTML = `<tr><td colspan="6" class="table-empty">Brak kont administracyjnych</td></tr>`;
+        return;
+    }
+    tb.innerHTML = list.map(a => `
+        <tr>
+            <td><span style="font-weight:700;">${a.displayName || a.login}</span></td>
+            <td><span style="font-family:monospace;font-size:.82rem;color:var(--text-secondary);">${a.login}</span></td>
+            <td>${rankBadge(a.role)}</td>
+            <td>
+                <div style="display:flex;flex-wrap:wrap;gap:.3rem;">
+                    ${(a.permissions||[]).map(p=>`<span class="badge badge-default" style="font-size:.68rem;">${p}</span>`).join('')}
+                </div>
+            </td>
+            <td>
+                <span class="badge ${a.disabled ? 'badge-banned' : 'badge-online'}">${a.disabled ? 'Zablokowane' : 'Aktywne'}</span>
+            </td>
+            <td>
+                <div style="display:flex;gap:.4rem;">
+                    <button class="tbl-btn" onclick="editAdminAccount('${a.id}')"><i class="fa-solid fa-pen"></i></button>
+                    <button class="tbl-btn tbl-btn-red" onclick="toggleAdminDisable('${a.id}','${a.disabled?'false':'true'}')">
+                        <i class="fa-solid fa-${a.disabled?'unlock':'lock'}"></i>
+                    </button>
+                </div>
+            </td>
+        </tr>`).join('');
+}
+
+window.openAddAdminModal = function() {
+    document.getElementById('admin-account-modal-title').textContent = 'Dodaj administratora';
+    document.getElementById('aa-id').value = '';
+    document.getElementById('aa-displayname').value = '';
+    document.getElementById('aa-login').value = '';
+    document.getElementById('aa-password').value = '';
+    document.getElementById('aa-role').value = 'Pomocnik';
+    document.querySelectorAll('.perm-checkbox').forEach(cb => cb.checked = false);
+    document.getElementById('aa-msg').style.display = 'none';
+    document.getElementById('admin-account-modal').classList.add('open');
+};
+
+window.editAdminAccount = function(id) {
+    const admin = allAdmins.find(a => a.id === id);
+    if (!admin) return;
+    document.getElementById('admin-account-modal-title').textContent = 'Edytuj administratora';
+    document.getElementById('aa-id').value = id;
+    document.getElementById('aa-displayname').value = admin.displayName || '';
+    document.getElementById('aa-login').value = admin.login || '';
+    document.getElementById('aa-password').value = '';
+    document.getElementById('aa-role').value = admin.role || 'Pomocnik';
+    document.querySelectorAll('.perm-checkbox').forEach(cb => {
+        cb.checked = (admin.permissions || []).includes(cb.value);
+    });
+    document.getElementById('aa-msg').style.display = 'none';
+    document.getElementById('admin-account-modal').classList.add('open');
+};
+
+window.saveAdminAccount = async function() {
+    const id          = document.getElementById('aa-id').value;
+    const displayName = document.getElementById('aa-displayname').value.trim();
+    const login       = document.getElementById('aa-login').value.trim();
+    const password    = document.getElementById('aa-password').value;
+    const role        = document.getElementById('aa-role').value;
+    const perms       = [...document.querySelectorAll('.perm-checkbox:checked')].map(cb => cb.value);
+
+    if (!displayName || !login) { showAaMsg('error', 'Wypełnij nazwę i login!'); return; }
+
+    try {
+        const data = { displayName, login, role, permissions: perms };
+        if (password) data.password = password;
+
+        if (id) {
+            // Edycja
+            await updateDoc(doc(db, 'admins', id), data);
+        } else {
+            // Nowe konto
+            if (!password) { showAaMsg('error', 'Podaj hasło dla nowego konta!'); return; }
+            // Sprawdź czy login zajęty
+            const check = await getDocs(query(collection(db, 'admins'), where('login','==',login)));
+            if (!check.empty) { showAaMsg('error', 'Ten login jest już zajęty!'); return; }
+            data.disabled = false;
+            data.createdAt = serverTimestamp();
+            data.createdBy = currentUser?.displayName || 'Panel';
+            await addDoc(collection(db, 'admins'), data);
+        }
+        showAaMsg('success', id ? '✓ Zaktualizowano!' : '✓ Konto utworzone!');
+        await window.loadAdminAccounts();
+        setTimeout(() => document.getElementById('admin-account-modal').classList.remove('open'), 1200);
+    } catch (e) {
+        showAaMsg('error', 'Błąd: ' + e.message);
+    }
+};
+
+window.toggleAdminDisable = async function(id, disable) {
+    const action = disable === 'true' ? 'zablokować' : 'odblokować';
+    if (!confirm(`Czy na pewno chcesz ${action} to konto?`)) return;
+    try {
+        await updateDoc(doc(db, 'admins', id), { disabled: disable === 'true' });
+        showToast('success', `Konto ${disable === 'true' ? 'zablokowane' : 'odblokowane'}`);
+        await window.loadAdminAccounts();
+    } catch (e) { showToast('error', 'Błąd: ' + e.message); }
+};
+
+function showAaMsg(type, text) {
+    const el = document.getElementById('aa-msg');
+    if (!el) return;
+    el.className = `modal-msg ${type}`;
+    el.innerHTML = text;
+    el.style.display = 'block';
+}
+
+// Inicjalizacja konta test/test w Firestore jeśli puste
+async function ensureDefaultAdmin() {
+    try {
+        const snap = await getDocs(collection(db, 'admins'));
+        if (snap.empty) {
+            await addDoc(collection(db, 'admins'), {
+                login: 'test',
+                password: 'test',
+                displayName: 'Test Admin',
+                role: 'Zarządzający',
+                permissions: ['all'],
+                disabled: false,
+                createdAt: serverTimestamp(),
+                createdBy: 'system'
+            });
+            console.log('[CritMC] Utworzono domyślne konto test/test w Firestore');
+        }
+    } catch (e) { console.log('[CritMC] ensureDefaultAdmin:', e.message); }
+}
+ensureDefaultAdmin();

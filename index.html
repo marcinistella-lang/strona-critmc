@@ -79,6 +79,9 @@
                 </div>
                 <div class="contest-btns">
                     <button class="contest-btn" onclick="openContest('start')"><i class="fa-solid fa-trophy"></i> Wez udzial</button>
+                    <div id="contest-joined-info" style="display:none;align-items:center;gap:.5rem;background:rgba(0,230,118,.12);border:1px solid rgba(0,230,118,.3);border-radius:12px;padding:.6rem 1.2rem;font-size:.9rem;font-weight:700;color:#00e676;">
+                        <i class="fa-solid fa-check-circle"></i> Juz zapisany!
+                    </div>
                     <button class="contest-admin-btn" onclick="openContestAdmin()"><i class="fa-solid fa-gear"></i> Zarzadzaj</button>
                 </div>
             </div>
@@ -584,16 +587,32 @@
         }
         loadCount();
 
-        let currentContest=null;
         window.openContest=function(id){currentContest=id;document.getElementById('contest-overlay').classList.add('open');document.getElementById('contest-msg').textContent='';['contest-nick-mc','contest-nick-dc','contest-secret'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});};
         window.closeContest=function(e){if(!e||e.target===document.getElementById('contest-overlay'))document.getElementById('contest-overlay').classList.remove('open');};
         window.submitContest=async function(){
             const mc=document.getElementById('contest-nick-mc').value.trim(), dc=document.getElementById('contest-nick-dc').value.trim(), sec=document.getElementById('contest-secret').value.trim(), msg=document.getElementById('contest-msg');
             if(!mc||!dc||!sec){msg.textContent='Wypelnij wszystkie pola!';msg.style.color='#ff5252';return;}
             msg.textContent='Zapisuje...';msg.style.color='var(--text-muted)';
-            try{const r=await joinContest(window._currentContest||'start',{nickMC:mc,nickDC:dc,secret:sec});msg.textContent=r.message;msg.style.color=r.success?'#00e676':'#ff5252';if(r.success){loadCount();setTimeout(()=>document.getElementById('contest-overlay').classList.remove('open'),2500);}}
+            try{const r=await joinContest(window._currentContest||'start',{nickMC:mc,nickDC:dc,secret:sec});msg.textContent=r.message;msg.style.color=r.success?'#00e676':'#ff5252';if(r.success){loadCount();
+                // Ukryj przycisk po zapisaniu — zapamiętaj w localStorage
+                localStorage.setItem('critmc_contest_joined_start', '1');
+                checkContestJoined();
+                setTimeout(()=>document.getElementById('contest-overlay').classList.remove('open'),2500);
+            }}
             catch(e){msg.textContent='Blad polaczenia. Sprobuj ponownie.';msg.style.color='#ff5252';}
         };
+
+        // Sprawdź czy już dołączył — ukryj przycisk
+        function checkContestJoined() {
+            const joined = localStorage.getItem('critmc_contest_joined_start');
+            const btn = document.querySelector('#contest-start .contest-btn');
+            const joinedInfo = document.getElementById('contest-joined-info');
+            if (joined && btn) {
+                btn.style.display = 'none';
+                if (joinedInfo) joinedInfo.style.display = 'flex';
+            }
+        }
+        checkContestJoined();
 
         let adminLogged=false;
         window.openContestAdmin=function(){document.getElementById('contest-admin-overlay').classList.add('open');if(!window._adminLogged){document.getElementById('admin-login-form').style.display='block';document.getElementById('admin-panel-content').style.display='none';document.getElementById('admin-login-err').style.display='none';}else{loadAdminPanel();}};

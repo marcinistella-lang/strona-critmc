@@ -93,6 +93,12 @@
                     <i class="fa-solid fa-chart-bar"></i>
                     <span>Statystyki adminów</span>
                 </button>
+
+                <div class="nav-section-label" style="margin-top:1.5rem;">Ustawienia</div>
+                <button class="nav-btn" data-page="admins" onclick="switchPage('admins');loadAdminAccounts();">
+                    <i class="fa-solid fa-user-shield"></i>
+                    <span>Administratorzy</span>
+                </button>
             </nav>
 
             <div class="sidebar-footer">
@@ -485,7 +491,106 @@
                 </div>
             </div>
 
+            <!-- ===== STRONA: ADMINISTRATORZY ===== -->
+            <div id="page-admins" class="page">
+                <div class="page-header">
+                    <h1>Administratorzy</h1>
+                    <p>Zarządzaj kontami administracyjnymi i uprawnieniami</p>
+                </div>
+                <div style="display:flex;justify-content:flex-end;margin-bottom:1rem;">
+                    <button class="modal-submit-btn" style="width:auto;padding:.6rem 1.4rem;" onclick="openAddAdminModal()">
+                        <i class="fa-solid fa-plus"></i> Dodaj administratora
+                    </button>
+                </div>
+                <div class="table-card">
+                    <div class="table-wrap">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Nazwa</th>
+                                    <th>Login</th>
+                                    <th>Ranga</th>
+                                    <th>Uprawnienia</th>
+                                    <th>Status</th>
+                                    <th>Akcje</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-accounts-tbody">
+                                <tr><td colspan="6" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
         </main>
+    </div>
+
+    <!-- ===== MODAL: KONTO ADMINA ===== -->
+    <div class="modal-overlay" id="admin-account-modal" onclick="closeModal(event)">
+        <div class="modal-box" style="max-width:520px;">
+            <div class="modal-header">
+                <div class="modal-title" id="admin-account-modal-title">Dodaj administratora</div>
+                <button class="modal-close" onclick="document.getElementById('admin-account-modal').classList.remove('open')"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="aa-id">
+
+                <div class="modal-field">
+                    <label>Nazwa wyświetlana</label>
+                    <input type="text" id="aa-displayname" placeholder="np. Moderator Jan...">
+                </div>
+                <div class="modal-field">
+                    <label>Login</label>
+                    <input type="text" id="aa-login" placeholder="np. jan123..." autocomplete="off">
+                </div>
+                <div class="modal-field">
+                    <label>Hasło <span style="color:#999;font-weight:400;">(zostaw puste żeby nie zmieniać)</span></label>
+                    <input type="password" id="aa-password" placeholder="Nowe hasło..." autocomplete="new-password">
+                </div>
+                <div class="modal-field">
+                    <label>Ranga</label>
+                    <select id="aa-role" style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                        <option value="ChatMod">ChatMod</option>
+                        <option value="Pomocnik">Pomocnik</option>
+                        <option value="Moderator">Moderator</option>
+                        <option value="Admin">Admin</option>
+                        <option value="Zarządzający">Zarządzający</option>
+                    </select>
+                </div>
+                <div class="modal-field">
+                    <label>Uprawnienia</label>
+                    <div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.3rem;">
+                        <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;">
+                            <input type="checkbox" class="perm-checkbox" value="ban"> Ban/Unban
+                        </label>
+                        <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;">
+                            <input type="checkbox" class="perm-checkbox" value="mute"> Mute/Unmute
+                        </label>
+                        <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;">
+                            <input type="checkbox" class="perm-checkbox" value="kick"> Kick
+                        </label>
+                        <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;">
+                            <input type="checkbox" class="perm-checkbox" value="warn"> Ostrzeżenia
+                        </label>
+                        <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;">
+                            <input type="checkbox" class="perm-checkbox" value="players"> Gracze
+                        </label>
+                        <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;">
+                            <input type="checkbox" class="perm-checkbox" value="logs"> Logi
+                        </label>
+                        <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:rgba(255,23,68,.08);border:1.5px solid rgba(255,23,68,.25);padding:.35rem .75rem;border-radius:6px;color:var(--accent);">
+                            <input type="checkbox" class="perm-checkbox" value="all"> Wszystko (Zarządzający)
+                        </label>
+                    </div>
+                </div>
+
+                <div id="aa-msg" class="modal-msg" style="display:none;"></div>
+                <button class="modal-submit-btn" onclick="saveAdminAccount()">
+                    <i class="fa-solid fa-floppy-disk"></i> Zapisz
+                </button>
+            </div>
+        </div>
     </div>
 
     <!-- ===== MODAL: NOTATKA DO GRACZA ===== -->

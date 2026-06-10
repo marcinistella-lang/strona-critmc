@@ -189,11 +189,54 @@ function adminLogin() {
         window._adminLogged = true;
         document.getElementById('admin-login-form').style.display = 'none';
         document.getElementById('admin-panel-content').style.display = 'flex';
-        // loadAdminPanel() zostanie wywolane przez modul jesli Firebase dostepny
         if (typeof window.loadAdminPanel === 'function') window.loadAdminPanel();
     } else {
         document.getElementById('admin-login-err').style.display = 'block';
     }
+}
+
+// Ogłoś zwycięzców
+async function adminAnnounceWinners() {
+    const w1 = document.getElementById('winner-input-1').value.trim();
+    const w2 = document.getElementById('winner-input-2').value.trim();
+    if (!w1 || !w2) { showAdminMsg('Podaj nicki obu zwycięzców!', '#ff5252'); return; }
+    if (!confirm('Ogłosić zwycięzców i zakończyć konkurs?')) return;
+    try {
+        if (typeof window.setWinners === 'function') {
+            await window.setWinners(window._currentContest || 'start', [w1, w2]);
+        }
+        showAdminMsg('Zwycięzcy ogłoszeni! Strona odświeży się za chwilę.', '#00e676');
+        setTimeout(() => location.reload(), 2000);
+    } catch(e) { showAdminMsg('Błąd: ' + e.message, '#ff5252'); }
+}
+
+// Zakończ bez wyników
+async function adminEndContest() {
+    if (!confirm('Zakończyć konkurs bez ogłoszenia wyników?')) return;
+    try {
+        if (typeof window.endContest === 'function') {
+            await window.endContest(window._currentContest || 'start');
+        }
+        showAdminMsg('Konkurs zakończony.', '#ffb700');
+        setTimeout(() => { document.getElementById('contest-admin-overlay').classList.remove('open'); location.reload(); }, 1500);
+    } catch(e) { showAdminMsg('Błąd: ' + e.message, '#ff5252'); }
+}
+
+// Usuń konkurs
+async function adminDeleteContest() {
+    if (!confirm('USUNĄĆ CAŁY KONKURS? Tej operacji nie można cofnąć!')) return;
+    try {
+        if (typeof window.deleteContest === 'function') {
+            await window.deleteContest(window._currentContest || 'start');
+        }
+        showAdminMsg('Konkurs usunięty.', '#ff5252');
+        setTimeout(() => { document.getElementById('contest-admin-overlay').classList.remove('open'); location.reload(); }, 1500);
+    } catch(e) { showAdminMsg('Błąd: ' + e.message, '#ff5252'); }
+}
+
+function showAdminMsg(msg, color) {
+    const el = document.getElementById('admin-action-msg');
+    if (el) { el.textContent = msg; el.style.color = color || '#fff'; }
 }
 
 document.addEventListener('DOMContentLoaded', loadChanges);
