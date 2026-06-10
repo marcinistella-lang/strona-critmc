@@ -809,3 +809,68 @@
     transform: translateY(-2px);
     box-shadow: 0 8px 20px rgba(242,200,74,0.4);
 }
+
+/* Konkurs - meta i przyciski */
+.contest-meta {
+    display: flex;
+    gap: 1.2rem;
+    flex-wrap: wrap;
+    margin-top: 0.5rem;
+}
+.contest-timer {
+    font-size: 0.85rem;
+    color: #f2c84a;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+.contest-btns {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+.contest-admin-btn {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: var(--text-muted);
+    padding: 0.5rem 1rem;
+    border-radius: 10px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+.contest-admin-btn:hover {
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+}
+/* Admin entry row */
+.admin-entry {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 10px;
+    padding: 0.7rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+.admin-entry-info { font-size: 0.85rem; flex: 1; }
+.admin-entry-nick { font-weight: 800; color: #fff; }
+.admin-entry-dc { color: var(--text-muted); font-size: 0.78rem; }
+.admin-entry-secret { color: #f2c84a; font-size: 0.78rem; font-style: italic; }
+.admin-entry-remove {
+    background: rgba(255,23,68,0.15);
+    border: 1px solid rgba(255,23,68,0.3);
+    color: #ff5252;
+    padding: 0.3rem 0.7rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.78rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}

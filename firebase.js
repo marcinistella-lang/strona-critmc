@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, increment, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, increment, getDoc, setDoc, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyBdwzCGhUtqGm0Ggfmrl2MC8_u10c_AuMQ",
@@ -14,93 +14,104 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// --- KONKURSY ---
+// --- KONKURS ---
 
-// Zapisz zgłoszenie do konkursu
-export async function joinContest(contestId, playerNick) {
-    try {
-        // Sprawdź czy gracz już dołączył
-        const entryRef = doc(db, "contests", contestId, "entries", playerNick);
-        const entrySnap = await getDoc(entryRef);
-        if (entrySnap.exists()) {
-            return { success: false, message: "Już bierzesz udział w tym konkursie!" };
-        }
+// Pobierz dane konkursu
+export async function getContest(contestId) {
+    const ref = doc(db, "contests", contestId);
+    const snap = await getDoc(ref);
+    return snap.exists() ? { id: snap.id, ...snap.data() } : null;
+}
 
-        // Dodaj zgłoszenie
-        await setDoc(entryRef, {
-            nick: playerNick,
-            joinedAt: new Date()
+// Zapisz zgłoszenie
+export async function joinContest(contestId, data) {
+    const { nickMC, nickDC, secret } = data;
+
+    // Sprawdź czy nick MC już dołączył
+    const entryRef = doc(db, "contests", contestId, "entries", nickMC);
+    const entrySnap = await getDoc(entryRef);
+    if (entrySnap.exists()) {
+        return { success: false, message: "Ten nick MC już bierze udział w konkursie!" };
+    }
+
+    // Zapisz zgłoszenie (secret NIE jest wyświetlany publicznie)
+    await setDoc(entryRef, {
+        nickMC,
+        nickDC,
+        secret, // tylko admin widzi
+        joinedAt: new Date().toISOString()
+    });
+
+    // Zwiększ licznik
+    const contestRef = doc(db, "contests", contestId);
+    const contestSnap = await getDoc(contestRef);
+    if (!contestSnap.exists()) {
+        await setDoc(contestRef, {
+            participants: 1,
+            nagroda: "2x Ranga CRIT na 14 dni",
+            wyniki: "2025-08-25",
+            aktywny: true
         });
-
-        // Zwiększ licznik
-        const contestRef = doc(db, "contests", contestId);
-        const contestSnap = await getDoc(contestRef);
-        if (!contestSnap.exists()) {
-            await setDoc(contestRef, { participants: 1 });
-        } else {
-            await updateDoc(contestRef, { participants: increment(1) });
-        }
-
-        return { success: true, message: "Zapisano!" };
-    } catch (e) {
-        return { success: false, message: "Błąd: " + e.message };
+    } else {
+        await updateDoc(contestRef, { participants: increment(1) });
     }
+
+    return { success: true, message: "Zapisano! Powodzenia! 🎉" };
 }
 
-// Pobierz liczbę uczestników konkursu
+// Pobierz liczbę uczestników
 export async function getContestCount(contestId) {
-    try {
-        const contestRef = doc(db, "contests", contestId);
-        const contestSnap = await getDoc(contestRef);
-        if (contestSnap.exists()) {
-            return contestSnap.data().participants || 0;
-        }
-        return 0;
-    } catch (e) {
-        return 0;
+    const ref = doc(db, "contests", contestId);
+    const snap = await getDoc(ref);
+    return snap.exists() ? (snap.data().participants || 0) : 0;
+}
+
+// --- ADMIN ---
+
+// Pobierz wszystkich uczestników (tylko admin)
+export async function getEntries(contestId) {
+    const ref = collection(db, "contests", contestId, "entries");
+    const snap = await getDocs(ref);
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+// Usuń uczestnika
+export async function removeEntry(contestId, nickMC) {
+    await deleteDoc(doc(db, "contests", contestId, "entries", nickMC));
+    const contestRef = doc(db, "contests", contestId);
+    await updateDoc(contestRef, { participants: increment(-1) });
+}
+
+// Aktualizuj dane konkursu
+export async function updateContest(contestId, updates) {
+    const ref = doc(db, "contests", contestId);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) {
+        await setDoc(ref, { participants: 0, aktywny: true, ...updates });
+    } else {
+        await updateDoc(ref, updates);
     }
 }
 
-// --- ANKIETY ---
-
-// Oddaj głos w ankiecie
-export async function vote(pollId, option, voterNick) {
-    try {
-        // Sprawdź czy już głosował
-        const voterRef = doc(db, "polls", pollId, "voters", voterNick);
-        const voterSnap = await getDoc(voterRef);
-        if (voterSnap.exists()) {
-            return { success: false, message: "Już głosowałeś w tej ankiecie!" };
-        }
-
-        // Zapisz głos
-        await setDoc(voterRef, { option, votedAt: new Date() });
-
-        // Zwiększ licznik opcji
-        const pollRef = doc(db, "polls", pollId);
-        const pollSnap = await getDoc(pollRef);
-        if (!pollSnap.exists()) {
-            await setDoc(pollRef, { [option]: 1 });
-        } else {
-            await updateDoc(pollRef, { [option]: increment(1) });
-        }
-
-        return { success: true, message: "Głos oddany!" };
-    } catch (e) {
-        return { success: false, message: "Błąd: " + e.message };
-    }
+        // Zakończ konkurs
+export async function endContest(contestId) {
+    await updateContest(contestId, { aktywny: false });
 }
 
-// Pobierz wyniki ankiety
-export async function getPollResults(pollId) {
-    try {
-        const pollRef = doc(db, "polls", pollId);
-        const pollSnap = await getDoc(pollRef);
-        if (pollSnap.exists()) {
-            return pollSnap.data();
-        }
-        return {};
-    } catch (e) {
-        return {};
+// Ogłoś zwycięzców
+export async function setWinners(contestId, winners) {
+    await updateContest(contestId, { 
+        aktywny: false, 
+        winners: winners,
+        winnersDate: new Date().toISOString()
+    });
+}
+
+// Usuń cały konkurs
+export async function deleteContest(contestId) {
+    const entries = await getEntries(contestId);
+    for (const e of entries) {
+        await deleteDoc(doc(db, "contests", contestId, "entries", e.id));
     }
+    await deleteDoc(doc(db, "contests", contestId));
 }

@@ -74,28 +74,101 @@
                 <div class="contest-icon"><i class="fa-solid fa-trophy"></i></div>
                 <div class="contest-info">
                     <div class="contest-title">Konkurs Startowy</div>
-                    <div class="contest-desc">Weź udział w konkursie z okazji startu serwera i wygraj rangę CRIT na 30 dni!</div>
-                    <div class="contest-count"><i class="fa-solid fa-users"></i> <span id="contest-count-start">0</span> uczestników</div>
+                    <div class="contest-desc"><strong>Nagroda:</strong> 2x Ranga CRIT na 14 dni</div>
+                    <div class="contest-meta">
+                        <span class="contest-timer" id="contest-timer"><i class="fa-solid fa-clock"></i> Ładowanie...</span>
+                        <span class="contest-count"><i class="fa-solid fa-users"></i> <span id="contest-count-start">0</span> uczestników</span>
+                    </div>
                 </div>
-                <button class="contest-btn" onclick="openContest('start')">
-                    <i class="fa-solid fa-trophy"></i> Weź udział
-                </button>
+                <div class="contest-btns">
+                    <button class="contest-btn" onclick="openContest('start')"><i class="fa-solid fa-trophy"></i> Weź udział</button>
+                    <button class="contest-admin-btn" onclick="openContestAdmin()"><i class="fa-solid fa-gear"></i> Zarządzaj</button>
+                </div>
             </div>
 
-            <!-- Modal konkursu -->
+            <!-- Modal: Dołącz do konkursu -->
             <div class="changes-overlay" id="contest-overlay" onclick="closeContest(event)">
                 <div class="changes-panel-box" style="max-width:480px;">
                     <div class="changes-panel-header">
-                        <span><i class="fa-solid fa-trophy"></i> Weź udział w konkursie</span>
+                        <span><i class="fa-solid fa-trophy"></i> Dołącz do konkursu</span>
                         <button class="changes-close-btn" onclick="closeContest()"><i class="fa-solid fa-xmark"></i></button>
                     </div>
-                    <div style="display:flex; flex-direction:column; gap:1rem;">
-                        <p style="color:var(--text-muted); font-size:0.9rem;">Podaj swój nick z Minecrafta aby dołączyć do konkursu.</p>
-                        <input id="contest-nick-input" type="text" placeholder="Twój nick MC..." style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:#fff; padding:0.7rem 1rem; border-radius:10px; font-size:1rem; outline:none; width:100%; box-sizing:border-box;">
-                        <button onclick="submitContest()" style="background:linear-gradient(135deg,#f2c84a,#ff8c00); color:#000; font-weight:900; padding:0.8rem; border:none; border-radius:10px; font-size:1rem; cursor:pointer;">
-                            <i class="fa-solid fa-trophy"></i> Dołącz do konkursu
-                        </button>
-                        <div id="contest-msg" style="text-align:center; font-size:0.9rem; color:var(--text-muted);"></div>
+                    <div style="display:flex;flex-direction:column;gap:1rem;">
+                        <div style="background:rgba(242,200,74,0.08);border:1px solid rgba(242,200,74,0.2);border-radius:10px;padding:0.8rem 1rem;">
+                            <div style="font-weight:800;color:#f2c84a;margin-bottom:0.3rem;"><i class="fa-solid fa-gift"></i> Nagroda: 2x Ranga CRIT na 14 dni</div>
+                            <div style="font-size:0.82rem;color:var(--text-muted);">Wyniki: 25 sierpnia 2025</div>
+                        </div>
+                        <div>
+                            <label style="font-size:0.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:0.4rem;">Nick Minecraft *</label>
+                            <input id="contest-nick-mc" type="text" placeholder="Twój nick MC..." style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#fff;padding:0.7rem 1rem;border-radius:8px;font-size:1rem;outline:none;width:100%;box-sizing:border-box;">
+                        </div>
+                        <div>
+                            <label style="font-size:0.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:0.4rem;">Nick Discord *</label>
+                            <input id="contest-nick-dc" type="text" placeholder="Twój nick Discord..." style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#fff;padding:0.7rem 1rem;border-radius:8px;font-size:1rem;outline:none;width:100%;box-sizing:border-box;">
+                        </div>
+                        <div>
+                            <label style="font-size:0.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:0.4rem;">Słowo weryfikacyjne * <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#9f97ad;font-size:0.75rem;">(zapamiętaj je — użyjemy przy wygranej)</span></label>
+                            <input id="contest-secret" type="text" placeholder="Wpisz dowolne tajne słowo..." style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#fff;padding:0.7rem 1rem;border-radius:8px;font-size:1rem;outline:none;width:100%;box-sizing:border-box;">
+                            <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.3rem;">Np. imię zwierzaka, ulubiony kolor itp. Nikt tego nie zobaczy — tylko my przy weryfikacji wygranego.</div>
+                        </div>
+                        <button onclick="submitContest()" style="background:linear-gradient(135deg,#f2c84a,#ff8c00);color:#000;font-weight:900;padding:0.85rem;border:none;border-radius:10px;font-size:1rem;cursor:pointer;"><i class="fa-solid fa-trophy"></i> Dołącz do konkursu</button>
+                        <div id="contest-msg" style="text-align:center;font-size:0.9rem;color:var(--text-muted);"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal: Panel admina konkursu -->
+            <div class="changes-overlay" id="contest-admin-overlay" onclick="closeContestAdmin(event)">
+                <div class="changes-panel-box" style="max-width:600px;max-height:85vh;">
+                    <div class="changes-panel-header">
+                        <span><i class="fa-solid fa-gear"></i> Zarządzaj konkursem</span>
+                        <button class="changes-close-btn" onclick="closeContestAdmin()"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                    <div id="admin-login-form">
+                        <div style="display:flex;flex-direction:column;gap:0.8rem;margin-bottom:1rem;">
+                            <input id="admin-login" type="text" placeholder="Login..." style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#fff;padding:0.7rem 1rem;border-radius:8px;font-size:1rem;outline:none;">
+                            <input id="admin-pass" type="password" placeholder="Hasło..." style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#fff;padding:0.7rem 1rem;border-radius:8px;font-size:1rem;outline:none;">
+                            <button onclick="adminLogin()" style="background:linear-gradient(135deg,#fc84fb,#ff1744);color:#fff;border:none;padding:0.8rem;border-radius:8px;font-weight:900;cursor:pointer;">Zaloguj</button>
+                            <div id="admin-login-err" style="color:#ff5252;font-size:0.85rem;display:none;">Błędny login lub hasło!</div>
+                        </div>
+                    </div>
+                    <div id="admin-panel-content" style="display:none;">
+                        <!-- Zmień nagrodę -->
+                        <div style="margin-bottom:1.5rem;">
+                            <label style="font-size:0.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;display:block;margin-bottom:0.4rem;">Nagroda</label>
+                            <div style="display:flex;gap:0.5rem;">
+                                <input id="admin-nagroda" type="text" placeholder="Nagroda..." style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#fff;padding:0.6rem 1rem;border-radius:8px;font-size:0.9rem;outline:none;">
+                                <button onclick="adminUpdateNagroda()" style="background:rgba(0,230,118,0.15);border:1px solid rgba(0,230,118,0.3);color:#00e676;padding:0.6rem 1rem;border-radius:8px;cursor:pointer;font-weight:700;">Zapisz</button>
+                            </div>
+                        </div>
+                        <!-- Zmień datę wyników -->
+                        <div style="margin-bottom:1.5rem;">
+                            <label style="font-size:0.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;display:block;margin-bottom:0.4rem;">Data wyników</label>
+                            <div style="display:flex;gap:0.5rem;">
+                                <input id="admin-data" type="date" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#fff;padding:0.6rem 1rem;border-radius:8px;font-size:0.9rem;outline:none;">
+                                <button onclick="adminUpdateData()" style="background:rgba(0,230,118,0.15);border:1px solid rgba(0,230,118,0.3);color:#00e676;padding:0.6rem 1rem;border-radius:8px;cursor:pointer;font-weight:700;">Zapisz</button>
+                            </div>
+                        </div>
+                        <!-- Ogłoś zwycięzców -->
+                        <div style="margin-bottom:1.5rem;background:rgba(242,200,74,0.06);border:1px solid rgba(242,200,74,0.2);border-radius:10px;padding:1rem;">
+                            <div style="font-size:0.78rem;font-weight:700;color:#f2c84a;text-transform:uppercase;margin-bottom:0.7rem;"><i class="fa-solid fa-trophy"></i> Ogłoś zwycięzców</div>
+                            <div style="display:flex;flex-direction:column;gap:0.5rem;">
+                                <input id="winner-input-1" type="text" placeholder="Nick zwycięzcy #1..." style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#fff;padding:0.6rem 1rem;border-radius:8px;font-size:0.9rem;outline:none;">
+                                <input id="winner-input-2" type="text" placeholder="Nick zwycięzcy #2..." style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#fff;padding:0.6rem 1rem;border-radius:8px;font-size:0.9rem;outline:none;">
+                                <button onclick="adminAnnounceWinners()" style="background:linear-gradient(135deg,#f2c84a,#ff8c00);color:#000;border:none;padding:0.6rem 1.2rem;border-radius:8px;cursor:pointer;font-weight:900;"><i class="fa-solid fa-trophy"></i> Ogłoś i zakończ konkurs</button>
+                            </div>
+                        </div>
+                        <!-- Akcje -->
+                        <div style="display:flex;gap:0.5rem;margin-bottom:1.5rem;flex-wrap:wrap;">
+                            <button onclick="adminEndContest()" style="background:rgba(255,183,0,0.15);border:1px solid rgba(255,183,0,0.3);color:#ffb700;padding:0.6rem 1.2rem;border-radius:8px;cursor:pointer;font-weight:700;"><i class="fa-solid fa-flag-checkered"></i> Zakończ bez wyników</button>
+                            <button onclick="adminDeleteContest()" style="background:rgba(255,23,68,0.15);border:1px solid rgba(255,23,68,0.3);color:#ff5252;padding:0.6rem 1.2rem;border-radius:8px;cursor:pointer;font-weight:700;"><i class="fa-solid fa-trash"></i> Usuń konkurs</button>
+                        </div>
+                        <!-- Lista uczestników -->
+                        <div>
+                            <div style="font-size:0.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:0.8rem;">Uczestnicy</div>
+                            <div id="admin-entries-list" style="display:flex;flex-direction:column;gap:0.5rem;max-height:280px;overflow-y:auto;"></div>
+                        </div>
+                        <div id="admin-action-msg" style="text-align:center;font-size:0.9rem;margin-top:1rem;color:var(--text-muted);"></div>
                     </div>
                 </div>
             </div>
@@ -237,10 +310,10 @@
 
             <div class="team-admins-section">
                 <h3 class="team-section-title"><i class="fa-solid fa-user-shield"></i> Personel</h3>
-                <div class="team-admins-grid">
+                <div class="team-admins-grid" id="section-admins-dynamic">
                     <div class="team-admin-card" onclick="toggleAdmin(this)">
                         <div class="team-admin-header">
-                            <img src="https://mc-heads.net/avatar/Steve/48" alt="Admin" class="team-admin-head">
+                            <img src="https://mc-heads.net/avatar/Admin1/48" alt="Admin" class="team-admin-head">
                             <div>
                                 <div class="team-admin-name">Admin1</div>
                                 <div class="team-admin-rank">Administrator</div>
@@ -302,7 +375,7 @@
             <!-- TWÓRCY -->
             <div class="team-creators-section">
                 <h3 class="team-section-title"><i class="fa-solid fa-video"></i> Twórcy</h3>
-                <div class="team-admins-grid">
+                <div class="team-admins-grid" id="section-creators-dynamic">
                     <div class="team-admin-card" onclick="toggleAdmin(this)">
                         <div class="team-admin-header">
                             <img src="https://mc-heads.net/avatar/Steve/48" alt="Twórca" class="team-admin-head">
@@ -399,52 +472,196 @@
 
     <script src="home.js"></script>
     <script type="module">
-        import { joinContest, getContestCount } from './firebase.js';
+        import { joinContest, getContestCount, getEntries, removeEntry, updateContest, endContest, deleteContest, getContest, setWinners } from './firebase.js';
 
-        // Załaduj licznik
+        const CONTEST_ID = 'start';
+        const ADMIN_LOGIN = 'admin';
+        const ADMIN_PASS = 'critmc2026';
+        const WYNIKI_DATE = new Date('2025-08-25T20:00:00');
+        const HIDE_DATE = new Date('2025-09-30T00:00:00'); // po tej dacie konkurs znika
+
+        // --- STAN KONKURSU ---
+        async function initContest() {
+            const contest = await getContest(CONTEST_ID);
+            const card = document.getElementById('contest-start');
+            const winnersCard = document.getElementById('contest-winners');
+            const now = new Date();
+
+            // Ukryj po 30 września
+            if (now >= HIDE_DATE) {
+                if (card) card.style.display = 'none';
+                if (winnersCard) winnersCard.style.display = 'none';
+                return;
+            }
+
+            // Pokaż wyniki jeśli konkurs zakończony i są zwycięzcy
+            if (contest && !contest.aktywny && contest.winners && contest.winners.length > 0) {
+                if (card) card.style.display = 'none';
+                if (winnersCard) {
+                    winnersCard.style.display = 'flex';
+                    document.getElementById('winner-1').textContent = contest.winners[0] || '—';
+                    document.getElementById('winner-2').textContent = contest.winners[1] || '—';
+                }
+                return;
+            }
+
+            // Konkurs zakończony ale bez zwycięzców — ukryj
+            if (contest && !contest.aktywny) {
+                if (card) card.style.display = 'none';
+                if (winnersCard) winnersCard.style.display = 'none';
+                return;
+            }
+
+            // Konkurs aktywny
+            if (card) card.style.display = 'flex';
+            if (winnersCard) winnersCard.style.display = 'none';
+        }
+        initContest();
+
+        // --- ODLICZANIE ---
+        function updateTimer() {
+            const now = new Date();
+            const diff = WYNIKI_DATE - now;
+            const el = document.getElementById('contest-timer');
+            if (!el) return;
+            if (diff <= 0) { el.innerHTML = '<i class="fa-solid fa-flag-checkered"></i> Wyniki już ogłoszone!'; return; }
+            const d = Math.floor(diff / 86400000);
+            const h = Math.floor((diff % 86400000) / 3600000);
+            const m = Math.floor((diff % 3600000) / 60000);
+            el.innerHTML = `<i class="fa-solid fa-clock"></i> Do wyników: ${d}d ${h}h ${m}m (25 sierpnia)`;
+        }
+        updateTimer();
+        setInterval(updateTimer, 60000);
+
+        // --- LICZNIK ---
         async function loadCount() {
-            const count = await getContestCount('start');
+            const count = await getContestCount(CONTEST_ID);
             document.getElementById('contest-count-start').textContent = count;
         }
         loadCount();
 
+        // --- FORMULARZ DOŁĄCZENIA ---
         let currentContest = null;
-
         window.openContest = function(id) {
             currentContest = id;
             document.getElementById('contest-overlay').classList.add('open');
             document.getElementById('contest-msg').textContent = '';
-            document.getElementById('contest-nick-input').value = '';
         }
-
         window.closeContest = function(e) {
             if (!e || e.target === document.getElementById('contest-overlay')) {
                 document.getElementById('contest-overlay').classList.remove('open');
             }
         }
-
         window.submitContest = async function() {
-            const nick = document.getElementById('contest-nick-input').value.trim();
-            if (!nick) {
-                document.getElementById('contest-msg').textContent = 'Wpisz swój nick!';
+            const nickMC = document.getElementById('contest-nick-mc').value.trim();
+            const nickDC = document.getElementById('contest-nick-dc').value.trim();
+            const secret = document.getElementById('contest-secret').value.trim();
+            const msg = document.getElementById('contest-msg');
+            if (!nickMC || !nickDC || !secret) {
+                msg.textContent = 'Wypełnij wszystkie pola!';
+                msg.style.color = '#ff5252';
                 return;
             }
-            const btn = document.querySelector('#contest-overlay button[onclick="submitContest()"]');
-            btn.textContent = 'Zapisuję...';
-            btn.disabled = true;
-
-            const result = await joinContest(currentContest, nick);
-            document.getElementById('contest-msg').textContent = result.message;
-            document.getElementById('contest-msg').style.color = result.success ? '#00e676' : '#ff5252';
-
+            msg.textContent = 'Zapisuję...';
+            msg.style.color = 'var(--text-muted)';
+            const result = await joinContest(currentContest, { nickMC, nickDC, secret });
+            msg.textContent = result.message;
+            msg.style.color = result.success ? '#00e676' : '#ff5252';
             if (result.success) {
                 loadCount();
-                setTimeout(() => document.getElementById('contest-overlay').classList.remove('open'), 2000);
+                setTimeout(() => document.getElementById('contest-overlay').classList.remove('open'), 2500);
             }
-            btn.textContent = '🏆 Dołącz do konkursu';
-            btn.disabled = false;
+        }
+
+        // --- PANEL ADMINA ---
+        let adminLogged = false;
+        window.openContestAdmin = function() {
+            document.getElementById('contest-admin-overlay').classList.add('open');
+            if (!adminLogged) {
+                document.getElementById('admin-login-form').style.display = 'block';
+                document.getElementById('admin-panel-content').style.display = 'none';
+            }
+        }
+        window.closeContestAdmin = function(e) {
+            if (!e || e.target === document.getElementById('contest-admin-overlay')) {
+                document.getElementById('contest-admin-overlay').classList.remove('open');
+            }
+        }
+        window.adminLogin = async function() {
+            const l = document.getElementById('admin-login').value;
+            const p = document.getElementById('admin-pass').value;
+            if (l === ADMIN_LOGIN && p === ADMIN_PASS) {
+                adminLogged = true;
+                document.getElementById('admin-login-form').style.display = 'none';
+                document.getElementById('admin-panel-content').style.display = 'block';
+                await loadAdminPanel();
+            } else {
+                document.getElementById('admin-login-err').style.display = 'block';
+            }
+        }
+
+        async function loadAdminPanel() {
+            const contest = await getContest(CONTEST_ID);
+            if (contest) {
+                document.getElementById('admin-nagroda').value = contest.nagroda || '';
+                if (contest.wyniki) document.getElementById('admin-data').value = contest.wyniki;
+            }
+            const entries = await getEntries(CONTEST_ID);
+            const list = document.getElementById('admin-entries-list');
+            if (entries.length === 0) {
+                list.innerHTML = '<div style="color:var(--text-muted);font-size:0.9rem;">Brak uczestników.</div>';
+                return;
+            }
+            list.innerHTML = entries.map(e => `
+                <div class="admin-entry">
+                    <div class="admin-entry-info">
+                        <div class="admin-entry-nick"><i class="fa-solid fa-cube"></i> ${e.nickMC}</div>
+                        <div class="admin-entry-dc"><i class="fa-brands fa-discord"></i> ${e.nickDC}</div>
+                        <div class="admin-entry-secret"><i class="fa-solid fa-key"></i> Słowo: ${e.secret}</div>
+                    </div>
+                    <button class="admin-entry-remove" onclick="adminRemoveEntry('${e.nickMC}')"><i class="fa-solid fa-trash"></i> Usuń</button>
+                </div>
+            `).join('');
+        }
+
+        window.adminRemoveEntry = async function(nickMC) {
+            if (!confirm(`Usunąć ${nickMC} z konkursu?`)) return;
+            await removeEntry(CONTEST_ID, nickMC);
+            await loadAdminPanel();
+            loadCount();
+            showAdminMsg('Usunięto uczestnika.', '#00e676');
+        }
+        window.adminUpdateNagroda = async function() {
+            const val = document.getElementById('admin-nagroda').value.trim();
+            if (!val) return;
+            await updateContest(CONTEST_ID, { nagroda: val });
+            showAdminMsg('Nagroda zaktualizowana!', '#00e676');
+        }
+        window.adminUpdateData = async function() {
+            const val = document.getElementById('admin-data').value;
+            if (!val) return;
+            await updateContest(CONTEST_ID, { wyniki: val });
+            showAdminMsg('Data wyników zaktualizowana!', '#00e676');
+        }
+        window.adminEndContest = async function() {
+            if (!confirm('Zakończyć konkurs?')) return;
+            await endContest(CONTEST_ID);
+            showAdminMsg('Konkurs zakończony!', '#ffb700');
+        }
+        window.adminDeleteContest = async function() {
+            if (!confirm('Usunąć cały konkurs? Tej operacji nie można cofnąć!')) return;
+            await deleteContest(CONTEST_ID);
+            document.getElementById('contest-admin-overlay').classList.remove('open');
+            document.getElementById('contest-start').style.display = 'none';
+        }
+        function showAdminMsg(text, color) {
+            const el = document.getElementById('admin-action-msg');
+            el.textContent = text;
+            el.style.color = color;
+            setTimeout(() => el.textContent = '', 3000);
         }
     </script>
 </body>
 </html>
+
 
