@@ -742,3 +742,70 @@
     0%   { filter: drop-shadow(0 0 10px rgba(252,132,251,0.2)); }
     100% { filter: drop-shadow(0 0 30px rgba(136,197,255,0.5)); }
 }
+
+/* Konkurs */
+.contest-card {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    background: linear-gradient(135deg, rgba(242,200,74,0.1) 0%, rgba(255,140,0,0.06) 100%);
+    border: 1px solid rgba(242,200,74,0.25);
+    border-radius: 18px;
+    padding: 1.5rem 2rem;
+    margin-top: 2rem;
+    flex-wrap: wrap;
+}
+
+.contest-icon {
+    font-size: 3rem;
+    color: #f2c84a;
+    filter: drop-shadow(0 0 12px rgba(242,200,74,0.4));
+    flex-shrink: 0;
+}
+
+.contest-info {
+    flex: 1;
+}
+
+.contest-title {
+    font-size: 1.2rem;
+    font-weight: 900;
+    color: #fff;
+    margin-bottom: 0.3rem;
+}
+
+.contest-desc {
+    font-size: 0.88rem;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+}
+
+.contest-count {
+    font-size: 0.85rem;
+    color: #f2c84a;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.contest-btn {
+    background: linear-gradient(135deg, #f2c84a, #ff8c00);
+    color: #000;
+    border: none;
+    padding: 0.8rem 2rem;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 900;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.contest-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(242,200,74,0.4);
+}

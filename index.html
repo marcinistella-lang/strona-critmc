@@ -68,6 +68,38 @@
                 <i class="fa-solid fa-newspaper"></i>
                 <p>Brak nowości — wróć wkrótce!</p>
             </div>
+
+            <!-- KONKURS -->
+            <div class="contest-card" id="contest-start">
+                <div class="contest-icon"><i class="fa-solid fa-trophy"></i></div>
+                <div class="contest-info">
+                    <div class="contest-title">Konkurs Startowy</div>
+                    <div class="contest-desc">Weź udział w konkursie z okazji startu serwera i wygraj rangę CRIT na 30 dni!</div>
+                    <div class="contest-count"><i class="fa-solid fa-users"></i> <span id="contest-count-start">0</span> uczestników</div>
+                </div>
+                <button class="contest-btn" onclick="openContest('start')">
+                    <i class="fa-solid fa-trophy"></i> Weź udział
+                </button>
+            </div>
+
+            <!-- Modal konkursu -->
+            <div class="changes-overlay" id="contest-overlay" onclick="closeContest(event)">
+                <div class="changes-panel-box" style="max-width:480px;">
+                    <div class="changes-panel-header">
+                        <span><i class="fa-solid fa-trophy"></i> Weź udział w konkursie</span>
+                        <button class="changes-close-btn" onclick="closeContest()"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:1rem;">
+                        <p style="color:var(--text-muted); font-size:0.9rem;">Podaj swój nick z Minecrafta aby dołączyć do konkursu.</p>
+                        <input id="contest-nick-input" type="text" placeholder="Twój nick MC..." style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:#fff; padding:0.7rem 1rem; border-radius:10px; font-size:1rem; outline:none; width:100%; box-sizing:border-box;">
+                        <button onclick="submitContest()" style="background:linear-gradient(135deg,#f2c84a,#ff8c00); color:#000; font-weight:900; padding:0.8rem; border:none; border-radius:10px; font-size:1rem; cursor:pointer;">
+                            <i class="fa-solid fa-trophy"></i> Dołącz do konkursu
+                        </button>
+                        <div id="contest-msg" style="text-align:center; font-size:0.9rem; color:var(--text-muted);"></div>
+                    </div>
+                </div>
+            </div>
+
         </section>
 
         <!-- Sklep -->
@@ -366,6 +398,53 @@
     </footer>
 
     <script src="home.js"></script>
+    <script type="module">
+        import { joinContest, getContestCount } from './firebase.js';
+
+        // Załaduj licznik
+        async function loadCount() {
+            const count = await getContestCount('start');
+            document.getElementById('contest-count-start').textContent = count;
+        }
+        loadCount();
+
+        let currentContest = null;
+
+        window.openContest = function(id) {
+            currentContest = id;
+            document.getElementById('contest-overlay').classList.add('open');
+            document.getElementById('contest-msg').textContent = '';
+            document.getElementById('contest-nick-input').value = '';
+        }
+
+        window.closeContest = function(e) {
+            if (!e || e.target === document.getElementById('contest-overlay')) {
+                document.getElementById('contest-overlay').classList.remove('open');
+            }
+        }
+
+        window.submitContest = async function() {
+            const nick = document.getElementById('contest-nick-input').value.trim();
+            if (!nick) {
+                document.getElementById('contest-msg').textContent = 'Wpisz swój nick!';
+                return;
+            }
+            const btn = document.querySelector('#contest-overlay button[onclick="submitContest()"]');
+            btn.textContent = 'Zapisuję...';
+            btn.disabled = true;
+
+            const result = await joinContest(currentContest, nick);
+            document.getElementById('contest-msg').textContent = result.message;
+            document.getElementById('contest-msg').style.color = result.success ? '#00e676' : '#ff5252';
+
+            if (result.success) {
+                loadCount();
+                setTimeout(() => document.getElementById('contest-overlay').classList.remove('open'), 2000);
+            }
+            btn.textContent = '🏆 Dołącz do konkursu';
+            btn.disabled = false;
+        }
+    </script>
 </body>
 </html>
 
