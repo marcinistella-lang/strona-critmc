@@ -126,7 +126,12 @@ function applyPermissions() {
 
 function showLoginError(msg) {
     document.body.classList.remove('auth-ready');
-    // Wywołaj licznik prób z inline scriptu
+    const errEl = document.getElementById('login-error');
+    if (errEl) {
+        errEl.style.display = 'flex';
+        errEl.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> ${msg}`;
+    }
+    // Wywołaj licznik prób z inline scriptu (nadpisuje wiadomość + obsługuje blokadę)
     if (typeof window.recordFailedAttempt === 'function') {
         window.recordFailedAttempt();
     }

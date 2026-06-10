@@ -60,7 +60,7 @@
             </div>
 
             <nav class="sidebar-nav">
-                <div class="nav-section-label">Zarządzanie</div>
+                <div class="nav-section-label">Minecraft</div>
                 <button class="nav-btn active" data-page="players" onclick="switchPage('players')">
                     <i class="fa-solid fa-users"></i>
                     <span>Gracze</span>
@@ -75,29 +75,39 @@
                     <span>Muty</span>
                     <span class="nav-badge" id="badge-mutes">0</span>
                 </button>
-
-                <div class="nav-section-label" style="margin-top:1.5rem;">Akcje</div>
                 <button class="nav-btn" data-page="action" onclick="switchPage('action')">
                     <i class="fa-solid fa-gavel"></i>
                     <span>Nadaj karę</span>
                 </button>
-
-                <div class="nav-section-label" style="margin-top:1.5rem;">Historia</div>
                 <button class="nav-btn" data-page="logs" onclick="switchPage('logs')">
                     <i class="fa-solid fa-clock-rotate-left"></i>
                     <span>Logi akcji</span>
                 </button>
-
-                <div class="nav-section-label" style="margin-top:1.5rem;">Statystyki</div>
                 <button class="nav-btn" data-page="stats" onclick="switchPage('stats')">
                     <i class="fa-solid fa-chart-bar"></i>
-                    <span>Statystyki adminów</span>
+                    <span>Statystyki</span>
                 </button>
 
-                <div class="nav-section-label" style="margin-top:1.5rem;">Ustawienia</div>
+                <div class="nav-section-label" style="margin-top:1.5rem;">Personel</div>
+                <button class="nav-btn" data-page="personel" onclick="switchPage('personel');loadPersonel();">
+                    <i class="fa-solid fa-id-badge"></i>
+                    <span>Personel</span>
+                </button>
+
+                <div class="nav-section-label" style="margin-top:1.5rem;">Strona</div>
+                <button class="nav-btn" data-page="site" onclick="switchPage('site');loadSitePage();">
+                    <i class="fa-solid fa-globe"></i>
+                    <span>Strona</span>
+                </button>
+
+                <div class="nav-section-label" style="margin-top:1.5rem;">Konto</div>
                 <button class="nav-btn" data-page="admins" onclick="switchPage('admins');loadAdminAccounts();">
                     <i class="fa-solid fa-user-shield"></i>
                     <span>Administratorzy</span>
+                </button>
+                <button class="nav-btn" data-page="myaccount" onclick="switchPage('myaccount');loadMyAccount();">
+                    <i class="fa-solid fa-circle-user"></i>
+                    <span>Moje konto</span>
                 </button>
             </nav>
 
@@ -523,6 +533,228 @@
                 </div>
             </div>
 
+            <!-- ===== STRONA: PERSONEL ===== -->
+            <div id="page-personel" class="page">
+                <div class="page-header">
+                    <h1>Personel</h1>
+                    <p>Zarządzaj ekipą serwera — wyświetlane na stronie głównej</p>
+                </div>
+
+                <!-- Właściciel i Współwłaściciel -->
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem;">
+                    <div class="table-card" style="padding:1.2rem;">
+                        <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.8rem;"><i class="fa-solid fa-crown" style="color:#fc84fb;"></i> Właściciel</div>
+                        <div style="display:flex;flex-direction:column;gap:.6rem;">
+                            <input type="text" id="owner-nick" placeholder="Nick MC właściciela..." style="padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                            <input type="text" id="owner-yt" placeholder="URL YouTube..." style="padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                            <input type="text" id="owner-tt" placeholder="URL TikTok..." style="padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                            <textarea id="owner-desc" rows="2" placeholder="Opis właściciela..." style="padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea>
+                            <button class="modal-submit-btn" style="padding:.6rem;" onclick="saveOwner()"><i class="fa-solid fa-floppy-disk"></i> Zapisz</button>
+                        </div>
+                    </div>
+                    <div class="table-card" style="padding:1.2rem;">
+                        <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.8rem;"><i class="fa-solid fa-crown" style="color:#88c5ff;"></i> Współwłaściciel</div>
+                        <div style="display:flex;flex-direction:column;gap:.6rem;">
+                            <input type="text" id="cowowner-nick" placeholder="Nick MC (lub ??? jeśli ukryty)..." style="padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                            <input type="text" id="cowowner-yt" placeholder="URL YouTube (opcjonalne)..." style="padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                            <input type="text" id="cowowner-dc" placeholder="URL Discord (opcjonalne)..." style="padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                            <textarea id="cowowner-desc" rows="2" placeholder="Opis współwłaściciela..." style="padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea>
+                            <button class="modal-submit-btn" style="padding:.6rem;" onclick="saveCowowner()"><i class="fa-solid fa-floppy-disk"></i> Zapisz</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Personel (admini, moderatorzy, technicy) -->
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:.8rem;">
+                    <div style="font-size:.9rem;font-weight:700;color:var(--text-primary);">Członkowie personelu <span id="personel-count" style="color:var(--text-secondary);font-weight:400;font-size:.82rem;"></span></div>
+                    <button class="modal-submit-btn" style="width:auto;padding:.55rem 1.2rem;" onclick="openPersonelModal()">
+                        <i class="fa-solid fa-plus"></i> Dodaj członka
+                    </button>
+                </div>
+                <div class="table-card">
+                    <div class="table-wrap">
+                        <table class="data-table">
+                            <thead><tr><th>Avatar</th><th>Nick</th><th>Ranga</th><th>Opis</th><th>Socials</th><th>Kolejność</th><th>Akcje</th></tr></thead>
+                            <tbody id="personel-tbody">
+                                <tr><td colspan="7" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Twórcy -->
+                <div style="display:flex;align-items:center;justify-content:space-between;margin:1.5rem 0 1rem;flex-wrap:wrap;gap:.8rem;">
+                    <div style="font-size:.9rem;font-weight:700;color:var(--text-primary);">Twórcy serwerowi <span id="creators-count" style="color:var(--text-secondary);font-weight:400;font-size:.82rem;"></span></div>
+                    <button class="modal-submit-btn" style="width:auto;padding:.55rem 1.2rem;background:linear-gradient(135deg,#aa00ff,#ff00ff);" onclick="openCreatorModal()">
+                        <i class="fa-solid fa-plus"></i> Dodaj twórcę
+                    </button>
+                </div>
+                <div class="table-card">
+                    <div class="table-wrap">
+                        <table class="data-table">
+                            <thead><tr><th>Avatar</th><th>Nick</th><th>Opis</th><th>Socials</th><th>Akcje</th></tr></thead>
+                            <tbody id="creators-tbody">
+                                <tr><td colspan="5" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== STRONA: STRONA (SITE) ===== -->
+            <div id="page-site" class="page">
+                <div class="page-header">
+                    <h1>Zarządzanie Stroną</h1>
+                    <p>Konkurs startowy, zmiany serwerowe, propozycje graczy</p>
+                </div>
+
+                <!-- Zakładki podstrony -->
+                <div style="display:flex;gap:.5rem;margin-bottom:1.5rem;flex-wrap:wrap;">
+                    <button class="site-tab-btn active" data-site-tab="contest" onclick="switchSiteTab('contest')"><i class="fa-solid fa-trophy"></i> Konkurs</button>
+                    <button class="site-tab-btn" data-site-tab="changes" onclick="switchSiteTab('changes')"><i class="fa-solid fa-list-check"></i> Zmiany</button>
+                    <button class="site-tab-btn" data-site-tab="media" onclick="switchSiteTab('media')"><i class="fa-solid fa-photo-film"></i> Media</button>
+                    <button class="site-tab-btn" data-site-tab="proposals" onclick="switchSiteTab('proposals')"><i class="fa-solid fa-lightbulb"></i> Propozycje</button>
+                </div>
+
+                <!-- Konkurs -->
+                <div id="site-tab-contest" class="site-tab-panel active">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem;">
+                        <div class="table-card" style="padding:1.2rem;">
+                            <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.8rem;"><i class="fa-solid fa-trophy" style="color:#f2c84a;"></i> Ustawienia konkursu</div>
+                            <div style="display:flex;flex-direction:column;gap:.7rem;">
+                                <div><label style="font-size:.75rem;font-weight:700;color:var(--text-secondary);display:block;margin-bottom:.3rem;">Nagroda</label>
+                                    <input type="text" id="site-contest-nagroda" placeholder="np. 2x Ranga CRIT na 14 dni" style="width:100%;padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);"></div>
+                                <div><label style="font-size:.75rem;font-weight:700;color:var(--text-secondary);display:block;margin-bottom:.3rem;">Data wyników (YYYY-MM-DD HH:MM)</label>
+                                    <input type="datetime-local" id="site-contest-date" style="width:100%;padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);"></div>
+                                <div><label style="font-size:.75rem;font-weight:700;color:var(--text-secondary);display:block;margin-bottom:.3rem;">Ilość zwycięzców</label>
+                                    <input type="number" id="site-contest-winners-count" min="1" max="20" value="2" style="width:100px;padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);"></div>
+                                <button class="modal-submit-btn" style="padding:.6rem;" onclick="siteUpdateContest()"><i class="fa-solid fa-floppy-disk"></i> Zapisz ustawienia</button>
+                            </div>
+                        </div>
+                        <div class="table-card" style="padding:1.2rem;">
+                            <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.8rem;"><i class="fa-solid fa-flag-checkered" style="color:#00e676;"></i> Akcje konkursu</div>
+                            <div style="display:flex;flex-direction:column;gap:.7rem;">
+                                <div id="site-winners-inputs" style="display:flex;flex-direction:column;gap:.4rem;"></div>
+                                <button style="background:linear-gradient(135deg,#f2c84a,#ff8c00);color:#000;border:none;padding:.7rem;border-radius:var(--radius-sm);font-weight:900;cursor:pointer;" onclick="siteAnnounceWinners()"><i class="fa-solid fa-trophy"></i> Ogłoś zwycięzców i zakończ</button>
+                                <button style="background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);color:#f59e0b;padding:.6rem;border-radius:var(--radius-sm);font-weight:700;cursor:pointer;" onclick="siteEndContest()"><i class="fa-solid fa-flag-checkered"></i> Zakończ bez wyników</button>
+                                <button style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);color:#ef4444;padding:.6rem;border-radius:var(--radius-sm);font-weight:700;cursor:pointer;" onclick="siteDeleteContest()"><i class="fa-solid fa-trash"></i> Usuń konkurs</button>
+                                <button style="background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.25);color:#3b82f6;padding:.6rem;border-radius:var(--radius-sm);font-weight:700;cursor:pointer;" onclick="siteRestartContest()"><i class="fa-solid fa-rotate-right"></i> Nowy konkurs (reset)</button>
+                            </div>
+                            <div id="site-contest-msg" style="margin-top:.6rem;font-size:.85rem;text-align:center;"></div>
+                        </div>
+                    </div>
+                    <!-- Uczestnicy -->
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.8rem;">
+                        <div style="font-weight:700;">Uczestnicy <span id="site-entries-count" style="color:var(--text-secondary);font-weight:400;font-size:.82rem;"></span></div>
+                        <button class="tbl-btn" onclick="siteLoadEntries()"><i class="fa-solid fa-rotate-right"></i> Odśwież</button>
+                    </div>
+                    <div class="table-card">
+                        <div class="table-wrap">
+                            <table class="data-table">
+                                <thead><tr><th>Nick MC</th><th>Nick DC</th><th>Słowo weryfikacyjne</th><th>Dołączył</th><th>Akcje</th></tr></thead>
+                                <tbody id="site-entries-tbody">
+                                    <tr><td colspan="5" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Zmiany serwerowe -->
+                <div id="site-tab-changes" class="site-tab-panel" style="display:none;">
+                    <div class="table-card" style="padding:1.4rem;">
+                        <div style="display:flex;flex-direction:column;gap:1rem;">
+                            <div>
+                                <label style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;display:block;margin-bottom:.4rem;">Tryb: Zwykłe</label>
+                                <textarea id="site-edit-zwykle" rows="5" style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea>
+                            </div>
+                            <div>
+                                <label style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;display:block;margin-bottom:.4rem;">Tryb: Szczegółowe</label>
+                                <textarea id="site-edit-szczegolowe" rows="5" style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea>
+                            </div>
+                            <div>
+                                <label style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;display:block;margin-bottom:.4rem;">Tryb: Najmocniejsze</label>
+                                <textarea id="site-edit-najmocniejsze" rows="5" style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea>
+                            </div>
+                            <div style="display:flex;gap:.8rem;align-items:center;flex-wrap:wrap;">
+                                <button class="modal-submit-btn" style="width:auto;padding:.65rem 1.4rem;" onclick="siteSaveChanges()"><i class="fa-solid fa-floppy-disk"></i> Zapisz i opublikuj</button>
+                                <span id="site-changes-msg" style="font-size:.88rem;"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Media -->
+                <div id="site-tab-media" class="site-tab-panel" style="display:none;">
+                    <div class="table-card" style="padding:1.4rem;">
+                        <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:1rem;"><i class="fa-brands fa-discord" style="color:#7289da;"></i> Discord</div>
+                        <div style="display:flex;gap:.6rem;margin-bottom:1.2rem;">
+                            <input type="text" id="site-dc-url" placeholder="URL Discord (np. https://dc.critmc.pl)" style="flex:1;padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                            <input type="text" id="site-dc-sub" placeholder="Podtytuł (np. dc.critmc.pl)" style="flex:1;padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                        </div>
+                        <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.6rem;"><i class="fa-brands fa-youtube" style="color:#ff0000;"></i> YouTube</div>
+                        <div style="display:flex;gap:.6rem;margin-bottom:1.2rem;">
+                            <input type="text" id="site-yt-url" placeholder="URL YouTube" style="flex:1;padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                            <input type="text" id="site-yt-handle" placeholder="Handle np. @Critmc.pl_1" style="flex:1;padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                        </div>
+                        <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.6rem;"><i class="fa-brands fa-tiktok" style="color:#00f0ff;"></i> TikTok</div>
+                        <div style="display:flex;gap:.6rem;margin-bottom:1.2rem;">
+                            <input type="text" id="site-tt-url" placeholder="URL TikTok" style="flex:1;padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                            <input type="text" id="site-tt-handle" placeholder="Handle np. @critmc.pl" style="flex:1;padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                        </div>
+                        <div style="display:flex;gap:.8rem;align-items:center;">
+                            <button class="modal-submit-btn" style="width:auto;padding:.65rem 1.4rem;" onclick="siteSaveMedia()"><i class="fa-solid fa-floppy-disk"></i> Zapisz linki</button>
+                            <span id="site-media-msg" style="font-size:.88rem;"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Propozycje graczy -->
+                <div id="site-tab-proposals" class="site-tab-panel" style="display:none;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.8rem;flex-wrap:wrap;gap:.6rem;">
+                        <div style="font-weight:700;">Propozycje graczy</div>
+                        <button class="tbl-btn" onclick="siteLoadProposals()"><i class="fa-solid fa-rotate-right"></i> Odśwież</button>
+                    </div>
+                    <div class="table-card">
+                        <div class="table-wrap">
+                            <table class="data-table">
+                                <thead><tr><th>Treść</th><th>TAK</th><th>NIE</th><th>Data</th><th>Akcje</th></tr></thead>
+                                <tbody id="site-proposals-tbody">
+                                    <tr><td colspan="5" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== STRONA: MOJE KONTO ===== -->
+            <div id="page-myaccount" class="page">
+                <div class="page-header">
+                    <h1>Moje Konto</h1>
+                    <p>Zmień dane logowania do panelu</p>
+                </div>
+                <div class="table-card" style="padding:1.5rem;max-width:480px;">
+                    <div style="display:flex;flex-direction:column;gap:1rem;">
+                        <div class="modal-field">
+                            <label>Nowy login <span style="color:#999;font-weight:400;">(zostaw puste żeby nie zmieniać)</span></label>
+                            <input type="text" id="my-new-login" placeholder="Nowy login..." autocomplete="off" style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                        </div>
+                        <div class="modal-field">
+                            <label>Nowe hasło <span style="color:#999;font-weight:400;">(zostaw puste żeby nie zmieniać)</span></label>
+                            <input type="password" id="my-new-password" placeholder="Nowe hasło..." autocomplete="new-password" style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                        </div>
+                        <div class="modal-field">
+                            <label>Potwierdź hasło</label>
+                            <input type="password" id="my-confirm-password" placeholder="Powtórz hasło..." autocomplete="new-password" style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                        </div>
+                        <div id="myaccount-info" style="background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.2);border-radius:var(--radius-sm);padding:.8rem 1rem;font-size:.85rem;color:#3b82f6;"></div>
+                        <div id="myaccount-msg" class="modal-msg" style="display:none;"></div>
+                        <button class="modal-submit-btn" onclick="saveMyAccount()"><i class="fa-solid fa-floppy-disk"></i> Zapisz zmiany</button>
+                    </div>
+                </div>
+            </div>
+
         </main>
     </div>
 
@@ -682,6 +914,86 @@
     <!-- TOAST NOTIFICATIONS -->
     <div id="toast-container" class="toast-container"></div>
 
+    <!-- Styl dla zakładek site-tab -->
+    <style>
+        .site-tab-btn {
+            background: var(--bg);
+            border: 1.5px solid var(--border);
+            color: var(--text-secondary);
+            padding: .5rem 1.1rem;
+            border-radius: var(--radius-sm);
+            font-weight: 700;
+            font-size: .85rem;
+            cursor: pointer;
+            transition: all .2s;
+            display: inline-flex;
+            align-items: center;
+            gap: .45rem;
+            font-family: var(--font);
+        }
+        .site-tab-btn.active, .site-tab-btn:hover {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+        }
+        .site-tab-panel { display: none; }
+        .site-tab-panel.active { display: block; }
+    </style>
+
+    <!-- ===== MODAL: CZŁONEK PERSONELU ===== -->
+    <div class="modal-overlay" id="personel-modal" onclick="closeModal(event)">
+        <div class="modal-box" style="max-width:560px;">
+            <div class="modal-header">
+                <div class="modal-title" id="personel-modal-title">Dodaj członka personelu</div>
+                <button class="modal-close" onclick="document.getElementById('personel-modal').classList.remove('open')"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="pm-id">
+                <div class="modal-field"><label>Nick Minecraft *</label><input type="text" id="pm-nick" placeholder="Nick gracza..."></div>
+                <div class="modal-field">
+                    <label>Ranga *</label>
+                    <select id="pm-rank" style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                        <option value="ChatMod">ChatMod</option>
+                        <option value="Pomocnik">Pomocnik</option>
+                        <option value="Moderator">Moderator</option>
+                        <option value="Admin">Administrator</option>
+                        <option value="Technik">Technik</option>
+                        <option value="Zarządzający">Zarządzający</option>
+                    </select>
+                </div>
+                <div class="modal-field"><label>Opis</label><textarea id="pm-desc" rows="3" placeholder="Opis członka personelu..." style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea></div>
+                <div class="modal-field"><label>Discord (opcjonalne)</label><input type="text" id="pm-dc" placeholder="URL lub nick Discord..."></div>
+                <div class="modal-field"><label>YouTube (opcjonalne)</label><input type="text" id="pm-yt" placeholder="URL YouTube..."></div>
+                <div class="modal-field"><label>TikTok (opcjonalne)</label><input type="text" id="pm-tt" placeholder="URL TikTok..."></div>
+                <div class="modal-field"><label>Uprawnienia (widoczne na stronie)</label><input type="text" id="pm-perms" placeholder="np. /ban, /kick, /mute, /tp..."></div>
+                <div class="modal-field"><label>Data dołączenia (opcjonalne)</label><input type="date" id="pm-since" style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);"></div>
+                <div class="modal-field"><label>Kolejność (niższy = wyżej)</label><input type="number" id="pm-order" value="99" min="0" style="width:100px;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);"></div>
+                <div id="pm-msg" class="modal-msg" style="display:none;"></div>
+                <button class="modal-submit-btn" onclick="savePersonelMember()"><i class="fa-solid fa-floppy-disk"></i> Zapisz</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MODAL: TWÓRCA ===== -->
+    <div class="modal-overlay" id="creator-modal" onclick="closeModal(event)">
+        <div class="modal-box" style="max-width:520px;">
+            <div class="modal-header">
+                <div class="modal-title" id="creator-modal-title">Dodaj twórcę</div>
+                <button class="modal-close" onclick="document.getElementById('creator-modal').classList.remove('open')"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="cm-id">
+                <div class="modal-field"><label>Nick Minecraft *</label><input type="text" id="cm-nick" placeholder="Nick twórcy..."></div>
+                <div class="modal-field"><label>Opis</label><textarea id="cm-desc" rows="3" placeholder="Opis twórcy..." style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea></div>
+                <div class="modal-field"><label>YouTube (opcjonalne)</label><input type="text" id="cm-yt" placeholder="URL YouTube..."></div>
+                <div class="modal-field"><label>TikTok (opcjonalne)</label><input type="text" id="cm-tt" placeholder="URL TikTok..."></div>
+                <div class="modal-field"><label>Discord (opcjonalne)</label><input type="text" id="cm-dc" placeholder="URL lub nick Discord..."></div>
+                <div id="cm-msg" class="modal-msg" style="display:none;"></div>
+                <button class="modal-submit-btn" style="background:linear-gradient(135deg,#aa00ff,#ff00ff);" onclick="saveCreator()"><i class="fa-solid fa-floppy-disk"></i> Zapisz</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Firebase Admin Module -->
     <script type="module" src="admin.js"></script>
 
@@ -785,9 +1097,6 @@
             // admin.js wywoła recordFailedAttempt() jeśli błąd
             window.dispatchEvent(new CustomEvent('adminLogin', { detail: { login, password } }));
         }
-            window._adminUser = account;
-            window.dispatchEvent(new CustomEvent('adminLogin', { detail: { login, password } }));
-        }
 
         // Wylogowanie
         function handleLogout() {
@@ -806,13 +1115,16 @@
             if (btn)  btn.classList.add('active');
             if (page) page.classList.add('active');
             const titles = {
-                players: 'Gracze',
-                bans:    'Bany',
-                mutes:   'Muty',
-                action:  'Nadaj karę',
-                logs:    'Logi Akcji',
-                stats:   'Statystyki Adminów',
-                admins:  'Administratorzy'
+                players:   'Gracze',
+                bans:      'Bany',
+                mutes:     'Muty',
+                action:    'Nadaj karę',
+                logs:      'Logi Akcji',
+                stats:     'Statystyki Adminów',
+                admins:    'Administratorzy',
+                personel:  'Personel',
+                site:      'Zarządzanie Stroną',
+                myaccount: 'Moje Konto'
             };
             document.getElementById('topbar-title').textContent = titles[pageName] || pageName;
         }
@@ -939,14 +1251,6 @@
 
         window.openPlayerDetail = function(playerId) {
             window.dispatchEvent(new CustomEvent('openPlayerDetail', { detail: playerId }));
-        };
-
-        window.quickUnban = function(nick, banId) {
-            window.dispatchEvent(new CustomEvent('quickUnban', { detail: { nick, banId } }));
-        };
-
-        window.quickUnmute = function(nick, muteId) {
-            window.dispatchEvent(new CustomEvent('quickUnmute', { detail: { nick, muteId } }));
         };
     </script>
 </body>
