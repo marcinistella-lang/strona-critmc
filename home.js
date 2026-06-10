@@ -1,5 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // --- OBSŁUGA ZAKŁADEK ---
+
+    // --- ZAKŁADKI ---
     const tabButtons = document.querySelectorAll('.tab-button');
     const tabContents = document.querySelectorAll('.tab-content');
 
@@ -10,71 +11,234 @@ document.addEventListener('DOMContentLoaded', () => {
             button.classList.add('active');
             tabContents.forEach(content => {
                 content.classList.remove('active');
-                if (content.id === targetTab) {
-                    content.classList.add('active');
-                }
+                if (content.id === targetTab) content.classList.add('active');
             });
         });
     });
 
-    // --- KOPIOWANIE IP ---
-    const ipBox = document.getElementById('ip-box');
-    if (ipBox) {
-        ipBox.addEventListener('click', () => {
-            const ip = ipBox.getAttribute('data-ip');
-            navigator.clipboard.writeText(ip).then(() => {
-                const tooltip = ipBox.querySelector('.copy-tooltip');
-                if (tooltip) {
-                    const orig = tooltip.textContent;
-                    tooltip.textContent = 'Skopiowano!';
-                    tooltip.style.color = '#00ff66';
-                    setTimeout(() => {
-                        tooltip.textContent = orig;
-                        tooltip.style.color = '';
-                    }, 2000);
-                }
+    // --- PODKATEGORIE (zestawy) ---
+    const subButtons = document.querySelectorAll('.subcategory-button');
+    subButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const target = button.getAttribute('data-subcategory');
+            const parent = button.closest('.tab-content');
+            parent.querySelectorAll('.subcategory-button').forEach(b => b.classList.remove('active'));
+            button.classList.add('active');
+            parent.querySelectorAll('.subcategory-panel').forEach(p => {
+                p.classList.remove('active');
+                if (p.id === target) p.classList.add('active');
             });
         });
-    }
-});
+    });
 
-// --- ROZWIJANIE ADMINÓW ---
-function toggleAdmin(card) {
-    card.classList.toggle('open');
-}
-
-// --- ZMIANY SERWEROWE ---
-function openChanges() {
-    document.getElementById('changes-overlay').classList.add('open');
-}
-
-function closeChanges(e) {
-    if (!e || e.target === document.getElementById('changes-overlay') || e.currentTarget.classList.contains('changes-close-btn')) {
-        document.getElementById('changes-overlay').classList.remove('open');
-    }
-}
-
-document.addEventListener('DOMContentLoaded', () => {
+    // --- CHANGES TABS ---
     document.querySelectorAll('.changes-tab').forEach(tab => {
         tab.addEventListener('click', (e) => {
             e.stopPropagation();
             const mode = tab.getAttribute('data-mode');
             const box = tab.closest('.changes-panel-box');
+            if (!box) return;
             box.querySelectorAll('.changes-tab').forEach(t => t.classList.remove('active'));
             box.querySelectorAll('.changes-panel').forEach(p => p.classList.remove('active'));
             tab.classList.add('active');
-            box.querySelector('#mode-' + mode).classList.add('active');
+            const panel = box.querySelector('#mode-' + mode);
+            if (panel) panel.classList.add('active');
         });
     });
+
+    // --- IP SERWERA ---
+    const ipBox = document.getElementById('ip-box');
+    if (ipBox) {
+        ipBox.addEventListener('click', () => {
+            navigator.clipboard.writeText(ipBox.getAttribute('data-ip')).then(() => {
+                const tooltip = ipBox.querySelector('.copy-tooltip');
+                if (tooltip) {
+                    const orig = tooltip.textContent;
+                    tooltip.textContent = 'Skopiowano!';
+                    tooltip.style.color = '#00ff66';
+                    setTimeout(() => { tooltip.textContent = orig; tooltip.style.color = ''; }, 2000);
+                }
+            }).catch(() => {});
+        });
+    }
 });
+
+// --- ADMIN ACCORDION ---
+function toggleAdmin(card) {
+    card.classList.toggle('open');
+}
 
 // --- REGULAMIN ---
 function openRegulamin() {
     document.getElementById('regulamin-overlay').classList.add('open');
 }
-
 function closeRegulamin(e) {
-    if (!e || e.target === document.getElementById('regulamin-overlay') || e.currentTarget.classList.contains('changes-close-btn')) {
+    if (!e || e.target === document.getElementById('regulamin-overlay')) {
         document.getElementById('regulamin-overlay').classList.remove('open');
     }
+}
+
+// --- ZMIANY (otwieranie modala - logika w module) ---
+function openChanges() {
+    document.getElementById('changes-overlay').classList.add('open');
+}
+function closeChanges(e) {
+    if (!e || e.target === document.getElementById('changes-overlay')) {
+        document.getElementById('changes-overlay').classList.remove('open');
+    }
+}
+
+// --- KONKURS ---
+function openContest(id) {
+    window._currentContest = id;
+    document.getElementById('contest-overlay').classList.add('open');
+    document.getElementById('contest-msg').textContent = '';
+    ['contest-nick-mc','contest-nick-dc','contest-secret'].forEach(i => {
+        const el = document.getElementById(i);
+        if (el) el.value = '';
+    });
+}
+function closeContest(e) {
+    if (!e || e.target === document.getElementById('contest-overlay')) {
+        document.getElementById('contest-overlay').classList.remove('open');
+    }
+}
+
+// --- KONKURS ADMIN ---
+function openContestAdmin() {
+    document.getElementById('contest-admin-overlay').classList.add('open');
+    if (!window._adminLogged) {
+        document.getElementById('admin-login-form').style.display = 'block';
+        document.getElementById('admin-panel-content').style.display = 'none';
+        document.getElementById('admin-login-err').style.display = 'none';
+    }
+}
+function closeContestAdmin(e) {
+    if (!e || e.target === document.getElementById('contest-admin-overlay')) {
+        document.getElementById('contest-admin-overlay').classList.remove('open');
+    }
+}
+
+// --- ZMIANY ADMIN ---
+function openChangesAdmin() {
+    document.getElementById('changes-admin-overlay').classList.add('open');
+    if (!window._changesLogged) {
+        document.getElementById('changes-admin-login').style.display = 'block';
+        document.getElementById('changes-admin-panel').style.display = 'none';
+        document.getElementById('changes-admin-err').style.display = 'none';
+    }
+}
+function closeChangesAdmin(e) {
+    if (!e || e.target === document.getElementById('changes-admin-overlay')) {
+        document.getElementById('changes-admin-overlay').classList.remove('open');
+    }
+}
+
+// --- ZMIANY SERWEROWE LOGIKA ---
+const CHANGES_KEY = 'critmc-changes';
+const ADMIN_LOGIN_CH = 'test';
+const ADMIN_PASS_CH = 'test';
+
+function loadChanges() {
+    const d = JSON.parse(localStorage.getItem(CHANGES_KEY) || '{}');
+    ['zwykle','szczegolowe','najmocniejsze'].forEach(mode => {
+        const el = document.getElementById('mode-' + mode);
+        if (el && d[mode]) el.innerHTML = '<p style="white-space:pre-line">' + d[mode] + '</p>';
+    });
+}
+
+function changesAdminLogin() {
+    const l = document.getElementById('changes-admin-l').value;
+    const p = document.getElementById('changes-admin-p').value;
+    if (l === ADMIN_LOGIN_CH && p === ADMIN_PASS_CH) {
+        window._changesLogged = true;
+        document.getElementById('changes-admin-login').style.display = 'none';
+        document.getElementById('changes-admin-panel').style.display = 'flex';
+        const d = JSON.parse(localStorage.getItem(CHANGES_KEY) || '{}');
+        ['zwykle','szczegolowe','najmocniejsze'].forEach(m => {
+            const el = document.getElementById('edit-' + m);
+            if (el) el.value = d[m] || '';
+        });
+    } else {
+        document.getElementById('changes-admin-err').style.display = 'block';
+    }
+}
+
+function saveChangesAdmin() {
+    const d = {
+        zwykle: document.getElementById('edit-zwykle').value,
+        szczegolowe: document.getElementById('edit-szczegolowe').value,
+        najmocniejsze: document.getElementById('edit-najmocniejsze').value
+    };
+    localStorage.setItem(CHANGES_KEY, JSON.stringify(d));
+    loadChanges();
+    const msg = document.getElementById('changes-save-msg');
+    msg.textContent = 'Zapisano!';
+    msg.style.color = '#00e676';
+    setTimeout(() => {
+        msg.textContent = '';
+        document.getElementById('changes-admin-overlay').classList.remove('open');
+    }, 1500);
+}
+
+// --- KONKURS ADMIN LOGIKA (bez Firebase - tylko otwieranie) ---
+function adminLogin() {
+    const l = document.getElementById('admin-login').value;
+    const p = document.getElementById('admin-pass').value;
+    if (l === 'test' && p === 'test') {
+        window._adminLogged = true;
+        document.getElementById('admin-login-form').style.display = 'none';
+        document.getElementById('admin-panel-content').style.display = 'flex';
+        // loadAdminPanel() zostanie wywolane przez modul jesli Firebase dostepny
+        if (typeof window.loadAdminPanel === 'function') window.loadAdminPanel();
+    } else {
+        document.getElementById('admin-login-err').style.display = 'block';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', loadChanges);
+
+// --- TIMER KONKURSU ---
+(function() {
+    const WYNIKI_DATE = new Date('2026-08-25T12:00:00');
+    function updateTimer() {
+        const el = document.getElementById('contest-timer');
+        if (!el) return;
+        const diff = WYNIKI_DATE - new Date();
+        if (diff <= 0) {
+            el.innerHTML = '<i class="fa-solid fa-flag-checkered"></i> Wyniki juz ogloszone!';
+            return;
+        }
+        const d = Math.floor(diff/86400000);
+        const h = Math.floor((diff%86400000)/3600000);
+        const m = Math.floor((diff%3600000)/60000);
+        if (d >= 10) {
+            el.innerHTML = '<i class="fa-solid fa-clock"></i> ' + d + 'd ' + h + 'h';
+        } else {
+            el.innerHTML = '<i class="fa-solid fa-clock"></i> ' + d + 'd ' + h + 'h ' + m + 'm';
+        }
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+        updateTimer();
+        setInterval(updateTimer, 30000);
+    });
+})();
+
+// --- ADMIN ILOSC ZWYCIEZCOW ---
+function adminUpdateIlosc() {
+    const n = parseInt(document.getElementById('admin-ilosc').value) || 2;
+    const container = document.getElementById('winners-inputs');
+    if (!container) return;
+    container.innerHTML = '';
+    for (let i = 1; i <= n; i++) {
+        const inp = document.createElement('input');
+        inp.className = 'winner-input';
+        inp.type = 'text';
+        inp.placeholder = 'Nick zwyciezcy #' + i;
+        inp.style.cssText = 'background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#fff;padding:0.6rem 1rem;border-radius:8px;font-size:0.9rem;outline:none;';
+        container.appendChild(inp);
+    }
+    // Aktualizuj ilosc na karcie konkursu
+    const iloscEl = document.querySelector('#contest-start .contest-desc strong[style*="f2c84a"]');
+    if (iloscEl) iloscEl.textContent = n + ' szt.';
 }

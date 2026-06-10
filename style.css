@@ -1468,3 +1468,80 @@ footer {
 .shop-page .info-value {
     font-size: 0.72rem;
 }
+
+/* ===== RESPONSYWNOŚĆ MOBILE — shop.html ===== */
+@media (max-width: 768px) {
+    header { padding: 0.5rem 1rem; }
+    .header-container { gap: 0.5rem; }
+    .logo-main { font-size: 1.2rem; }
+    .logo-sub { font-size: 0.65rem; }
+    .server-info { gap: 0.4rem; }
+    .info-box { padding: 0.3rem 0.6rem; gap: 0.4rem; }
+    .info-label { font-size: 0.6rem; }
+    .info-value { font-size: 0.75rem; }
+    .back-home-btn { font-size: 0.95rem; padding: 0.7rem 1.4rem; }
+
+    .tabs-nav { padding: 0.2rem 0.5rem; top: 50px; }
+    .tab-button { font-size: 0.72rem; padding: 0.4rem 0.7rem; gap: 0.3rem; }
+    .tab-button i { font-size: 0.85rem; }
+
+    .shop-content { margin: 1rem auto; padding: 0 0.8rem; }
+
+    .cards-grid { grid-template-columns: 1fr; gap: 1rem; }
+    .subcategory-panel .cards-grid { grid-template-columns: 1fr; }
+
+    .subcategory-nav { gap: 0.5rem; margin-bottom: 1.5rem; }
+    .subcategory-button { font-size: 0.8rem; padding: 0.45rem 1rem; }
+
+    .image-container { height: 180px; }
+
+    .section-header h2 { font-size: 1rem; }
+    .rank-title { font-size: 1.1rem; }
+    .price-value { font-size: 1.3rem; }
+
+    .bundle-price-block, .bundle-value-block { flex-direction: column; gap: 0.2rem; align-items: flex-start; }
+
+    .badge-discount { font-size: 0.62rem; padding: 5px 30px; top: 14px; right: -26px; }
+}
+
+@media (max-width: 480px) {
+    .cards-grid { grid-template-columns: 1fr; }
+    .tab-button span { display: none; }
+    .tab-button { padding: 0.5rem 0.8rem; }
+    .nav-container { gap: 0.2rem; }
+}
+
+/* ===== PŁYNNOŚĆ ===== */
+* { -webkit-tap-highlight-color: transparent; }
+html { scroll-behavior: smooth; }
+.tab-content, .subcategory-panel, .discord-expanded, .changes-overlay { will-change: opacity; }
+img { loading: lazy; }
+
+/* Naprawa panelu zmian - nie wychodz poza overlay */
+.changes-overlay {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 200 !important;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(6px);
+    overflow-y: auto;
+}
+
+.changes-overlay.open {
+    display: flex !important;
+}
+
+.changes-panel-box {
+    max-height: 85vh;
+    overflow-y: auto;
+    width: min(680px, 92vw);
+    margin: auto;
+}
+
+#changes-admin-panel {
+    max-height: 60vh;
+    overflow-y: auto;
+}

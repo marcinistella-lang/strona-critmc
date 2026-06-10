@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CritMC - Panel Administracyjny</title>
+    <link rel="stylesheet" href="admin.css">
+    <!-- Blokada przed flash contentu bez auth -->
+    <style>
+        #admin-panel { display: none !important; }
+        .auth-ready #admin-panel { display: flex !important; }
+        .auth-ready #login-screen { display: none !important; }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+    <!-- ===== EKRAN LOGOWANIA ===== -->
+    <div id="login-screen" class="login-screen">
+        <div class="login-box">
+            <div class="login-logo">
+                <span class="login-logo-crit">Crit</span><span class="login-logo-mc">MC</span>
+                <div class="login-logo-sub">Panel Administracyjny</div>
+            </div>
+            <form id="login-form" onsubmit="handleLogin(event)">
+                <div class="login-field">
+                    <label><i class="fa-solid fa-user"></i> Login</label>
+                    <input type="text" id="login-username" placeholder="Wpisz login..." autocomplete="username" required>
+                </div>
+                <div class="login-field">
+                    <label><i class="fa-solid fa-lock"></i> Hasło</label>
+                    <div class="password-wrap">
+                        <input type="password" id="login-password" placeholder="Wpisz hasło..." autocomplete="current-password" required>
+                        <button type="button" class="pw-toggle" onclick="togglePasswordVisibility()" title="Pokaż/ukryj hasło">
+                            <i class="fa-solid fa-eye" id="pw-toggle-icon"></i>
+                        </button>
+                    </div>
+                </div>
+                <div id="login-error" class="login-error" style="display:none;">
+                    <i class="fa-solid fa-circle-exclamation"></i> Błędny login lub hasło!
+                </div>
+                <button type="submit" class="login-btn">
+                    <i class="fa-solid fa-right-to-bracket"></i> Zaloguj się
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ===== PANEL GŁÓWNY ===== -->
+    <div id="admin-panel" class="admin-panel" style="display:none;">
+
+        <!-- SIDEBAR -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <span class="sl-crit">Crit</span><span class="sl-mc">MC</span>
+                </div>
+                <div class="sidebar-sub">Admin Panel</div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section-label">Zarządzanie</div>
+                <button class="nav-btn active" data-page="players" onclick="switchPage('players')">
+                    <i class="fa-solid fa-users"></i>
+                    <span>Gracze</span>
+                </button>
+                <button class="nav-btn" data-page="bans" onclick="switchPage('bans')">
+                    <i class="fa-solid fa-ban"></i>
+                    <span>Bany</span>
+                    <span class="nav-badge" id="badge-bans">0</span>
+                </button>
+                <button class="nav-btn" data-page="mutes" onclick="switchPage('mutes')">
+                    <i class="fa-solid fa-microphone-slash"></i>
+                    <span>Muty</span>
+                    <span class="nav-badge" id="badge-mutes">0</span>
+                </button>
+
+                <div class="nav-section-label" style="margin-top:1.5rem;">Akcje</div>
+                <button class="nav-btn" data-page="action" onclick="switchPage('action')">
+                    <i class="fa-solid fa-gavel"></i>
+                    <span>Nadaj karę</span>
+                </button>
+
+                <div class="nav-section-label" style="margin-top:1.5rem;">Historia</div>
+                <button class="nav-btn" data-page="logs" onclick="switchPage('logs')">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                    <span>Logi akcji</span>
+                </button>
+
+                <div class="nav-section-label" style="margin-top:1.5rem;">Statystyki</div>
+                <button class="nav-btn" data-page="stats" onclick="switchPage('stats')">
+                    <i class="fa-solid fa-chart-bar"></i>
+                    <span>Statystyki adminów</span>
+                </button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-user">
+                    <div class="su-avatar" id="su-avatar">A</div>
+                    <div class="su-info">
+                        <div class="su-name" id="su-name">Admin</div>
+                        <div class="su-role" id="su-role">Zarządzający</div>
+                    </div>
+                </div>
+                <button class="logout-btn" onclick="handleLogout()">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                </button>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <main class="main-content">
+
+            <!-- TOP BAR -->
+            <div class="topbar">
+                <button class="sidebar-toggle" onclick="toggleSidebar()">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+                <div class="topbar-title" id="topbar-title">Gracze</div>
+                <div class="topbar-right">
+                    <div class="server-status" id="server-status">
+                        <span class="status-dot offline"></span>
+                        <span id="status-text">Łączenie...</span>
+                    </div>
+                    <a href="../index.html" class="back-to-main-btn" title="Wróć do strony głównej">
+                        <i class="fa-solid fa-house"></i>
+                        <span>Strona główna</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- ===== STRONA: GRACZE ===== -->
+            <div id="page-players" class="page active">
+                <div class="page-header">
+                    <h1>Gracze</h1>
+                    <p>Przeglądaj i zarządzaj graczami serwera</p>
+                </div>
+
+                <!-- Filtry -->
+                <div class="filters-bar">
+                    <div class="filter-search">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="players-search" placeholder="Szukaj po nicku..." oninput="filterPlayers()">
+                    </div>
+                    <div class="filter-group">
+                        <select id="players-filter-rank" onchange="filterPlayers()">
+                            <option value="">Wszystkie rangi</option>
+                            <option value="default">Gracz</option>
+                            <option value="vip">VIP</option>
+                            <option value="boss">BOSS</option>
+                            <option value="crit">CRIT</option>
+                            <option value="chatmod">ChatMod</option>
+                            <option value="pomocnik">Pomocnik</option>
+                            <option value="moderator">Moderator</option>
+                            <option value="admin">Admin</option>
+                            <option value="zarzadzajacy">Zarządzający</option>
+                        </select>
+                        <select id="players-filter-status" onchange="filterPlayers()">
+                            <option value="">Wszystkie statusy</option>
+                            <option value="online">Online</option>
+                            <option value="offline">Offline</option>
+                            <option value="banned">Zbanowani</option>
+                            <option value="muted">Zmutowani</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Tabela graczy -->
+                <div class="table-card">
+                    <div class="table-wrap">
+                        <table class="data-table" id="players-table">
+                            <thead>
+                                <tr>
+                                    <th>Gracz</th>
+                                    <th>Ranga</th>
+                                    <th>Status</th>
+                                    <th>Ostatnie logowanie</th>
+                                    <th>Akcje</th>
+                                </tr>
+                            </thead>
+                            <tbody id="players-tbody">
+                                <tr>
+                                    <td colspan="5" class="table-loading">
+                                        <i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== STRONA: BANY ===== -->
+            <div id="page-bans" class="page">
+                <div class="page-header">
+                    <h1>Aktywne Bany</h1>
+                    <p>Lista aktualnie zbanowanych graczy</p>
+                </div>
+
+                <div class="filters-bar">
+                    <div class="filter-search">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="bans-search" placeholder="Szukaj po nicku lub powodzie..." oninput="filterBans()">
+                    </div>
+                    <div class="filter-group">
+                        <select id="bans-filter-type" onchange="filterBans()">
+                            <option value="">Wszystkie typy</option>
+                            <option value="permanent">Permanentne</option>
+                            <option value="temporary">Czasowe</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="table-card">
+                    <div class="table-wrap">
+                        <table class="data-table" id="bans-table">
+                            <thead>
+                                <tr>
+                                    <th>Gracz</th>
+                                    <th>Powód</th>
+                                    <th>Przez kogo</th>
+                                    <th>Data</th>
+                                    <th>Wygasa</th>
+                                    <th>Akcje</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bans-tbody">
+                                <tr>
+                                    <td colspan="6" class="table-loading">
+                                        <i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== STRONA: MUTY ===== -->
+            <div id="page-mutes" class="page">
+                <div class="page-header">
+                    <h1>Aktywne Muty</h1>
+                    <p>Lista aktualnie zmutowanych graczy</p>
+                </div>
+
+                <div class="filters-bar">
+                    <div class="filter-search">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="mutes-search" placeholder="Szukaj po nicku lub powodzie..." oninput="filterMutes()">
+                    </div>
+                    <div class="filter-group">
+                        <select id="mutes-filter-type" onchange="filterMutes()">
+                            <option value="">Wszystkie typy</option>
+                            <option value="permanent">Permanentne</option>
+                            <option value="temporary">Czasowe</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="table-card">
+                    <div class="table-wrap">
+                        <table class="data-table" id="mutes-table">
+                            <thead>
+                                <tr>
+                                    <th>Gracz</th>
+                                    <th>Powód</th>
+                                    <th>Przez kogo</th>
+                                    <th>Data</th>
+                                    <th>Wygasa</th>
+                                    <th>Akcje</th>
+                                </tr>
+                            </thead>
+                            <tbody id="mutes-tbody">
+                                <tr>
+                                    <td colspan="6" class="table-loading">
+                                        <i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== STRONA: NADAJ KARĘ ===== -->
+            <div id="page-action" class="page">
+                <div class="page-header">
+                    <h1>Nadaj karę</h1>
+                    <p>Zbanuj, zmutuj, wyrzuć lub ostrzeż gracza</p>
+                </div>
+
+                <div class="action-page-grid">
+                    <!-- Formularz -->
+                    <div class="table-card" style="padding:1.5rem;">
+
+                        <div class="modal-field" style="margin-bottom:1.2rem;">
+                            <label>Nick gracza</label>
+                            <div style="position:relative;">
+                                <i class="fa-solid fa-user" style="position:absolute;left:0.85rem;top:50%;transform:translateY(-50%);color:var(--text-secondary);font-size:0.9rem;"></i>
+                                <input type="text" id="ap-nick" placeholder="Wpisz nick gracza..."
+                                    style="width:100%;padding:0.7rem 0.9rem 0.7rem 2.4rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:0.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);"
+                                    oninput="apSearchPlayer(this.value)">
+                            </div>
+                            <!-- Podgląd gracza -->
+                            <div id="ap-player-preview" style="display:none;margin-top:0.6rem;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.7rem 1rem;display:none;align-items:center;gap:0.75rem;">
+                            </div>
+                        </div>
+
+                        <div class="modal-field" style="margin-bottom:1.2rem;">
+                            <label>Rodzaj akcji</label>
+                            <div class="action-btns">
+                                <button class="action-btn ban-btn"    onclick="apSetAction('ban')">   <i class="fa-solid fa-ban"></i> Ban</button>
+                                <button class="action-btn unban-btn"  onclick="apSetAction('unban')"> <i class="fa-solid fa-ban" style="opacity:.4"></i> Unban</button>
+                                <button class="action-btn mute-btn"   onclick="apSetAction('mute')">  <i class="fa-solid fa-microphone-slash"></i> Mute</button>
+                                <button class="action-btn unmute-btn" onclick="apSetAction('unmute')"><i class="fa-solid fa-microphone"></i> Unmute</button>
+                                <button class="action-btn kick-btn"   onclick="apSetAction('kick')">  <i class="fa-solid fa-door-open"></i> Kick</button>
+                                <button class="action-btn warn-btn"   onclick="apSetAction('warn')">  <i class="fa-solid fa-triangle-exclamation"></i> Ostrzeżenie</button>
+                                <button class="action-btn check-btn"  onclick="apSetAction('check')"> <i class="fa-solid fa-magnifying-glass"></i> Sprawdź</button>
+                            </div>
+                        </div>
+
+                        <div class="modal-field" id="ap-duration-field" style="margin-bottom:1.2rem;">
+                            <label>Czas trwania</label>
+                            <div class="duration-options">
+                                <button class="dur-btn" onclick="apSetDuration('1h',this)">1h</button>
+                                <button class="dur-btn" onclick="apSetDuration('6h',this)">6h</button>
+                                <button class="dur-btn" onclick="apSetDuration('12h',this)">12h</button>
+                                <button class="dur-btn" onclick="apSetDuration('1d',this)">1 dzień</button>
+                                <button class="dur-btn" onclick="apSetDuration('3d',this)">3 dni</button>
+                                <button class="dur-btn" onclick="apSetDuration('7d',this)">7 dni</button>
+                                <button class="dur-btn" onclick="apSetDuration('30d',this)">30 dni</button>
+                                <button class="dur-btn perm-btn" onclick="apSetDuration('permanent',this)">Permanentny</button>
+                            </div>
+                            <input type="text" id="ap-duration-custom" placeholder="Lub wpisz własny: 2h, 5d..."
+                                style="width:100%;margin-top:0.5rem;padding:0.7rem 0.9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:0.88rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                        </div>
+
+                        <div class="modal-field" style="margin-bottom:1.5rem;">
+                            <label>Powód <span style="color:#999;font-weight:400;">(wymagany)</span></label>
+                            <input type="text" id="ap-reason" placeholder="Wpisz powód..."
+                                style="width:100%;padding:0.7rem 0.9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:0.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                        </div>
+
+                        <div id="ap-msg" style="display:none;margin-bottom:1rem;padding:0.7rem 1rem;border-radius:var(--radius-sm);font-size:0.88rem;font-weight:600;"></div>
+
+                        <button onclick="apSubmit()" style="width:100%;padding:0.9rem;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:0.95rem;font-weight:800;cursor:pointer;transition:all .2s;font-family:var(--font);">
+                            <i class="fa-solid fa-check"></i> Wykonaj akcję
+                        </button>
+                    </div>
+
+                    <!-- Ostatnie akcje (mini log) -->
+                    <div class="table-card" style="overflow:hidden;">
+                        <div style="padding:1rem 1.2rem;border-bottom:1px solid var(--border);font-size:0.8rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;">
+                            <i class="fa-solid fa-clock-rotate-left"></i> Ostatnie akcje
+                        </div>
+                        <div id="ap-recent-logs" style="max-height:420px;overflow-y:auto;">
+                            <div style="text-align:center;padding:2rem;color:var(--text-secondary);font-size:0.88rem;">
+                                <i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== STRONA: LOGI ===== -->
+            <div id="page-logs" class="page">
+                <div class="page-header">
+                    <h1>Logi Akcji</h1>
+                    <p>Historia wszystkich akcji administracyjnych</p>
+                </div>
+
+                <div class="filters-bar">
+                    <div class="filter-search">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="logs-search" placeholder="Szukaj po graczu lub adminie..." oninput="filterLogs()">
+                    </div>
+                    <div class="filter-group">
+                        <select id="logs-filter-action" onchange="filterLogs()">
+                            <option value="">Wszystkie akcje</option>
+                            <option value="ban">Ban</option>
+                            <option value="unban">Unban</option>
+                            <option value="mute">Mute</option>
+                            <option value="unmute">Unmute</option>
+                            <option value="kick">Kick</option>
+                            <option value="warn">Warn</option>
+                        </select>
+                        <select id="logs-filter-admin" onchange="filterLogs()">
+                            <option value="">Wszyscy admini</option>
+                        </select>
+                        <input type="date" id="logs-filter-date" onchange="filterLogs()" title="Filtruj po dacie">
+                    </div>
+                </div>
+
+                <div class="table-card">
+                    <div class="table-wrap">
+                        <table class="data-table" id="logs-table">
+                            <thead>
+                                <tr>
+                                    <th>Akcja</th>
+                                    <th>Gracz</th>
+                                    <th>Admin</th>
+                                    <th>Powód</th>
+                                    <th>Czas trwania</th>
+                                    <th>Data</th>
+                                </tr>
+                            </thead>
+                            <tbody id="logs-tbody">
+                                <tr>
+                                    <td colspan="6" class="table-loading">
+                                        <i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== STRONA: STATYSTYKI ADMINÓW ===== -->
+            <div id="page-stats" class="page">
+                <div class="page-header">
+                    <h1>Statystyki Adminów</h1>
+                    <p>Aktywność i efektywność administracji</p>
+                </div>
+
+                <!-- Karty ogólne -->
+                <div class="stats-overview" id="stats-overview">
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background:rgba(239,68,68,.12);color:#ef4444;"><i class="fa-solid fa-ban"></i></div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="stat-total-bans">—</div>
+                            <div class="stat-label">Łączne bany</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background:rgba(245,158,11,.12);color:#f59e0b;"><i class="fa-solid fa-microphone-slash"></i></div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="stat-total-mutes">—</div>
+                            <div class="stat-label">Łączne muty</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background:rgba(99,102,241,.12);color:#6366f1;"><i class="fa-solid fa-door-open"></i></div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="stat-total-kicks">—</div>
+                            <div class="stat-label">Łączne kicki</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background:rgba(16,185,129,.12);color:#10b981;"><i class="fa-solid fa-shield-halved"></i></div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="stat-total-admins">—</div>
+                            <div class="stat-label">Aktywnych adminów</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabela adminów -->
+                <div class="table-card" style="margin-top:1.5rem;">
+                    <div style="padding:.9rem 1.2rem;border-bottom:1px solid var(--border);font-size:.8rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;">
+                        Ranking aktywności
+                    </div>
+                    <div class="table-wrap">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Admin</th>
+                                    <th>Bany</th>
+                                    <th>Unban</th>
+                                    <th>Muty</th>
+                                    <th>Kicki</th>
+                                    <th>Ostrzeżenia</th>
+                                    <th>Sprawdzenia</th>
+                                    <th>Razem</th>
+                                    <th>Ostatnia akcja</th>
+                                </tr>
+                            </thead>
+                            <tbody id="stats-tbody">
+                                <tr><td colspan="10" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- ===== MODAL: NOTATKA DO GRACZA ===== -->
+    <div class="modal-overlay" id="note-modal" onclick="closeModal(event)">
+        <div class="modal-box" style="max-width:480px;">
+            <div class="modal-header">
+                <div class="modal-title"><i class="fa-solid fa-note-sticky" style="color:var(--accent-yellow);margin-right:.5rem;"></i> Dodaj notatkę</div>
+                <button class="modal-close" onclick="closeNoteModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-player-info" id="note-player-info"></div>
+                <div class="modal-field">
+                    <label>Treść notatki <span style="color:#999;font-weight:400;">(nie można usunąć)</span></label>
+                    <textarea id="note-content" rows="4" placeholder="Wpisz notatkę o graczu..."
+                        style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea>
+                </div>
+                <div id="note-msg" style="display:none;" class="modal-msg"></div>
+                <button class="modal-submit-btn" onclick="submitNote()" style="background:var(--accent-yellow);color:#000;">
+                    <i class="fa-solid fa-floppy-disk"></i> Zapisz notatkę
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MODAL: AKCJA NA GRACZU ===== -->
+    <div class="modal-overlay" id="action-modal" onclick="closeModal(event)">
+        <div class="modal-box">
+            <div class="modal-header">
+                <div class="modal-title" id="modal-title">Akcja</div>
+                <button class="modal-close" onclick="closeActionModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-player-info" id="modal-player-info"></div>
+
+                <div class="modal-field">
+                    <label>Akcja</label>
+                    <div class="action-btns" id="modal-action-btns">
+                        <button class="action-btn ban-btn" onclick="setAction('ban')"><i class="fa-solid fa-ban"></i> Ban</button>
+                        <button class="action-btn unban-btn" onclick="setAction('unban')"><i class="fa-solid fa-ban" style="opacity:0.4"></i> Unban</button>
+                        <button class="action-btn mute-btn" onclick="setAction('mute')"><i class="fa-solid fa-microphone-slash"></i> Mute</button>
+                        <button class="action-btn unmute-btn" onclick="setAction('unmute')"><i class="fa-solid fa-microphone"></i> Unmute</button>
+                        <button class="action-btn kick-btn" onclick="setAction('kick')"><i class="fa-solid fa-door-open"></i> Kick</button>
+                        <button class="action-btn warn-btn" onclick="setAction('warn')"><i class="fa-solid fa-triangle-exclamation"></i> Ostrzeżenie</button>
+                        <button class="action-btn check-btn" onclick="setAction('check')"><i class="fa-solid fa-magnifying-glass"></i> Sprawdź</button>
+                    </div>
+                </div>
+
+                <div class="modal-field" id="duration-field">
+                    <label>Czas trwania</label>
+                    <div class="duration-options">
+                        <button class="dur-btn" onclick="setDuration('1h')">1h</button>
+                        <button class="dur-btn" onclick="setDuration('6h')">6h</button>
+                        <button class="dur-btn" onclick="setDuration('12h')">12h</button>
+                        <button class="dur-btn" onclick="setDuration('1d')">1 dzień</button>
+                        <button class="dur-btn" onclick="setDuration('3d')">3 dni</button>
+                        <button class="dur-btn" onclick="setDuration('7d')">7 dni</button>
+                        <button class="dur-btn" onclick="setDuration('30d')">30 dni</button>
+                        <button class="dur-btn perm-btn" onclick="setDuration('permanent')">Permanentny</button>
+                    </div>
+                    <input type="text" id="duration-custom" placeholder="Lub wpisz własny np. 2h, 5d..." style="margin-top:0.5rem;">
+                </div>
+
+                <div class="modal-field">
+                    <label>Powód <span style="color:#888;font-weight:400;">(wymagany)</span></label>
+                    <input type="text" id="action-reason" placeholder="Podaj powód...">
+                </div>
+
+                <div id="modal-msg" class="modal-msg" style="display:none;"></div>
+
+                <button class="modal-submit-btn" id="modal-submit" onclick="submitAction()">
+                    <i class="fa-solid fa-check"></i> Wykonaj akcję
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MODAL: SZCZEGÓŁY GRACZA ===== -->
+    <div class="modal-overlay" id="player-detail-modal" onclick="closeModal(event)">
+        <div class="modal-box" style="max-width:520px;">
+            <div class="modal-header">
+                <div class="modal-title">Szczegóły gracza</div>
+                <button class="modal-close" onclick="closePlayerDetail()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body" id="player-detail-body">
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATIONS -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Firebase Admin Module -->
+    <script type="module" src="admin.js"></script>
+
+    <!-- Funkcje globalne — MUSZĄ być poza type="module" -->
+    <script>
+        // Podgląd hasła
+        function togglePasswordVisibility() {
+            const input = document.getElementById('login-password');
+            const icon  = document.getElementById('pw-toggle-icon');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.className = 'fa-solid fa-eye-slash';
+            } else {
+                input.type = 'password';
+                icon.className = 'fa-solid fa-eye';
+            }
+        }
+
+        // Konta adminów — hardcoded (tymczasowo)
+        const ADMINS = [
+            { login: 'test', password: 'test', displayName: 'Test Admin', role: 'Zarządzający' }
+        ];
+
+        // Logowanie
+        function handleLogin(e) {
+            e.preventDefault();
+            const login    = document.getElementById('login-username').value.trim();
+            const password = document.getElementById('login-password').value;
+            const errEl    = document.getElementById('login-error');
+
+            const account = ADMINS.find(a => a.login === login && a.password === password);
+
+            if (!account) {
+                errEl.style.display = 'flex';
+                document.getElementById('login-password').value = '';
+                return;
+            }
+
+            errEl.style.display = 'none';
+            // NIE zapisujemy do sessionStorage — sesja żyje tylko w tej karcie
+            window._adminUser = account;
+            document.body.classList.add('auth-ready');
+            window.dispatchEvent(new CustomEvent('adminLogin', { detail: account }));
+        }
+
+        // Wylogowanie
+        function handleLogout() {
+            window._adminUser = null;
+            document.body.classList.remove('auth-ready');
+            document.getElementById('login-username').value = '';
+            document.getElementById('login-password').value = '';
+        }
+
+        // Nawigacja między stronami
+        function switchPage(pageName) {
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            const btn  = document.querySelector('.nav-btn[data-page="' + pageName + '"]');
+            const page = document.getElementById('page-' + pageName);
+            if (btn)  btn.classList.add('active');
+            if (page) page.classList.add('active');
+            const titles = {
+                players: 'Gracze',
+                bans:    'Bany',
+                mutes:   'Muty',
+                action:  'Nadaj karę',
+                logs:    'Logi Akcji'
+            };
+            document.getElementById('topbar-title').textContent = titles[pageName] || pageName;
+        }
+
+        // Sidebar toggle (mobile)
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+        }
+
+        // Zamknij modal klikając w tło
+        function closeModal(e) {
+            if (e.target.classList.contains('modal-overlay')) {
+                e.target.classList.remove('open');
+            }
+        }
+
+        function closeActionModal() {
+            document.getElementById('action-modal').classList.remove('open');
+        }
+
+        function closePlayerDetail() {
+            document.getElementById('player-detail-modal').classList.remove('open');
+        }
+
+        // Guard — przy każdym wejściu na stronę wymagane logowanie
+        // Brak sessionStorage = brak auto-login = zawsze loguj od nowa
+        (function checkAuth() {
+            // Wyczyść ewentualną starą sesję
+            sessionStorage.removeItem('admin_user');
+            // Panel zawsze ukryty na start — CSS !important to gwarantuje
+        })();
+
+        // =====================================================================
+        // PRZYCISKI AKCJI I CZASU — muszą być globalne (poza type="module")
+        // =====================================================================
+
+        // Zaznaczanie akcji (ban/mute/kick/warn/unban/unmute) w modalu
+        window.setAction = function(action) {
+            window._selectedAction = action;
+            document.querySelectorAll('#modal-action-btns .action-btn').forEach(b => b.classList.remove('selected'));
+            const btn = document.querySelector('#modal-action-btns .' + action + '-btn');
+            if (btn) btn.classList.add('selected');
+            // Ukryj duration dla unban/unmute/kick
+            const noDuration = ['unban', 'unmute', 'kick'];
+            document.getElementById('duration-field').style.display =
+                noDuration.includes(action) ? 'none' : 'block';
+        };
+
+        // Zaznaczanie czasu w modalu
+        window.setDuration = function(dur) {
+            window._selectedDuration = dur;
+            document.querySelectorAll('#duration-field .dur-btn').forEach(b => b.classList.remove('selected'));
+            event.target.classList.add('selected');
+            document.getElementById('duration-custom').value = '';
+        };
+
+        // Zaznaczanie akcji na stronie "Nadaj karę"
+        window.apSetAction = function(action) {
+            window._apAction = action;
+            document.querySelectorAll('#page-action .action-btn').forEach(b => b.classList.remove('selected'));
+            const btn = document.querySelector('#page-action .' + action + '-btn');
+            if (btn) btn.classList.add('selected');
+            // Ukryj duration dla unban/unmute/kick
+            const noDuration = ['unban', 'unmute', 'kick'];
+            const durField = document.getElementById('ap-duration-field');
+            if (durField) durField.style.display = noDuration.includes(action) ? 'none' : 'block';
+        };
+
+        // Zaznaczanie czasu na stronie "Nadaj karę"
+        window.apSetDuration = function(dur, btn) {
+            window._apDuration = dur;
+            document.querySelectorAll('#ap-duration-field .dur-btn').forEach(b => b.classList.remove('selected'));
+            if (btn) btn.classList.add('selected');
+            const custom = document.getElementById('ap-duration-custom');
+            if (custom) custom.value = '';
+        };
+
+        // Szukaj gracza na stronie "Nadaj karę" (podgląd avatara)
+        window.apSearchPlayer = function(nick) {
+            const preview = document.getElementById('ap-player-preview');
+            if (!preview) return;
+            if (!nick || nick.length < 2) {
+                preview.style.display = 'none';
+                return;
+            }
+            preview.style.display = 'flex';
+            preview.innerHTML =
+                '<img src="https://mc-heads.net/avatar/' + encodeURIComponent(nick) + '/36" ' +
+                'style="width:36px;height:36px;border-radius:6px;border:1px solid var(--border);image-rendering:pixelated;" ' +
+                'onerror="this.src=\'https://mc-heads.net/avatar/Steve/36\'">' +
+                '<span style="font-weight:700;font-size:0.92rem;">' + nick + '</span>';
+        };
+
+        // Wykonaj akcję ze strony "Nadaj karę"
+        window.apSubmit = function() {
+            window.dispatchEvent(new CustomEvent('apSubmitAction'));
+        };
+
+        // Wykonaj akcję z modala
+        window.submitAction = function() {
+            window.dispatchEvent(new CustomEvent('submitModalAction'));
+        };
+
+        // Otwórz modal akcji na graczu (z tabeli)
+        window.openActionModal = function(nick, uuid) {
+            window._actionModalPlayer = { nick, uuid };
+            window._selectedAction   = null;
+            window._selectedDuration = null;
+            document.getElementById('modal-title').textContent = 'Akcja na graczu: ' + nick;
+            document.getElementById('modal-player-info').innerHTML =
+                '<img src="https://mc-heads.net/avatar/' + encodeURIComponent(nick) + '/36" ' +
+                'style="width:36px;height:36px;border-radius:6px;border:1px solid var(--border);image-rendering:pixelated;" ' +
+                'onerror="this.src=\'https://mc-heads.net/avatar/Steve/36\'">' +
+                '<div><div style="font-weight:700;">' + nick + '</div>' +
+                '<div style="font-size:0.72rem;color:var(--text-secondary);font-family:monospace;">' + (uuid || 'UUID nieznany') + '</div></div>';
+            document.querySelectorAll('#modal-action-btns .action-btn').forEach(b => b.classList.remove('selected'));
+            document.querySelectorAll('#duration-field .dur-btn').forEach(b => b.classList.remove('selected'));
+            document.getElementById('action-reason').value   = '';
+            document.getElementById('duration-custom').value = '';
+            document.getElementById('modal-msg').style.display = 'none';
+            document.getElementById('duration-field').style.display = 'block';
+            document.getElementById('action-modal').classList.add('open');
+        };
+
+        window.openPlayerDetail = function(playerId) {
+            window.dispatchEvent(new CustomEvent('openPlayerDetail', { detail: playerId }));
+        };
+
+        window.quickUnban = function(nick, banId) {
+            window.dispatchEvent(new CustomEvent('quickUnban', { detail: { nick, banId } }));
+        };
+
+        window.quickUnmute = function(nick, muteId) {
+            window.dispatchEvent(new CustomEvent('quickUnmute', { detail: { nick, muteId } }));
+        };
+    </script>
+</body>
+</html>

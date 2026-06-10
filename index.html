@@ -14,7 +14,7 @@
     <div class="decor-glow bg-glow-1"></div>
     <div class="decor-glow bg-glow-2"></div>
 
-    <!-- Nagłówek -->
+    <!-- Header -->
     <header>
         <div class="header-container">
             <div class="logo-area">
@@ -28,17 +28,17 @@
                         <span class="info-label">IP SERWERA</span>
                         <span class="info-value">critmc.pl</span>
                     </div>
-                    <span class="copy-tooltip">Kliknij, aby skopiować!</span>
+                    <span class="copy-tooltip">Kliknij, aby skopiowac!</span>
                 </div>
             </div>
         </div>
     </header>
 
-    <!-- Nawigacja główna -->
+    <!-- Nawigacja -->
     <nav class="tabs-nav">
         <div class="nav-container">
             <button class="tab-button active" data-tab="nowosci">
-                <i class="fa-solid fa-star"></i> Nowości
+                <i class="fa-solid fa-star"></i> Nowosci
             </button>
             <button class="tab-button" data-tab="sklep">
                 <i class="fa-solid fa-shop"></i> Sklep
@@ -57,113 +57,136 @@
 
     <main class="shop-content">
 
-        <!-- Nowości -->
+        <!-- NOWOSCI -->
         <section id="nowosci" class="tab-content active">
-            <div class="section-header">
-                <h2>Nowości</h2>
-                <p>Najnowsze informacje o serwerze</p>
-            </div>
             <div class="home-placeholder">
                 <div class="launch-banner">PLANOWANY START<br>POD KONIEC SIERPNIA</div>
-                <i class="fa-solid fa-newspaper"></i>
-                <p>Brak nowości — wróć wkrótce!</p>
             </div>
 
-            <!-- KONKURS -->
+            <!-- Karta konkursu -->
             <div class="contest-card" id="contest-start">
                 <div class="contest-icon"><i class="fa-solid fa-trophy"></i></div>
                 <div class="contest-info">
                     <div class="contest-title">Konkurs Startowy</div>
-                    <div class="contest-desc"><strong>Nagroda:</strong> 2x Ranga CRIT na 14 dni</div>
+                    <div class="contest-desc">
+                        <div><strong>Nagroda:</strong> Ranga CRIT na 14 dni</div>
+                        <div style="font-size:0.85rem;color:var(--text-muted);margin-top:0.2rem;">Ilosc: <strong style="color:#f2c84a;">2 szt.</strong></div>
+                    </div>
                     <div class="contest-meta">
-                        <span class="contest-timer" id="contest-timer"><i class="fa-solid fa-clock"></i> Ładowanie...</span>
-                        <span class="contest-count"><i class="fa-solid fa-users"></i> <span id="contest-count-start">0</span> uczestników</span>
+                        <span class="contest-timer" id="contest-timer"><i class="fa-solid fa-clock"></i> Ladowanie...</span>
+                        <span class="contest-count"><i class="fa-solid fa-users"></i> <span id="contest-count-start">0</span> uczestnikow</span>
                     </div>
                 </div>
                 <div class="contest-btns">
-                    <button class="contest-btn" onclick="openContest('start')"><i class="fa-solid fa-trophy"></i> Weź udział</button>
-                    <button class="contest-admin-btn" onclick="openContestAdmin()"><i class="fa-solid fa-gear"></i> Zarządzaj</button>
+                    <button class="contest-btn" onclick="openContest('start')"><i class="fa-solid fa-trophy"></i> Wez udzial</button>
+                    <button class="contest-admin-btn" onclick="openContestAdmin()"><i class="fa-solid fa-gear"></i> Zarzadzaj</button>
                 </div>
             </div>
 
-            <!-- Modal: Dołącz do konkursu -->
+            <!-- Karta wynikow -->
+            <div class="contest-card" id="contest-winners" style="display:none; flex-direction:column; align-items:flex-start; gap:1rem;">
+                <div style="display:flex;align-items:center;gap:1rem;width:100%;">
+                    <div class="contest-icon" style="color:#f2c84a;"><i class="fa-solid fa-trophy"></i></div>
+                    <div class="contest-info">
+                        <div class="contest-title">Wyniki Konkursu Startowego</div>
+                        <div class="contest-desc">Nagroda: 2x Ranga CRIT na 14 dni</div>
+                    </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;width:100%;">
+                    <div style="background:linear-gradient(135deg,rgba(242,200,74,0.15),rgba(255,140,0,0.08));border:1px solid rgba(242,200,74,0.3);border-radius:14px;padding:1.2rem;text-align:center;">
+                        <div style="font-size:2rem;margin-bottom:0.3rem;">&#x1F947;</div>
+                        <div style="font-size:0.7rem;font-weight:800;color:#f2c84a;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.3rem;">Zwyciezca #1</div>
+                        <div style="font-size:1.1rem;font-weight:900;color:#fff;" id="winner-1">--</div>
+                    </div>
+                    <div style="background:linear-gradient(135deg,rgba(242,200,74,0.15),rgba(255,140,0,0.08));border:1px solid rgba(242,200,74,0.3);border-radius:14px;padding:1.2rem;text-align:center;">
+                        <div style="font-size:2rem;margin-bottom:0.3rem;">&#x1F948;</div>
+                        <div style="font-size:0.7rem;font-weight:800;color:#f2c84a;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.3rem;">Zwyciezca #2</div>
+                        <div style="font-size:1.1rem;font-weight:900;color:#fff;" id="winner-2">--</div>
+                    </div>
+                </div>
+                <div style="font-size:0.8rem;color:var(--text-muted);text-align:center;width:100%;">Gratulacje! Skontaktuj sie z administracja na Discordzie po nagrode.</div>
+            </div>
+
+            <!-- Modal: Formularz konkursu -->
             <div class="changes-overlay" id="contest-overlay" onclick="closeContest(event)">
                 <div class="changes-panel-box" style="max-width:480px;">
                     <div class="changes-panel-header">
-                        <span><i class="fa-solid fa-trophy"></i> Dołącz do konkursu</span>
+                        <span><i class="fa-solid fa-trophy"></i> Dolacz do konkursu</span>
                         <button class="changes-close-btn" onclick="closeContest()"><i class="fa-solid fa-xmark"></i></button>
                     </div>
                     <div style="display:flex;flex-direction:column;gap:1rem;">
                         <div style="background:rgba(242,200,74,0.08);border:1px solid rgba(242,200,74,0.2);border-radius:10px;padding:0.8rem 1rem;">
                             <div style="font-weight:800;color:#f2c84a;margin-bottom:0.3rem;"><i class="fa-solid fa-gift"></i> Nagroda: 2x Ranga CRIT na 14 dni</div>
-                            <div style="font-size:0.82rem;color:var(--text-muted);">Wyniki: 25 sierpnia 2025</div>
+                            <div style="font-size:0.82rem;color:var(--text-muted);">Wyniki: 25 sierpnia 2026</div>
                         </div>
                         <div>
-                            <label style="font-size:0.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:0.4rem;">Nick Minecraft *</label>
-                            <input id="contest-nick-mc" type="text" placeholder="Twój nick MC..." style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#fff;padding:0.7rem 1rem;border-radius:8px;font-size:1rem;outline:none;width:100%;box-sizing:border-box;">
+                            <label style="font-size:0.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;display:block;margin-bottom:0.4rem;">Nick Minecraft *</label>
+                            <input id="contest-nick-mc" type="text" placeholder="Twoj nick MC..." style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#fff;padding:0.7rem 1rem;border-radius:8px;font-size:1rem;outline:none;width:100%;box-sizing:border-box;">
                         </div>
                         <div>
-                            <label style="font-size:0.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:0.4rem;">Nick Discord *</label>
-                            <input id="contest-nick-dc" type="text" placeholder="Twój nick Discord..." style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#fff;padding:0.7rem 1rem;border-radius:8px;font-size:1rem;outline:none;width:100%;box-sizing:border-box;">
+                            <label style="font-size:0.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;display:block;margin-bottom:0.4rem;">Nick Discord *</label>
+                            <input id="contest-nick-dc" type="text" placeholder="Twoj nick Discord..." style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#fff;padding:0.7rem 1rem;border-radius:8px;font-size:1rem;outline:none;width:100%;box-sizing:border-box;">
                         </div>
                         <div>
-                            <label style="font-size:0.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:0.4rem;">Słowo weryfikacyjne * <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#9f97ad;font-size:0.75rem;">(zapamiętaj je — użyjemy przy wygranej)</span></label>
-                            <input id="contest-secret" type="text" placeholder="Wpisz dowolne tajne słowo..." style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#fff;padding:0.7rem 1rem;border-radius:8px;font-size:1rem;outline:none;width:100%;box-sizing:border-box;">
-                            <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.3rem;">Np. imię zwierzaka, ulubiony kolor itp. Nikt tego nie zobaczy — tylko my przy weryfikacji wygranego.</div>
+                            <label style="font-size:0.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;display:block;margin-bottom:0.4rem;">Slowo weryfikacyjne * <span style="font-weight:400;text-transform:none;color:#9f97ad;font-size:0.75rem;">(zapamietaj - uzyjem przy wygranej)</span></label>
+                            <input id="contest-secret" type="text" placeholder="Wpisz dowolne tajne slowo..." style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#fff;padding:0.7rem 1rem;border-radius:8px;font-size:1rem;outline:none;width:100%;box-sizing:border-box;">
+                            <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.3rem;">Nikt tego nie zobaczy - tylko my przy weryfikacji wygranego.</div>
                         </div>
-                        <button onclick="submitContest()" style="background:linear-gradient(135deg,#f2c84a,#ff8c00);color:#000;font-weight:900;padding:0.85rem;border:none;border-radius:10px;font-size:1rem;cursor:pointer;"><i class="fa-solid fa-trophy"></i> Dołącz do konkursu</button>
+                        <button onclick="submitContest()" style="background:linear-gradient(135deg,#f2c84a,#ff8c00);color:#000;font-weight:900;padding:0.85rem;border:none;border-radius:10px;font-size:1rem;cursor:pointer;"><i class="fa-solid fa-trophy"></i> Dolacz do konkursu</button>
                         <div id="contest-msg" style="text-align:center;font-size:0.9rem;color:var(--text-muted);"></div>
                     </div>
                 </div>
             </div>
 
-            <!-- Modal: Panel admina konkursu -->
+            <!-- Modal: Admin konkursu -->
             <div class="changes-overlay" id="contest-admin-overlay" onclick="closeContestAdmin(event)">
-                <div class="changes-panel-box" style="max-width:600px;max-height:85vh;">
+                <div class="changes-panel-box" style="max-width:600px;">
                     <div class="changes-panel-header">
-                        <span><i class="fa-solid fa-gear"></i> Zarządzaj konkursem</span>
+                        <span><i class="fa-solid fa-gear"></i> Zarzadzaj konkursem</span>
                         <button class="changes-close-btn" onclick="closeContestAdmin()"><i class="fa-solid fa-xmark"></i></button>
                     </div>
                     <div id="admin-login-form">
-                        <div style="display:flex;flex-direction:column;gap:0.8rem;margin-bottom:1rem;">
+                        <div style="display:flex;flex-direction:column;gap:0.8rem;">
                             <input id="admin-login" type="text" placeholder="Login..." style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#fff;padding:0.7rem 1rem;border-radius:8px;font-size:1rem;outline:none;">
-                            <input id="admin-pass" type="password" placeholder="Hasło..." style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#fff;padding:0.7rem 1rem;border-radius:8px;font-size:1rem;outline:none;">
+                            <input id="admin-pass" type="password" placeholder="Haslo..." style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#fff;padding:0.7rem 1rem;border-radius:8px;font-size:1rem;outline:none;">
                             <button onclick="adminLogin()" style="background:linear-gradient(135deg,#fc84fb,#ff1744);color:#fff;border:none;padding:0.8rem;border-radius:8px;font-weight:900;cursor:pointer;">Zaloguj</button>
-                            <div id="admin-login-err" style="color:#ff5252;font-size:0.85rem;display:none;">Błędny login lub hasło!</div>
+                            <div id="admin-login-err" style="color:#ff5252;font-size:0.85rem;display:none;">Bledny login lub haslo!</div>
                         </div>
                     </div>
-                    <div id="admin-panel-content" style="display:none;">
-                        <!-- Zmień nagrodę -->
-                        <div style="margin-bottom:1.5rem;">
+                    <div id="admin-panel-content" style="display:none;flex-direction:column;gap:1rem;">
+                        <div style="margin-bottom:1rem;">
                             <label style="font-size:0.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;display:block;margin-bottom:0.4rem;">Nagroda</label>
                             <div style="display:flex;gap:0.5rem;">
                                 <input id="admin-nagroda" type="text" placeholder="Nagroda..." style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#fff;padding:0.6rem 1rem;border-radius:8px;font-size:0.9rem;outline:none;">
                                 <button onclick="adminUpdateNagroda()" style="background:rgba(0,230,118,0.15);border:1px solid rgba(0,230,118,0.3);color:#00e676;padding:0.6rem 1rem;border-radius:8px;cursor:pointer;font-weight:700;">Zapisz</button>
                             </div>
                         </div>
-                        <!-- Zmień datę wyników -->
-                        <div style="margin-bottom:1.5rem;">
-                            <label style="font-size:0.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;display:block;margin-bottom:0.4rem;">Data wyników</label>
+                        <div style="margin-bottom:1rem;">
+                            <label style="font-size:0.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;display:block;margin-bottom:0.4rem;">Ilosc zwyciezcow</label>
+                            <div style="display:flex;gap:0.5rem;">
+                                <input id="admin-ilosc" type="number" min="1" max="10" value="2" placeholder="np. 2" style="width:100px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#fff;padding:0.6rem 1rem;border-radius:8px;font-size:0.9rem;outline:none;" onchange="adminUpdateIlosc()">
+                                <button onclick="adminUpdateIlosc()" style="background:rgba(0,230,118,0.15);border:1px solid rgba(0,230,118,0.3);color:#00e676;padding:0.6rem 1rem;border-radius:8px;cursor:pointer;font-weight:700;">Zastosuj</button>
+                            </div>
+                        </div>
+                        <div style="margin-bottom:1rem;">
+                            <label style="font-size:0.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;display:block;margin-bottom:0.4rem;">Data wynikow</label>
                             <div style="display:flex;gap:0.5rem;">
                                 <input id="admin-data" type="date" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#fff;padding:0.6rem 1rem;border-radius:8px;font-size:0.9rem;outline:none;">
                                 <button onclick="adminUpdateData()" style="background:rgba(0,230,118,0.15);border:1px solid rgba(0,230,118,0.3);color:#00e676;padding:0.6rem 1rem;border-radius:8px;cursor:pointer;font-weight:700;">Zapisz</button>
                             </div>
                         </div>
-                        <!-- Ogłoś zwycięzców -->
-                        <div style="margin-bottom:1.5rem;background:rgba(242,200,74,0.06);border:1px solid rgba(242,200,74,0.2);border-radius:10px;padding:1rem;">
-                            <div style="font-size:0.78rem;font-weight:700;color:#f2c84a;text-transform:uppercase;margin-bottom:0.7rem;"><i class="fa-solid fa-trophy"></i> Ogłoś zwycięzców</div>
-                            <div style="display:flex;flex-direction:column;gap:0.5rem;">
-                                <input id="winner-input-1" type="text" placeholder="Nick zwycięzcy #1..." style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#fff;padding:0.6rem 1rem;border-radius:8px;font-size:0.9rem;outline:none;">
-                                <input id="winner-input-2" type="text" placeholder="Nick zwycięzcy #2..." style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#fff;padding:0.6rem 1rem;border-radius:8px;font-size:0.9rem;outline:none;">
-                                <button onclick="adminAnnounceWinners()" style="background:linear-gradient(135deg,#f2c84a,#ff8c00);color:#000;border:none;padding:0.6rem 1.2rem;border-radius:8px;cursor:pointer;font-weight:900;"><i class="fa-solid fa-trophy"></i> Ogłoś i zakończ konkurs</button>
+                        <div style="margin-bottom:1rem;background:rgba(242,200,74,0.06);border:1px solid rgba(242,200,74,0.2);border-radius:10px;padding:1rem;">
+                            <div style="font-size:0.78rem;font-weight:700;color:#f2c84a;text-transform:uppercase;margin-bottom:0.7rem;"><i class="fa-solid fa-trophy"></i> Oglos zwyciezcow</div>
+                            <div id="winners-inputs" style="display:flex;flex-direction:column;gap:0.5rem;">
+                                <input class="winner-input" type="text" placeholder="Nick zwyciezcy #1" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#fff;padding:0.6rem 1rem;border-radius:8px;font-size:0.9rem;outline:none;">
+                                <input class="winner-input" type="text" placeholder="Nick zwyciezcy #2" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#fff;padding:0.6rem 1rem;border-radius:8px;font-size:0.9rem;outline:none;">
                             </div>
+                            <button onclick="adminAnnounceWinners()" style="background:linear-gradient(135deg,#f2c84a,#ff8c00);color:#000;border:none;padding:0.6rem 1.2rem;border-radius:8px;cursor:pointer;font-weight:900;margin-top:0.7rem;width:100%;"><i class="fa-solid fa-trophy"></i> Oglos i zakoncz konkurs</button>
                         </div>
-                        <!-- Akcje -->
-                        <div style="display:flex;gap:0.5rem;margin-bottom:1.5rem;flex-wrap:wrap;">
-                            <button onclick="adminEndContest()" style="background:rgba(255,183,0,0.15);border:1px solid rgba(255,183,0,0.3);color:#ffb700;padding:0.6rem 1.2rem;border-radius:8px;cursor:pointer;font-weight:700;"><i class="fa-solid fa-flag-checkered"></i> Zakończ bez wyników</button>
-                            <button onclick="adminDeleteContest()" style="background:rgba(255,23,68,0.15);border:1px solid rgba(255,23,68,0.3);color:#ff5252;padding:0.6rem 1.2rem;border-radius:8px;cursor:pointer;font-weight:700;"><i class="fa-solid fa-trash"></i> Usuń konkurs</button>
+                        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+                            <button onclick="adminEndContest()" style="background:rgba(255,183,0,0.15);border:1px solid rgba(255,183,0,0.3);color:#ffb700;padding:0.6rem 1.2rem;border-radius:8px;cursor:pointer;font-weight:700;"><i class="fa-solid fa-flag-checkered"></i> Zakoncz bez wynikow</button>
+                            <button onclick="adminDeleteContest()" style="background:rgba(255,23,68,0.15);border:1px solid rgba(255,23,68,0.3);color:#ff5252;padding:0.6rem 1.2rem;border-radius:8px;cursor:pointer;font-weight:700;"><i class="fa-solid fa-trash"></i> Usun konkurs</button>
                         </div>
-                        <!-- Lista uczestników -->
                         <div>
                             <div style="font-size:0.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:0.8rem;">Uczestnicy</div>
                             <div id="admin-entries-list" style="display:flex;flex-direction:column;gap:0.5rem;max-height:280px;overflow-y:auto;"></div>
@@ -172,38 +195,36 @@
                     </div>
                 </div>
             </div>
-
         </section>
 
-        <!-- Sklep -->
+        <!-- SKLEP -->
         <section id="sklep" class="tab-content">
             <div class="section-header">
                 <h2>Sklep</h2>
-                <p>Rangi, klucze, zestawy i więcej</p>
+                <p>Rangi, klucze, zestawy i wiecej</p>
             </div>
             <div class="home-placeholder">
                 <a href="shop.html" class="home-shop-btn">
-                    <i class="fa-solid fa-shop"></i> Przejdź do Sklepu
+                    <i class="fa-solid fa-shop"></i> Przejdz do Sklepu
                 </a>
             </div>
         </section>
 
-        <!-- Regulamin -->
+        <!-- REGULAMIN + ADMINISTRACJA -->
         <section id="regulamin" class="tab-content">
 
-            <!-- REGULAMINY -->
             <h3 class="team-section-title" style="margin-bottom:1rem;"><i class="fa-solid fa-scroll"></i> Regulaminy</h3>
 
             <div class="changes-card" onclick="openRegulamin()" style="margin-bottom:2.5rem;">
                 <div class="changes-card-icon"><i class="fa-solid fa-scroll"></i></div>
                 <div class="changes-card-text">
                     <div class="changes-card-title">Tymczasowy Regulamin</div>
-                    <div class="changes-card-sub">Regulamin CritMC.PL — rozgrywka, Discord, mody i backupy</div>
+                    <div class="changes-card-sub">Regulamin CritMC.PL - rozgrywka, Discord, mody i backupy</div>
                 </div>
                 <i class="fa-solid fa-arrow-right changes-card-arrow"></i>
             </div>
 
-            <!-- Overlay regulaminu -->
+            <!-- Modal regulaminu -->
             <div class="changes-overlay" id="regulamin-overlay" onclick="closeRegulamin(event)">
                 <div class="changes-panel-box" style="max-height:85vh;">
                     <div class="changes-panel-header">
@@ -214,40 +235,40 @@
                         <div class="reg-section">
                             <h4 class="reg-title"><i class="fa-solid fa-gamepad"></i> ROZGRYWKA</h4>
                             <ul class="reg-list">
-                                <li><span class="reg-par">§1</span> Zabronione jest używanie wspomagaczy uznawanych za cheaty oraz wszelkich skryptów/modyfikacji</li>
-                                <li><span class="reg-par">§2</span> Zabronione jest wykorzystywania błędów serwera oraz nie zgłaszania ich</li>
-                                <li><span class="reg-par">§3</span> Zabronione jest tworzenie i bycie online na więcej niż trzech kontach oraz omijanie bana</li>
-                                <li><span class="reg-par">§4</span> Zabronione jest podszywanie się pod innych graczy</li>
-                                <li><span class="reg-par">§5</span> Zabronione jest obrażanie innych członków serwera w tym administracji</li>
-                                <li><span class="reg-par">§6</span> Zabronione jest reklamowanie się jeśli treści nie mają powiązania z CritMc.pl</li>
-                                <li><span class="reg-par">§7</span> Zabronione jest ujawnianie danych osobowych, wizerunku innych użytkowników</li>
-                                <li><span class="reg-par">§8</span> Zabronione jest używanie wulgaryzmów na czacie</li>
-                                <li><span class="reg-par">§9</span> Zabronione jest nabijanie statystyk w nieodpowiedni sposób</li>
-                                <li><span class="reg-par">§10</span> Zabronione jest nadmierne korzystanie z komendy /helpop</li>
-                                <li><span class="reg-par">§11</span> Zabronione jest sprzedawanie kont i przedmiotów w grze za realne pieniądze</li>
-                                <li><span class="reg-par">§12</span> Administrator ma prawo ukarać użytkownika za rzecz niewymienioną w regulaminie</li>
+                                <li><span class="reg-par">1</span> Zabronione jest uzywanie wspomagaczy uznawanych za cheaty oraz wszelkich skryptow/modyfikacji</li>
+                                <li><span class="reg-par">2</span> Zabronione jest wykorzystywania bledow serwera oraz nie zglaszania ich</li>
+                                <li><span class="reg-par">3</span> Zabronione jest tworzenie i bycie online na wiecej niz trzech kontach oraz omijanie bana</li>
+                                <li><span class="reg-par">4</span> Zabronione jest podszywanie sie pod innych graczy</li>
+                                <li><span class="reg-par">5</span> Zabronione jest obrazanie innych czlonkow serwera w tym administracji</li>
+                                <li><span class="reg-par">6</span> Zabronione jest reklamowanie sie jesli tresci nie maja powiazania z CritMc.pl</li>
+                                <li><span class="reg-par">7</span> Zabronione jest ujawnianie danych osobowych, wizerunku innych uzytkownikow</li>
+                                <li><span class="reg-par">8</span> Zabronione jest uzywanie wulgaryzmow na czacie</li>
+                                <li><span class="reg-par">9</span> Zabronione jest nabijanie statystyk w nieodpowiedni sposob</li>
+                                <li><span class="reg-par">10</span> Zabronione jest nadmierne korzystanie z komendy /helpop</li>
+                                <li><span class="reg-par">11</span> Zabronione jest sprzedawanie kont i przedmiotow w grze za realne pieniadze</li>
+                                <li><span class="reg-par">12</span> Administrator ma prawo ukara uzytkownika za rzecz niewymieniona w regulaminie</li>
                             </ul>
                         </div>
                         <div class="reg-section">
                             <h4 class="reg-title"><i class="fa-brands fa-discord"></i> DISCORD</h4>
                             <ul class="reg-list">
-                                <li><span class="reg-par">§1</span> Zabrania się wulgaryzmów, treści o charakterze NSFW, rasistowskich, politycznych itp.</li>
-                                <li><span class="reg-par">§2</span> Zabrania się reklamowania treści niezwiązanych z serwerem</li>
-                                <li><span class="reg-par">§3</span> Zabrania się spamowania, powtarzania tych samych wiadomości oraz pisania capslockiem</li>
-                                <li><span class="reg-par">§4</span> Zabrania się ujawniania danych osobowych, wizerunku innych użytkowników</li>
-                                <li><span class="reg-par">§5</span> Zabrania się podszywania pod innych użytkowników/administrację</li>
-                                <li><span class="reg-par">§6</span> Zabrania się pisania rzeczy niezgodnych z tematyką kanału</li>
-                                <li><span class="reg-par">§7</span> Zabrania się tworzenia ticketów bez uzasadnienia i trollowania w ich treści</li>
-                                <li><span class="reg-par">§8</span> Awatar oraz nick nie mogą zawierać treści z podpunktu pierwszego</li>
-                                <li><span class="reg-par">§9</span> Zabrania się robienia bezsensownych ticketów</li>
+                                <li><span class="reg-par">1</span> Zabrania sie wulgaryzmow, tresci o charakterze NSFW, rasistowskich, politycznych itp.</li>
+                                <li><span class="reg-par">2</span> Zabrania sie reklamowania tresci niezwiazanych z serwerem</li>
+                                <li><span class="reg-par">3</span> Zabrania sie spamowania, powtarzania tych samych wiadomosci oraz pisania capslockiem</li>
+                                <li><span class="reg-par">4</span> Zabrania sie ujawniania danych osobowych, wizerunku innych uzytkownikow</li>
+                                <li><span class="reg-par">5</span> Zabrania sie podszywania pod innych uzytkownikow/administracje</li>
+                                <li><span class="reg-par">6</span> Zabrania sie pisania rzeczy niezgodnych z tematyka kanalu</li>
+                                <li><span class="reg-par">7</span> Zabrania sie tworzenia ticketow bez uzasadnienia i trollowania w ich tresci</li>
+                                <li><span class="reg-par">8</span> Awatar oraz nick nie moga zawierac tresci z podpunktu pierwszego</li>
+                                <li><span class="reg-par">9</span> Zabrania sie robienia bezsensownych ticketow</li>
                             </ul>
                         </div>
                         <div class="reg-section reg-two-col">
                             <div>
                                 <h4 class="reg-title reg-green"><i class="fa-solid fa-check"></i> DOZWOLONE MODYFIKACJE</h4>
                                 <ul class="reg-list">
-                                    <li>Widoczność życia przeciwnika</li>
-                                    <li>Widoczność zużycia zbroi przeciwnika</li>
+                                    <li>Widocznosc zycia przeciwnika</li>
+                                    <li>Widocznosc zuzycia zbroi przeciwnika</li>
                                     <li>Mouse Tweaks</li>
                                     <li>Better PvP</li>
                                     <li>Soup Api</li>
@@ -267,32 +288,31 @@
                         <div class="reg-section">
                             <h4 class="reg-title"><i class="fa-solid fa-box-archive"></i> BACKUPY EKWIPUNKU</h4>
                             <ol class="reg-list reg-ordered">
-                                <li>Stwórz ticket w odpowiedniej kategorii</li>
-                                <li>Opisz sytuację oraz wyślij nagranie z momentu śmierci</li>
-                                <li>Nagranie musi zawierać: moment śmierci, moment teleportacji (jeśli występuje), pełen obraz z gry</li>
-                                <li>Nie otrzymasz backupa jeśli: nie posiadasz nagrania, nagranie z replay moda, nagranie telefonem, nie widać pełnego ekranu</li>
-                                <li>Użyj komendy <code>/backupodbierz</code> na serwerze (pusty ekwipunek)</li>
+                                <li>Stworz ticket w odpowiedniej kategorii</li>
+                                <li>Opisz sytuacje oraz wyslij nagranie z momentu smierci</li>
+                                <li>Nagranie musi zawierac: moment smierci, moment teleportacji (jesli wystepuje), pelen obraz z gry</li>
+                                <li>Nie otrzymasz backupa jesli: nie posiadasz nagrania, nagranie z replay moda, nagranie telefonem, nie widac pelnego ekranu</li>
+                                <li>Uzyj komendy <code>/backupodbierz</code> na serwerze (pusty ekwipunek)</li>
                             </ol>
                         </div>
                         <div class="reg-footer">
-                            <i class="fa-solid fa-circle-info"></i> Brak znajomości regulaminu nie zwalnia z obowiązku jego przestrzegania.
+                            <i class="fa-solid fa-circle-info"></i> Brak znajomosci regulaminu nie zwalnia z obowiazku jego przestrzegania.
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- ADMINISTRACJA -->
             <h3 class="team-section-title" style="margin-bottom:1rem;"><i class="fa-solid fa-crown"></i> Ekipa</h3>
 
             <div class="team-owner">
                 <div class="team-owner-inner">
                     <img src="https://visage.surgeplay.com/bust/256/sosenka8" alt="sosenka8" class="team-owner-head">
                     <div class="team-owner-info">
-                        <div class="team-owner-role">Właściciel</div>
+                        <div class="team-owner-role">Wlasciciel</div>
                         <div class="team-owner-name">sosenka8</div>
                         <div class="team-owner-socials">
-                            <a href="https://youtube.com/@sosenka8" target="_blank" class="team-social-btn team-yt"><i class="fa-brands fa-youtube"></i> YouTube</a>
-                            <a href="https://tiktok.com/@sosenka8" target="_blank" class="team-social-btn team-tt"><i class="fa-brands fa-tiktok"></i> TikTok</a>
+                            <a href="https://www.youtube.com/@Critmc.pl_1" target="_blank" class="team-social-btn team-yt"><i class="fa-brands fa-youtube"></i> YouTube</a>
+                            <a href="https://www.tiktok.com/@critmc.pl" target="_blank" class="team-social-btn team-tt"><i class="fa-brands fa-tiktok"></i> TikTok</a>
                         </div>
                     </div>
                 </div>
@@ -300,9 +320,9 @@
 
             <div class="team-cowowner">
                 <div class="team-cowowner-inner">
-                    <img src="https://mc-heads.net/avatar/Steve/64" alt="Współwłaściciel" class="team-cowowner-head">
+                    <img src="https://mc-heads.net/avatar/Steve/64" alt="Wspolwlasciciel" class="team-cowowner-head">
                     <div class="team-cowowner-info">
-                        <div class="team-cowowner-role">Współwłaściciel</div>
+                        <div class="team-cowowner-role">Wspolwlasciciel</div>
                         <div class="team-cowowner-name">???</div>
                     </div>
                 </div>
@@ -313,7 +333,7 @@
                 <div class="team-admins-grid" id="section-admins-dynamic">
                     <div class="team-admin-card" onclick="toggleAdmin(this)">
                         <div class="team-admin-header">
-                            <img src="https://mc-heads.net/avatar/Admin1/48" alt="Admin" class="team-admin-head">
+                            <img src="https://mc-heads.net/avatar/Steve/48" alt="Admin" class="team-admin-head">
                             <div>
                                 <div class="team-admin-name">Admin1</div>
                                 <div class="team-admin-rank">Administrator</div>
@@ -324,7 +344,7 @@
                             <p><i class="fa-solid fa-circle-info"></i> <strong>Opis:</strong> Brak opisu.</p>
                             <p><i class="fa-solid fa-crown"></i> <strong>Ranga:</strong> Administrator</p>
                             <p><i class="fa-solid fa-key"></i> <strong>Uprawnienia:</strong> /ban, /kick, /mute, /tp</p>
-                            <p><i class="fa-solid fa-calendar"></i> <strong>Od:</strong> —</p>
+                            <p><i class="fa-solid fa-calendar"></i> <strong>Od:</strong> --</p>
                         </div>
                     </div>
                 </div>
@@ -333,29 +353,28 @@
             <div class="team-recruit-banner">
                 <div class="team-recruit-inner">
                     <div class="team-recruit-text">
-                        <div class="team-recruit-title"><i class="fa-solid fa-shield-halved"></i> Dołącz do Administracji</div>
-                        <div class="team-recruit-sub">Wypełnij formularz i zgłoś swoją kandydaturę na administratora CritMC</div>
+                        <div class="team-recruit-title"><i class="fa-solid fa-shield-halved"></i> Dolacz do Administracji</div>
+                        <div class="team-recruit-sub">Wypelnij formularz i zglos swoja kandydature na administratora CritMC</div>
                     </div>
                     <a href="https://forms.gle/NS5dWS1E3mVjthKE7" target="_blank" class="team-recruit-btn">
-                        <i class="fa-solid fa-file-pen"></i> Wypełnij formularz
+                        <i class="fa-solid fa-file-pen"></i> Wypelnij formularz
                     </a>
                 </div>
             </div>
-
         </section>
 
-        <!-- Media -->
+        <!-- MEDIA -->
         <section id="media" class="tab-content">
             <div class="section-header">
                 <h2>Media</h2>
-                <p>Nasze kanały, social media i twórcy serwera</p>
+                <p>Nasze kanaly, social media i tworcy serwera</p>
             </div>
             <div class="home-media-layout">
                 <a href="https://dc.critmc.pl" target="_blank" class="home-media-discord">
                     <i class="fa-brands fa-discord"></i>
                     <div>
                         <span class="home-media-discord-title">Discord</span>
-                        <span class="home-media-discord-sub">dc.critmc.pl — Dołącz do społeczności!</span>
+                        <span class="home-media-discord-sub">dc.critmc.pl &mdash; Dolacz do spolecznosci!</span>
                     </div>
                 </a>
                 <div class="home-media-row">
@@ -372,16 +391,15 @@
                 </div>
             </div>
 
-            <!-- TWÓRCY -->
             <div class="team-creators-section">
-                <h3 class="team-section-title"><i class="fa-solid fa-video"></i> Twórcy</h3>
+                <h3 class="team-section-title"><i class="fa-solid fa-video"></i> Tworcy</h3>
                 <div class="team-admins-grid" id="section-creators-dynamic">
                     <div class="team-admin-card" onclick="toggleAdmin(this)">
                         <div class="team-admin-header">
-                            <img src="https://mc-heads.net/avatar/Steve/48" alt="Twórca" class="team-admin-head">
+                            <img src="https://mc-heads.net/avatar/Steve/48" alt="Tworcy" class="team-admin-head">
                             <div>
-                                <div class="team-admin-name">Twórca1</div>
-                                <div class="team-admin-rank" style="color:#ff00ff;">Twórca Serwerowy</div>
+                                <div class="team-admin-name">Tworcy1</div>
+                                <div class="team-admin-rank" style="color:#ff00ff;">Tworcy Serwerowy</div>
                             </div>
                             <i class="fa-solid fa-chevron-down team-admin-arrow"></i>
                         </div>
@@ -398,38 +416,59 @@
                         </div>
                     </div>
                 </div>
-                <div class="team-recruit-banner" style="margin-top:1.5rem; border-color:rgba(255,0,255,0.2); background:linear-gradient(135deg,rgba(255,0,255,0.07) 0%,rgba(136,197,255,0.05) 100%);">
+                <div class="team-recruit-banner" style="margin-top:1.5rem;border-color:rgba(255,0,255,0.2);background:linear-gradient(135deg,rgba(255,0,255,0.07) 0%,rgba(136,197,255,0.05) 100%);">
                     <div class="team-recruit-inner">
                         <div class="team-recruit-text">
-                            <div class="team-recruit-title"><i class="fa-solid fa-star" style="color:#ff00ff;"></i> Zostań Twórcą Serwerowym</div>
-                            <div class="team-recruit-sub">Twórz content o CritMC i zdobądź specjalne benefity! Zgłoś się na naszym Discordzie.</div>
+                            <div class="team-recruit-title"><i class="fa-solid fa-star" style="color:#ff00ff;"></i> Zostan Tworcy Serwerowym</div>
+                            <div class="team-recruit-sub">Tworz content o CritMC i zdobadz specjalne benefity! Zglos sie na naszym Discordzie.</div>
                         </div>
                         <a href="https://dc.critmc.pl" target="_blank" class="team-recruit-btn" style="background:linear-gradient(135deg,#aa00ff,#ff00ff);">
-                            <i class="fa-brands fa-discord"></i> Zgłoś się na Discord
+                            <i class="fa-brands fa-discord"></i> Zglos sie na Discord
                         </a>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- Inne -->
+        <!-- INNE -->
         <section id="inne-strona" class="tab-content">
             <div class="section-header">
                 <h2>Inne</h2>
-                <p>Zmiany serwerowe i więcej</p>
+                <p>Zmiany serwerowe i wiecej</p>
             </div>
 
-            <!-- Zmiany serwerowe -->
-            <div class="changes-card" onclick="openChanges()">
-                <div class="changes-card-icon"><i class="fa-solid fa-list-check"></i></div>
-                <div class="changes-card-text">
-                    <div class="changes-card-title">Zmiany Serwerowe</div>
-                    <div class="changes-card-sub">Sprawdź co nowego pojawiło się na serwerze</div>
+            <div style="display:flex;gap:0.8rem;align-items:stretch;flex-wrap:wrap;">
+                <div class="changes-card" style="flex:1;" onclick="openChanges()">
+                    <div class="changes-card-icon"><i class="fa-solid fa-list-check"></i></div>
+                    <div class="changes-card-text">
+                        <div class="changes-card-title">Zmiany Serwerowe</div>
+                        <div class="changes-card-sub">Sprawdz co nowego pojawilo sie na serwerze</div>
+                    </div>
+                    <i class="fa-solid fa-arrow-right changes-card-arrow"></i>
                 </div>
-                <i class="fa-solid fa-arrow-right changes-card-arrow"></i>
+                <button class="contest-admin-btn" onclick="openChangesAdmin()" style="padding:0 1.2rem;border-radius:16px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.04);color:var(--text-muted);cursor:pointer;font-weight:700;"><i class="fa-solid fa-gear"></i> Zarzadzaj</button>
             </div>
 
-            <!-- Panel zmian - overlay -->
+            <!-- Link do panelu admina -->
+            <a href="admin/index.html" style="
+                display:flex;align-items:center;gap:1.2rem;
+                margin-top:1rem;
+                background:linear-gradient(135deg,rgba(255,23,68,0.1) 0%,rgba(252,132,251,0.07) 100%);
+                border:1px solid rgba(255,23,68,0.25);
+                border-radius:16px;padding:1.2rem 1.8rem;
+                text-decoration:none;color:#fff;
+                transition:all 0.25s ease;">
+                <div style="font-size:1.8rem;color:#ff1744;flex-shrink:0;">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <div style="flex:1;">
+                    <div style="font-size:1rem;font-weight:800;margin-bottom:0.2rem;">Panel Administracyjny</div>
+                    <div style="font-size:0.82rem;color:var(--text-muted);font-weight:500;">Dostep tylko dla administracji CritMC</div>
+                </div>
+                <i class="fa-solid fa-arrow-right" style="color:var(--text-muted);font-size:1rem;"></i>
+            </a>
+
+            <!-- Panel zmian publiczny -->
             <div class="changes-overlay" id="changes-overlay" onclick="closeChanges(event)">
                 <div class="changes-panel-box">
                     <div class="changes-panel-header">
@@ -437,20 +476,48 @@
                         <button class="changes-close-btn" onclick="closeChanges()"><i class="fa-solid fa-xmark"></i></button>
                     </div>
                     <div class="changes-mode-tabs">
-                        <button class="changes-tab active" data-mode="zwykle">Zwykłe</button>
-                        <button class="changes-tab" data-mode="szczegolowe">Szczegółowe</button>
+                        <button class="changes-tab active" data-mode="zwykle">Zwykle</button>
+                        <button class="changes-tab" data-mode="szczegolowe">Szczegolowe</button>
                         <button class="changes-tab" data-mode="najmocniejsze">Najmocniejsze</button>
                     </div>
                     <div class="changes-content">
-                        <div class="changes-panel active" id="mode-zwykle">
-                            <p>Brak zmian — wróć wkrótce!</p>
+                        <div class="changes-panel active" id="mode-zwykle"><p>Brak zmian &mdash; wroc wkrotce!</p></div>
+                        <div class="changes-panel" id="mode-szczegolowe"><p>Brak szczegolowych zmian &mdash; wroc wkrotce!</p></div>
+                        <div class="changes-panel" id="mode-najmocniejsze"><p>Brak zmian w trybie najmocniejszym &mdash; wroc wkrotce!</p></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Panel admin zmian -->
+            <div class="changes-overlay" id="changes-admin-overlay" onclick="closeChangesAdmin(event)">
+                <div class="changes-panel-box" style="max-width:600px;">
+                    <div class="changes-panel-header">
+                        <span><i class="fa-solid fa-gear"></i> Zarzadzaj zmianami</span>
+                        <button class="changes-close-btn" onclick="closeChangesAdmin()"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                    <div id="changes-admin-login">
+                        <div style="display:flex;flex-direction:column;gap:0.8rem;">
+                            <input id="changes-admin-l" type="text" placeholder="Login..." style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#fff;padding:0.7rem 1rem;border-radius:8px;font-size:1rem;outline:none;">
+                            <input id="changes-admin-p" type="password" placeholder="Haslo..." style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#fff;padding:0.7rem 1rem;border-radius:8px;font-size:1rem;outline:none;">
+                            <button onclick="changesAdminLogin()" style="background:linear-gradient(135deg,#88c5ff,#5865F2);color:#fff;border:none;padding:0.8rem;border-radius:8px;font-weight:900;cursor:pointer;">Zaloguj</button>
+                            <div id="changes-admin-err" style="color:#ff5252;font-size:0.85rem;display:none;">Bledny login lub haslo!</div>
                         </div>
-                        <div class="changes-panel" id="mode-szczegolowe">
-                            <p>Brak szczegółowych zmian — wróć wkrótce!</p>
+                    </div>
+                    <div id="changes-admin-panel" style="display:none;flex-direction:column;gap:1rem;">
+                        <div>
+                            <label style="font-size:0.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;display:block;margin-bottom:0.4rem;">Tryb: Zwykle</label>
+                            <textarea id="edit-zwykle" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:#fff;padding:0.7rem 1rem;border-radius:8px;font-size:0.9rem;outline:none;min-height:80px;resize:vertical;font-family:inherit;box-sizing:border-box;"></textarea>
                         </div>
-                        <div class="changes-panel" id="mode-najmocniejsze">
-                            <p>Brak zmian w trybie najmocniejszym — wróć wkrótce!</p>
+                        <div>
+                            <label style="font-size:0.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;display:block;margin-bottom:0.4rem;">Tryb: Szczegolowe</label>
+                            <textarea id="edit-szczegolowe" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:#fff;padding:0.7rem 1rem;border-radius:8px;font-size:0.9rem;outline:none;min-height:80px;resize:vertical;font-family:inherit;box-sizing:border-box;"></textarea>
                         </div>
+                        <div>
+                            <label style="font-size:0.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;display:block;margin-bottom:0.4rem;">Tryb: Najmocniejsze</label>
+                            <textarea id="edit-najmocniejsze" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:#fff;padding:0.7rem 1rem;border-radius:8px;font-size:0.9rem;outline:none;min-height:80px;resize:vertical;font-family:inherit;box-sizing:border-box;"></textarea>
+                        </div>
+                        <button onclick="saveChangesAdmin()" style="background:linear-gradient(135deg,#00e676,#00b0ff);color:#000;border:none;padding:0.85rem;border-radius:10px;font-weight:900;font-size:1rem;cursor:pointer;"><i class="fa-solid fa-floppy-disk"></i> Zapisz zmiany</button>
+                        <div id="changes-save-msg" style="text-align:center;font-size:0.9rem;color:var(--text-muted);"></div>
                     </div>
                 </div>
             </div>
@@ -460,11 +527,11 @@
 
     <footer>
         <div class="footer-container">
-            <p>&copy; 2026 CritMC. Wszelkie prawa zastrzeżone.</p>
-            <p class="footer-sub">Serwer nie jest powiązany z Mojang AB ani Microsoft.</p>
+            <p>&copy; 2026 CritMC. Wszelkie prawa zastrzezone.</p>
+            <p class="footer-sub">Serwer nie jest powiazany z Mojang AB ani Microsoft.</p>
             <div class="footer-links">
                 <a href="#">Regulamin</a>
-                <a href="#">Polityka Prywatności</a>
+                <a href="#">Polityka Prywatnosci</a>
                 <a href="https://dc.critmc.pl" target="_blank">Discord Pomoc</a>
             </div>
         </div>
@@ -475,193 +542,96 @@
         import { joinContest, getContestCount, getEntries, removeEntry, updateContest, endContest, deleteContest, getContest, setWinners } from './firebase.js';
 
         const CONTEST_ID = 'start';
-        const ADMIN_LOGIN = 'admin';
-        const ADMIN_PASS = 'critmc2026';
-        const WYNIKI_DATE = new Date('2025-08-25T20:00:00');
-        const HIDE_DATE = new Date('2025-09-30T00:00:00'); // po tej dacie konkurs znika
+        const ADMIN_LOGIN = 'test';
+        const ADMIN_PASS = 'test';
+        const WYNIKI_DATE = new Date('2026-08-25T12:00:00');
+        const HIDE_DATE = new Date('2026-09-30T00:00:00');
 
-        // --- STAN KONKURSU ---
+        function updateTimer() {
+            const el = document.getElementById('contest-timer');
+            if (!el) return;
+            const diff = WYNIKI_DATE - new Date();
+            if (diff <= 0) { el.innerHTML = '<i class="fa-solid fa-flag-checkered"></i> Wyniki juz ogloszone!'; return; }
+            const d = Math.floor(diff/86400000), h = Math.floor((diff%86400000)/3600000), m = Math.floor((diff%3600000)/60000);
+            if (d >= 10) {
+                el.innerHTML = '<i class="fa-solid fa-clock"></i> ' + d + 'd ' + h + 'h';
+            } else {
+                el.innerHTML = '<i class="fa-solid fa-clock"></i> ' + d + 'd ' + h + 'h ' + m + 'm';
+            }
+        }
+        updateTimer();
+        setInterval(updateTimer, 30000);
+
         async function initContest() {
-            const contest = await getContest(CONTEST_ID);
-            const card = document.getElementById('contest-start');
-            const winnersCard = document.getElementById('contest-winners');
-            const now = new Date();
-
-            // Ukryj po 30 września
-            if (now >= HIDE_DATE) {
-                if (card) card.style.display = 'none';
-                if (winnersCard) winnersCard.style.display = 'none';
-                return;
-            }
-
-            // Pokaż wyniki jeśli konkurs zakończony i są zwycięzcy
-            if (contest && !contest.aktywny && contest.winners && contest.winners.length > 0) {
-                if (card) card.style.display = 'none';
-                if (winnersCard) {
-                    winnersCard.style.display = 'flex';
-                    document.getElementById('winner-1').textContent = contest.winners[0] || '—';
-                    document.getElementById('winner-2').textContent = contest.winners[1] || '—';
+            try {
+                const contest = await Promise.race([getContest(CONTEST_ID), new Promise(r=>setTimeout(()=>r(null),5000))]);
+                const card = document.getElementById('contest-start');
+                const win = document.getElementById('contest-winners');
+                if (new Date() >= HIDE_DATE) { if(card)card.style.display='none'; if(win)win.style.display='none'; return; }
+                if (contest && !contest.aktywny && contest.winners && contest.winners.length>0) {
+                    if(card)card.style.display='none';
+                    if(win){win.style.display='flex'; document.getElementById('winner-1').textContent=contest.winners[0]||'--'; document.getElementById('winner-2').textContent=contest.winners[1]||'--';}
+                    return;
                 }
-                return;
-            }
-
-            // Konkurs zakończony ale bez zwycięzców — ukryj
-            if (contest && !contest.aktywny) {
-                if (card) card.style.display = 'none';
-                if (winnersCard) winnersCard.style.display = 'none';
-                return;
-            }
-
-            // Konkurs aktywny
-            if (card) card.style.display = 'flex';
-            if (winnersCard) winnersCard.style.display = 'none';
+                if(contest && !contest.aktywny){if(card)card.style.display='none';if(win)win.style.display='none';return;}
+                if(card)card.style.display='flex'; if(win)win.style.display='none';
+            } catch(e) { const c=document.getElementById('contest-start'); if(c)c.style.display='flex'; }
         }
         initContest();
 
-        // --- ODLICZANIE ---
-        function updateTimer() {
-            const now = new Date();
-            const diff = WYNIKI_DATE - now;
-            const el = document.getElementById('contest-timer');
-            if (!el) return;
-            if (diff <= 0) { el.innerHTML = '<i class="fa-solid fa-flag-checkered"></i> Wyniki już ogłoszone!'; return; }
-            const d = Math.floor(diff / 86400000);
-            const h = Math.floor((diff % 86400000) / 3600000);
-            const m = Math.floor((diff % 3600000) / 60000);
-            el.innerHTML = `<i class="fa-solid fa-clock"></i> Do wyników: ${d}d ${h}h ${m}m (25 sierpnia)`;
-        }
-        updateTimer();
-        setInterval(updateTimer, 60000);
-
-        // --- LICZNIK ---
         async function loadCount() {
-            const count = await getContestCount(CONTEST_ID);
-            document.getElementById('contest-count-start').textContent = count;
+            try { const c=await getContestCount(CONTEST_ID); const el=document.getElementById('contest-count-start'); if(el)el.textContent=c; } catch(e){}
         }
         loadCount();
 
-        // --- FORMULARZ DOŁĄCZENIA ---
-        let currentContest = null;
-        window.openContest = function(id) {
-            currentContest = id;
-            document.getElementById('contest-overlay').classList.add('open');
-            document.getElementById('contest-msg').textContent = '';
-        }
-        window.closeContest = function(e) {
-            if (!e || e.target === document.getElementById('contest-overlay')) {
-                document.getElementById('contest-overlay').classList.remove('open');
-            }
-        }
-        window.submitContest = async function() {
-            const nickMC = document.getElementById('contest-nick-mc').value.trim();
-            const nickDC = document.getElementById('contest-nick-dc').value.trim();
-            const secret = document.getElementById('contest-secret').value.trim();
-            const msg = document.getElementById('contest-msg');
-            if (!nickMC || !nickDC || !secret) {
-                msg.textContent = 'Wypełnij wszystkie pola!';
-                msg.style.color = '#ff5252';
-                return;
-            }
-            msg.textContent = 'Zapisuję...';
-            msg.style.color = 'var(--text-muted)';
-            const result = await joinContest(currentContest, { nickMC, nickDC, secret });
-            msg.textContent = result.message;
-            msg.style.color = result.success ? '#00e676' : '#ff5252';
-            if (result.success) {
-                loadCount();
-                setTimeout(() => document.getElementById('contest-overlay').classList.remove('open'), 2500);
-            }
-        }
+        let currentContest=null;
+        window.openContest=function(id){currentContest=id;document.getElementById('contest-overlay').classList.add('open');document.getElementById('contest-msg').textContent='';['contest-nick-mc','contest-nick-dc','contest-secret'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});};
+        window.closeContest=function(e){if(!e||e.target===document.getElementById('contest-overlay'))document.getElementById('contest-overlay').classList.remove('open');};
+        window.submitContest=async function(){
+            const mc=document.getElementById('contest-nick-mc').value.trim(), dc=document.getElementById('contest-nick-dc').value.trim(), sec=document.getElementById('contest-secret').value.trim(), msg=document.getElementById('contest-msg');
+            if(!mc||!dc||!sec){msg.textContent='Wypelnij wszystkie pola!';msg.style.color='#ff5252';return;}
+            msg.textContent='Zapisuje...';msg.style.color='var(--text-muted)';
+            try{const r=await joinContest(window._currentContest||'start',{nickMC:mc,nickDC:dc,secret:sec});msg.textContent=r.message;msg.style.color=r.success?'#00e676':'#ff5252';if(r.success){loadCount();setTimeout(()=>document.getElementById('contest-overlay').classList.remove('open'),2500);}}
+            catch(e){msg.textContent='Blad polaczenia. Sprobuj ponownie.';msg.style.color='#ff5252';}
+        };
 
-        // --- PANEL ADMINA ---
-        let adminLogged = false;
-        window.openContestAdmin = function() {
-            document.getElementById('contest-admin-overlay').classList.add('open');
-            if (!adminLogged) {
-                document.getElementById('admin-login-form').style.display = 'block';
-                document.getElementById('admin-panel-content').style.display = 'none';
-            }
+        let adminLogged=false;
+        window.openContestAdmin=function(){document.getElementById('contest-admin-overlay').classList.add('open');if(!window._adminLogged){document.getElementById('admin-login-form').style.display='block';document.getElementById('admin-panel-content').style.display='none';document.getElementById('admin-login-err').style.display='none';}else{loadAdminPanel();}};
+        window.closeContestAdmin=function(e){if(!e||e.target===document.getElementById('contest-admin-overlay'))document.getElementById('contest-admin-overlay').classList.remove('open');};
+        window.adminLogin=async function(){
+            const l=document.getElementById('admin-login').value, p=document.getElementById('admin-pass').value;
+            if(l===ADMIN_LOGIN&&p===ADMIN_PASS){window._adminLogged=true;document.getElementById('admin-login-form').style.display='none';document.getElementById('admin-panel-content').style.display='flex';await loadAdminPanel();}
+            else{document.getElementById('admin-login-err').style.display='block';}
+        };
+        document.getElementById('admin-pass').addEventListener('keydown',e=>{if(e.key==='Enter')window.adminLogin();});
+        window.loadAdminPanel=async function(){
+            try{
+                const contest=await getContest(CONTEST_ID);
+                if(contest){const n=document.getElementById('admin-nagroda');const d=document.getElementById('admin-data');if(n)n.value=contest.nagroda||'2x Ranga CRIT na 14 dni';if(d&&contest.wyniki)d.value=contest.wyniki;}
+                const entries=await getEntries(CONTEST_ID);
+                const list=document.getElementById('admin-entries-list');
+                if(!list)return;
+                if(entries.length===0){list.innerHTML='<div style="color:var(--text-muted);font-size:0.9rem;padding:0.5rem;">Brak uczestnikow.</div>';return;}
+                list.innerHTML=entries.map(e=>'<div class="admin-entry"><div class="admin-entry-info"><div class="admin-entry-nick"><i class="fa-solid fa-cube"></i> '+(e.nickMC||e.id||'--')+'</div><div class="admin-entry-dc"><i class="fa-brands fa-discord"></i> '+(e.nickDC||'--')+'</div><div class="admin-entry-secret"><i class="fa-solid fa-key"></i> Slowo: '+(e.secret||'--')+'</div></div><button class="admin-entry-remove" onclick="adminRemoveEntry(\''+(e.nickMC||e.id)+'\')"><i class="fa-solid fa-trash"></i> Usun</button></div>').join('');
+            }catch(err){showAdminMsg('Blad Firebase','#ff5252');}
         }
-        window.closeContestAdmin = function(e) {
-            if (!e || e.target === document.getElementById('contest-admin-overlay')) {
-                document.getElementById('contest-admin-overlay').classList.remove('open');
-            }
-        }
-        window.adminLogin = async function() {
-            const l = document.getElementById('admin-login').value;
-            const p = document.getElementById('admin-pass').value;
-            if (l === ADMIN_LOGIN && p === ADMIN_PASS) {
-                adminLogged = true;
-                document.getElementById('admin-login-form').style.display = 'none';
-                document.getElementById('admin-panel-content').style.display = 'block';
-                await loadAdminPanel();
-            } else {
-                document.getElementById('admin-login-err').style.display = 'block';
-            }
-        }
+        window.adminRemoveEntry=async function(n){if(!confirm('Usunac '+n+'?'))return;await removeEntry(CONTEST_ID,n);await loadAdminPanel();loadCount();showAdminMsg('Usunieto.','#00e676');};
+        window.adminUpdateNagroda=async function(){const v=document.getElementById('admin-nagroda').value.trim();if(!v)return;await updateContest(CONTEST_ID,{nagroda:v});showAdminMsg('Nagroda zaktualizowana!','#00e676');};
+        window.adminUpdateData=async function(){const v=document.getElementById('admin-data').value;if(!v)return;await updateContest(CONTEST_ID,{wyniki:v});showAdminMsg('Data zaktualizowana!','#00e676');};
+        window.adminEndContest=async function(){if(!confirm('Zakonczyc konkurs?'))return;await endContest(CONTEST_ID);showAdminMsg('Konkurs zakonczony!','#ffb700');document.getElementById('contest-admin-overlay').classList.remove('open');initContest();};
+        window.adminAnnounceWinners=async function(){const w1=document.getElementById('winner-input-1').value.trim(),w2=document.getElementById('winner-input-2').value.trim();if(!w1||!w2){showAdminMsg('Wpisz oba nicki!','#ff5252');return;}if(!confirm('Oglosic: '+w1+' i '+w2+'?'))return;await setWinners(CONTEST_ID,[w1,w2]);showAdminMsg('Zwyciezcy ogloseni!','#00e676');document.getElementById('contest-admin-overlay').classList.remove('open');initContest();};
+        window.adminDeleteContest=async function(){if(!confirm('Usunac caly konkurs?'))return;await deleteContest(CONTEST_ID);document.getElementById('contest-admin-overlay').classList.remove('open');const c=document.getElementById('contest-start');if(c)c.style.display='none';};
+        function showAdminMsg(t,c){const el=document.getElementById('admin-action-msg');if(!el)return;el.textContent=t;el.style.color=c;setTimeout(()=>{if(el)el.textContent='';},3000);}
 
-        async function loadAdminPanel() {
-            const contest = await getContest(CONTEST_ID);
-            if (contest) {
-                document.getElementById('admin-nagroda').value = contest.nagroda || '';
-                if (contest.wyniki) document.getElementById('admin-data').value = contest.wyniki;
-            }
-            const entries = await getEntries(CONTEST_ID);
-            const list = document.getElementById('admin-entries-list');
-            if (entries.length === 0) {
-                list.innerHTML = '<div style="color:var(--text-muted);font-size:0.9rem;">Brak uczestników.</div>';
-                return;
-            }
-            list.innerHTML = entries.map(e => `
-                <div class="admin-entry">
-                    <div class="admin-entry-info">
-                        <div class="admin-entry-nick"><i class="fa-solid fa-cube"></i> ${e.nickMC}</div>
-                        <div class="admin-entry-dc"><i class="fa-brands fa-discord"></i> ${e.nickDC}</div>
-                        <div class="admin-entry-secret"><i class="fa-solid fa-key"></i> Słowo: ${e.secret}</div>
-                    </div>
-                    <button class="admin-entry-remove" onclick="adminRemoveEntry('${e.nickMC}')"><i class="fa-solid fa-trash"></i> Usuń</button>
-                </div>
-            `).join('');
-        }
-
-        window.adminRemoveEntry = async function(nickMC) {
-            if (!confirm(`Usunąć ${nickMC} z konkursu?`)) return;
-            await removeEntry(CONTEST_ID, nickMC);
-            await loadAdminPanel();
-            loadCount();
-            showAdminMsg('Usunięto uczestnika.', '#00e676');
-        }
-        window.adminUpdateNagroda = async function() {
-            const val = document.getElementById('admin-nagroda').value.trim();
-            if (!val) return;
-            await updateContest(CONTEST_ID, { nagroda: val });
-            showAdminMsg('Nagroda zaktualizowana!', '#00e676');
-        }
-        window.adminUpdateData = async function() {
-            const val = document.getElementById('admin-data').value;
-            if (!val) return;
-            await updateContest(CONTEST_ID, { wyniki: val });
-            showAdminMsg('Data wyników zaktualizowana!', '#00e676');
-        }
-        window.adminEndContest = async function() {
-            if (!confirm('Zakończyć konkurs?')) return;
-            await endContest(CONTEST_ID);
-            showAdminMsg('Konkurs zakończony!', '#ffb700');
-        }
-        window.adminDeleteContest = async function() {
-            if (!confirm('Usunąć cały konkurs? Tej operacji nie można cofnąć!')) return;
-            await deleteContest(CONTEST_ID);
-            document.getElementById('contest-admin-overlay').classList.remove('open');
-            document.getElementById('contest-start').style.display = 'none';
-        }
-        function showAdminMsg(text, color) {
-            const el = document.getElementById('admin-action-msg');
-            el.textContent = text;
-            el.style.color = color;
-            setTimeout(() => el.textContent = '', 3000);
-        }
+        const CHANGES_KEY='critmc-changes';
+        let changesLogged=false;
+        function loadChanges(){const d=JSON.parse(localStorage.getItem(CHANGES_KEY)||'{}');const map={zwykle:'mode-zwykle',szczegolowe:'mode-szczegolowe',najmocniejsze:'mode-najmocniejsze'};Object.entries(map).forEach(([k,id])=>{const el=document.getElementById(id);if(el&&d[k])el.innerHTML='<p style="white-space:pre-line">'+d[k]+'</p>';});}
+        loadChanges();
+        window.openChangesAdmin=function(){document.getElementById('changes-admin-overlay').classList.add('open');if(!changesLogged){document.getElementById('changes-admin-login').style.display='block';document.getElementById('changes-admin-panel').style.display='none';document.getElementById('changes-admin-err').style.display='none';}else{const d=JSON.parse(localStorage.getItem(CHANGES_KEY)||'{}');['zwykle','szczegolowe','najmocniejsze'].forEach(m=>{const el=document.getElementById('edit-'+m);if(el)el.value=d[m]||'';});}};
+        window.closeChangesAdmin=function(e){if(!e||e.target===document.getElementById('changes-admin-overlay'))document.getElementById('changes-admin-overlay').classList.remove('open');};
+        window.changesAdminLogin=function(){if(document.getElementById('changes-admin-l').value===ADMIN_LOGIN&&document.getElementById('changes-admin-p').value===ADMIN_PASS){changesLogged=true;document.getElementById('changes-admin-login').style.display='none';document.getElementById('changes-admin-panel').style.display='flex';const d=JSON.parse(localStorage.getItem(CHANGES_KEY)||'{}');['zwykle','szczegolowe','najmocniejsze'].forEach(m=>{const el=document.getElementById('edit-'+m);if(el)el.value=d[m]||'';});}else{document.getElementById('changes-admin-err').style.display='block';}};
+        document.getElementById('changes-admin-p').addEventListener('keydown',e=>{if(e.key==='Enter')window.changesAdminLogin();});
+        window.saveChangesAdmin=function(){const d={zwykle:document.getElementById('edit-zwykle').value,szczegolowe:document.getElementById('edit-szczegolowe').value,najmocniejsze:document.getElementById('edit-najmocniejsze').value};localStorage.setItem(CHANGES_KEY,JSON.stringify(d));loadChanges();const msg=document.getElementById('changes-save-msg');msg.textContent='Zapisano!';msg.style.color='#00e676';setTimeout(()=>{msg.textContent='';document.getElementById('changes-admin-overlay').classList.remove('open');},1500);};
     </script>
 </body>
 </html>
-
-
