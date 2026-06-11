@@ -5,7 +5,7 @@ import {
     query, orderBy, where, serverTimestamp, Timestamp
 } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
 
-// ─── Firebase ───────────────────────────────────────────────────────
+// ─── Firebase ────────────────────────────────────────────────────────
 const app = initializeApp({
     apiKey: "AIzaSyBdwzCGhUtqGm0Ggfmrl2MC8_u10c_AuMQ",
     authDomain: "stronacritmcpl.firebaseapp.com",
@@ -16,11 +16,11 @@ const app = initializeApp({
 });
 const db = getFirestore(app);
 
-// ─── Stan ────────────────────────────────────────────────────────────
+// ─── Stan ─────────────────────────────────────────────────────────────
 let currentUser = null;
 let allPlayers = [], allBans = [], allMutes = [], allLogs = [];
 
-// ─── Domyślne konta (fallback gdy Firestore puste) ──────────────────
+// ─── Domyślne konta (fallback gdy Firestore puste) ───────────────────
 const DEFAULT_ACCOUNTS = [
     { login: 'test', password: 'test', displayName: 'Test Admin', role: 'Zarządzający', permissions: ['all'] }
 ];
@@ -44,10 +44,8 @@ function hasPermission(perm) {
 window.addEventListener('adminLogin', async (e) => {
     const { login, password } = e.detail;
 
-    // Najpierw sprawdź Firestore
     try {
-        const snap = await getDocs(query(collection(db, 'admins'), where('login','==',login)));
-
+        const snap = await getDocs(query(collection(db, 'admins'), where('login', '==', login)));
         if (!snap.empty) {
             const adminDoc = snap.docs[0];
             const data = adminDoc.data();
@@ -66,14 +64,12 @@ window.addEventListener('adminLogin', async (e) => {
         console.warn('[CritMC] Firestore niedostępny, próba fallback:', err.message);
     }
 
-    // Fallback — konta lokalne
     const local = DEFAULT_ACCOUNTS.find(a => a.login === login && a.password === password);
     if (local) {
         currentUser = { ...local };
         initPanelUI();
-        // Utwórz konto w Firestore jeśli nie istnieje
         try {
-            const check = await getDocs(query(collection(db, 'admins'), where('login','==',login)));
+            const check = await getDocs(query(collection(db, 'admins'), where('login', '==', login)));
             if (check.empty) {
                 await addDoc(collection(db, 'admins'), {
                     login: local.login, password: local.password,
@@ -88,24 +84,21 @@ window.addEventListener('adminLogin', async (e) => {
     }
 });
 
+// ─── initPanelUI ─────────────────────────────────────────────────────
 function initPanelUI() {
     document.body.classList.add('auth-ready');
     document.getElementById('su-name').textContent   = currentUser.displayName;
     document.getElementById('su-role').textContent   = currentUser.role;
     document.getElementById('su-avatar').textContent = currentUser.displayName.charAt(0).toUpperCase();
     applyPermissions();
-    // Dodatkowe uprawnienia dla nowych zakładek
-    setTimeout(() => {
-        if (typeof window._extendedApplyPermissions === 'function') window._extendedApplyPermissions();
-    }, 0);
+    setTimeout(_extendedApplyPermissions, 0);
     updateServerStatus('loading', 'Łączenie...');
     loadAll();
     setTimeout(() => updateServerStatus('online', 'Serwer online'), 1500);
 }
 
-// Ukryj elementy na podstawie uprawnień
+// ─── applyPermissions ─────────────────────────────────────────────────
 function applyPermissions() {
-    // Przyciski akcji
     const actionMap = {
         '.ban-btn':    'ban',
         '.unban-btn':  'unban',
@@ -120,14 +113,13 @@ function applyPermissions() {
             el.style.display = hasPermission(perm) ? '' : 'none';
         });
     });
-    // Zakładka Administratorzy — tylko Zarządzający
     const adminsNav = document.querySelector('.nav-btn[data-page="admins"]');
     if (adminsNav) adminsNav.style.display = hasPermission('all') ? '' : 'none';
-    // Logi — tylko moderator+
     const logsNav = document.querySelector('.nav-btn[data-page="logs"]');
     if (logsNav) logsNav.style.display = hasPermission('logs') ? '' : 'none';
 }
 
+// ─── showLoginError ────────────────────────────────────────────────────
 function showLoginError(msg) {
     document.body.classList.remove('auth-ready');
     const errEl = document.getElementById('login-error');
@@ -135,7 +127,6 @@ function showLoginError(msg) {
         errEl.style.display = 'flex';
         errEl.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> ${msg}`;
     }
-    // Wywołaj licznik prób z inline scriptu (nadpisuje wiadomość + obsługuje blokadę)
     if (typeof window.recordFailedAttempt === 'function') {
         window.recordFailedAttempt();
     }
@@ -143,6 +134,7 @@ function showLoginError(msg) {
     if (pwEl) pwEl.value = '';
 }
 
+// ─── loadAll ──────────────────────────────────────────────────────────
 function loadAll() {
     loadPlayers();
     loadBans();
@@ -150,7 +142,7 @@ function loadAll() {
     loadLogs();
 }
 
-// ─── Server status ───────────────────────────────────────────────────
+// ─── Server status ────────────────────────────────────────────────────
 function updateServerStatus(type, text) {
     const dot = document.querySelector('.status-dot');
     if (dot) dot.className = `status-dot ${type}`;
@@ -158,7 +150,7 @@ function updateServerStatus(type, text) {
     if (span) span.textContent = text;
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────
 function formatDate(val) {
     if (!val) return '—';
     let d;
@@ -191,7 +183,7 @@ function head(nick) {
     return `<img class="player-head" src="https://mc-heads.net/avatar/${encodeURIComponent(nick)}/36" alt="${nick}" onerror="this.src='https://mc-heads.net/avatar/Steve/36'">`;
 }
 
-// ─── GRACZE ──────────────────────────────────────────────────────────
+// ─── GRACZE ───────────────────────────────────────────────────────────
 async function loadPlayers() {
     try {
         const snap = await getDocs(collection(db, 'players'));
@@ -224,17 +216,17 @@ function renderPlayers(list) {
 }
 
 window.filterPlayers = function() {
-    const s = (document.getElementById('players-search').value||'').toLowerCase();
-    const r = (document.getElementById('players-filter-rank').value||'').toLowerCase();
+    const s  = (document.getElementById('players-search').value||'').toLowerCase();
+    const r  = (document.getElementById('players-filter-rank').value||'').toLowerCase();
     const st = document.getElementById('players-filter-status').value;
     renderPlayers(allPlayers.filter(p => {
         const n = (p.nick||p.id||'').toLowerCase();
         if (s && !n.includes(s)) return false;
         if (r && (p.rank||'default').toLowerCase() !== r) return false;
-        if (st === 'online' && !p.online) return false;
-        if (st === 'offline' && p.online) return false;
-        if (st === 'banned' && !p.banned) return false;
-        if (st === 'muted' && !p.muted) return false;
+        if (st === 'online'  && !p.online)  return false;
+        if (st === 'offline' && p.online)   return false;
+        if (st === 'banned'  && !p.banned)  return false;
+        if (st === 'muted'   && !p.muted)   return false;
         return true;
     }));
 };
@@ -278,7 +270,7 @@ window.quickUnban = async function(nick, banId) {
     if (!confirm(`Odbanować ${nick}?`)) return;
     try {
         await deleteDoc(doc(db, 'bans', banId));
-        const snap = await getDocs(query(collection(db, 'players'), where('nick','==',nick)));
+        const snap = await getDocs(query(collection(db, 'players'), where('nick', '==', nick)));
         snap.forEach(async d => await updateDoc(d.ref, { banned: false }));
         await logAction('unban', nick, currentUser.displayName, 'Odbanowany z panelu', '—');
         showToast('success', `Odbanowano ${nick}`);
@@ -325,7 +317,7 @@ window.quickUnmute = async function(nick, muteId) {
     if (!confirm(`Odmutować ${nick}?`)) return;
     try {
         await deleteDoc(doc(db, 'mutes', muteId));
-        const snap = await getDocs(query(collection(db, 'players'), where('nick','==',nick)));
+        const snap = await getDocs(query(collection(db, 'players'), where('nick', '==', nick)));
         snap.forEach(async d => await updateDoc(d.ref, { muted: false }));
         await logAction('unmute', nick, currentUser.displayName, 'Odmutowany z panelu', '—');
         showToast('success', `Odmutowano ${nick}`);
@@ -369,8 +361,8 @@ function buildAdminFilter() {
 }
 
 window.filterLogs = function() {
-    const s = (document.getElementById('logs-search').value||'').toLowerCase();
-    const a = document.getElementById('logs-filter-action').value;
+    const s   = (document.getElementById('logs-search').value||'').toLowerCase();
+    const a   = document.getElementById('logs-filter-action').value;
     const adm = document.getElementById('logs-filter-admin').value;
     const date = document.getElementById('logs-filter-date').value;
     renderLogs(allLogs.filter(l => {
@@ -399,24 +391,22 @@ function loadStats() {
         if (!last[a] || (l.date?.seconds||0) > (last[a]?.seconds||0)) last[a] = l.date;
     });
 
-    // Ogólne
     const el = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
     el('stat-total-bans',   allLogs.filter(l => l.action === 'ban').length);
     el('stat-total-mutes',  allLogs.filter(l => l.action === 'mute').length);
     el('stat-total-kicks',  allLogs.filter(l => l.action === 'kick').length);
     el('stat-total-admins', Object.keys(counts).length);
 
-    // Tabela rankingu
     const tb = document.getElementById('stats-tbody');
     if (!tb) return;
-    const sorted = Object.entries(counts).sort((a,b) => {
-        const ta = Object.values(a[1]).reduce((s,v)=>s+v,0);
-        const tb2 = Object.values(b[1]).reduce((s,v)=>s+v,0);
+    const sorted = Object.entries(counts).sort((a, b) => {
+        const ta = Object.values(a[1]).reduce((s, v) => s + v, 0);
+        const tb2 = Object.values(b[1]).reduce((s, v) => s + v, 0);
         return tb2 - ta;
     });
     if (!sorted.length) { tb.innerHTML = `<tr><td colspan="10" class="table-empty">Brak danych</td></tr>`; return; }
     tb.innerHTML = sorted.map(([admin, c], i) => {
-        const total = Object.values(c).reduce((s,v)=>s+v,0);
+        const total = Object.values(c).reduce((s, v) => s + v, 0);
         return `<tr>
             <td style="font-weight:800;color:var(--text-secondary);">#${i+1}</td>
             <td><span style="font-weight:700;">${admin}</span></td>
@@ -470,7 +460,7 @@ window.addEventListener('submitModalAction', async () => {
 
     if (!action)   { showModalMsg('error', 'Wybierz akcję!'); return; }
     if (!reason)   { showModalMsg('error', 'Podaj powód!'); return; }
-    const noDur = ['unban','unmute','kick','check'];
+    const noDur = ['unban', 'unmute', 'kick', 'check'];
     if (!noDur.includes(action) && !duration) { showModalMsg('error', 'Wybierz czas trwania!'); return; }
     if (!player)   { showModalMsg('error', 'Brak danych gracza!'); return; }
 
@@ -500,7 +490,7 @@ window.addEventListener('apSubmitAction', async () => {
     if (!nick)   { showApMsg('error', 'Podaj nick gracza!'); return; }
     if (!action) { showApMsg('error', 'Wybierz rodzaj akcji!'); return; }
     if (!reason) { showApMsg('error', 'Podaj powód!'); return; }
-    const noDur = ['unban','unmute','kick','check'];
+    const noDur = ['unban', 'unmute', 'kick', 'check'];
     if (!noDur.includes(action) && !duration) { showApMsg('error', 'Wybierz czas trwania!'); return; }
 
     try {
@@ -528,13 +518,13 @@ async function executeAction(action, nick, uuid, reason, duration) {
             player: nick, uuid, reason, bannedBy: admin,
             duration, date: serverTimestamp()
         });
-        const snap = await getDocs(query(collection(db, 'players'), where('nick','==',nick)));
+        const snap = await getDocs(query(collection(db, 'players'), where('nick', '==', nick)));
         snap.forEach(async d => await updateDoc(d.ref, { banned: true }));
 
     } else if (action === 'unban') {
-        const snap = await getDocs(query(collection(db, 'bans'), where('player','==',nick)));
+        const snap = await getDocs(query(collection(db, 'bans'), where('player', '==', nick)));
         snap.forEach(async d => await deleteDoc(d.ref));
-        const pSnap = await getDocs(query(collection(db, 'players'), where('nick','==',nick)));
+        const pSnap = await getDocs(query(collection(db, 'players'), where('nick', '==', nick)));
         pSnap.forEach(async d => await updateDoc(d.ref, { banned: false }));
 
     } else if (action === 'mute') {
@@ -542,20 +532,19 @@ async function executeAction(action, nick, uuid, reason, duration) {
             player: nick, uuid, reason, mutedBy: admin,
             duration, date: serverTimestamp()
         });
-        const snap = await getDocs(query(collection(db, 'players'), where('nick','==',nick)));
+        const snap = await getDocs(query(collection(db, 'players'), where('nick', '==', nick)));
         snap.forEach(async d => await updateDoc(d.ref, { muted: true }));
 
     } else if (action === 'unmute') {
-        const snap = await getDocs(query(collection(db, 'mutes'), where('player','==',nick)));
+        const snap = await getDocs(query(collection(db, 'mutes'), where('player', '==', nick)));
         snap.forEach(async d => await deleteDoc(d.ref));
-        const pSnap = await getDocs(query(collection(db, 'players'), where('nick','==',nick)));
+        const pSnap = await getDocs(query(collection(db, 'players'), where('nick', '==', nick)));
         pSnap.forEach(async d => await updateDoc(d.ref, { muted: false }));
     }
-    // kick, warn, check — tylko log (plugin wykonuje)
     await logAction(action, nick, admin, reason, duration || '—');
 }
 
-// ─── SZCZEGÓŁY GRACZA ────────────────────────────────────────────────
+// ─── SZCZEGÓŁY GRACZA ─────────────────────────────────────────────────
 window.addEventListener('openPlayerDetail', async (e) => {
     const playerId = e.detail;
     const modal = document.getElementById('player-detail-modal');
@@ -568,12 +557,11 @@ window.addEventListener('openPlayerDetail', async (e) => {
         const p = snap.exists() ? { id: snap.id, ...snap.data() } : null;
         if (!p) { body.innerHTML = `<p style="color:#ef4444;">Nie znaleziono gracza.</p>`; return; }
 
-        const histSnap = await getDocs(query(collection(db, 'admin_logs'), where('player','==',p.nick||p.id)));
-        const hist = histSnap.docs.map(d=>d.data()).sort((a,b)=>(b.date?.seconds||0)-(a.date?.seconds||0));
+        const histSnap = await getDocs(query(collection(db, 'admin_logs'), where('player', '==', p.nick||p.id)));
+        const hist = histSnap.docs.map(d => d.data()).sort((a, b) => (b.date?.seconds||0) - (a.date?.seconds||0));
 
-        // Notatki
         const notesSnap = await getDocs(collection(db, 'players', playerId, 'notes'));
-        const notes = notesSnap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.date?.seconds||0)-(a.date?.seconds||0));
+        const notes = notesSnap.docs.map(d => ({id:d.id,...d.data()})).sort((a,b) => (b.date?.seconds||0) - (a.date?.seconds||0));
 
         body.innerHTML = `
             <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem;">
@@ -601,7 +589,7 @@ window.addEventListener('openPlayerDetail', async (e) => {
                     Notatki (${notes.length}) — <span style="color:#f59e0b;font-weight:600;">nie można usunąć</span>
                 </div>
                 ${notes.length === 0 ? '<div style="text-align:center;padding:.75rem;color:var(--text-secondary);font-size:.88rem;">Brak notatek</div>' :
-                    notes.slice(0,5).map(n=>`
+                    notes.slice(0,5).map(n => `
                         <div style="background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:8px;padding:.65rem .9rem;margin-bottom:.5rem;">
                             <div style="font-size:.85rem;color:var(--text-primary);">${n.content||'—'}</div>
                             <div style="font-size:.72rem;color:var(--text-secondary);margin-top:.3rem;">${n.author||'—'} · ${formatDate(n.date)}</div>
@@ -611,7 +599,7 @@ window.addEventListener('openPlayerDetail', async (e) => {
             <div style="margin-bottom:1.5rem;">
                 <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.75rem;">Historia akcji (${hist.length})</div>
                 ${hist.length === 0 ? '<div style="text-align:center;padding:1rem;color:var(--text-secondary);font-size:.88rem;">Brak historii</div>' :
-                    hist.slice(0,10).map(h=>`
+                    hist.slice(0,10).map(h => `
                         <div style="display:flex;align-items:center;gap:.75rem;padding:.6rem 0;border-bottom:1px solid var(--border);">
                             ${actionBadge(h.action)}
                             <span style="font-size:.82rem;color:var(--text-secondary);flex:1;">${h.reason||'—'}</span>
@@ -632,7 +620,7 @@ window.addEventListener('openPlayerDetail', async (e) => {
     }
 });
 
-// ─── NOTATKI ─────────────────────────────────────────────────────────
+// ─── NOTATKI ──────────────────────────────────────────────────────────
 window.openNoteModal = function(nick) {
     window._noteNick = nick;
     document.getElementById('note-player-info').innerHTML =
@@ -652,8 +640,7 @@ window.submitNote = async function() {
     if (!content) { showNoteMsg('error', 'Wpisz treść notatki!'); return; }
 
     try {
-        // Znajdź ID gracza
-        const snap = await getDocs(query(collection(db, 'players'), where('nick','==',nick)));
+        const snap = await getDocs(query(collection(db, 'players'), where('nick', '==', nick)));
         if (snap.empty) { showNoteMsg('error', 'Gracz nie znaleziony w bazie!'); return; }
         const playerId = snap.docs[0].id;
 
@@ -678,7 +665,7 @@ function showNoteMsg(type, text) {
     el.style.display = 'block';
 }
 
-// ─── HELPERS MSG ─────────────────────────────────────────────────────
+// ─── HELPERS MSG ──────────────────────────────────────────────────────
 function showModalMsg(type, text) {
     const el = document.getElementById('modal-msg');
     if (!el) return;
@@ -708,7 +695,7 @@ function showToast(type, message) {
     setTimeout(() => t.remove(), 3500);
 }
 
-// ─── ZARZĄDZANIE ADMINAMI ────────────────────────────────────────────
+// ─── ZARZĄDZANIE ADMINAMI ─────────────────────────────────────────────
 let allAdmins = [];
 
 window.loadAdminAccounts = async function() {
@@ -735,7 +722,7 @@ function renderAdminAccounts(list) {
             <td>${rankBadge(a.role)}</td>
             <td>
                 <div style="display:flex;flex-wrap:wrap;gap:.3rem;">
-                    ${(a.permissions||[]).map(p=>`<span class="badge badge-default" style="font-size:.68rem;">${p}</span>`).join('')}
+                    ${(a.permissions||[]).map(p => `<span class="badge badge-default" style="font-size:.68rem;">${p}</span>`).join('')}
                 </div>
             </td>
             <td>
@@ -795,13 +782,10 @@ window.saveAdminAccount = async function() {
         if (password) data.password = password;
 
         if (id) {
-            // Edycja
             await updateDoc(doc(db, 'admins', id), data);
         } else {
-            // Nowe konto
             if (!password) { showAaMsg('error', 'Podaj hasło dla nowego konta!'); return; }
-            // Sprawdź czy login zajęty
-            const check = await getDocs(query(collection(db, 'admins'), where('login','==',login)));
+            const check = await getDocs(query(collection(db, 'admins'), where('login', '==', login)));
             if (!check.empty) { showAaMsg('error', 'Ten login jest już zajęty!'); return; }
             data.disabled = false;
             data.createdAt = serverTimestamp();
@@ -834,20 +818,15 @@ function showAaMsg(type, text) {
     el.style.display = 'block';
 }
 
-// Inicjalizacja konta test/test w Firestore jeśli puste
 async function ensureDefaultAdmin() {
     try {
         const snap = await getDocs(collection(db, 'admins'));
         if (snap.empty) {
             await addDoc(collection(db, 'admins'), {
-                login: 'test',
-                password: 'test',
-                displayName: 'Test Admin',
-                role: 'Zarządzający',
-                permissions: ['all'],
-                disabled: false,
-                createdAt: serverTimestamp(),
-                createdBy: 'system'
+                login: 'test', password: 'test',
+                displayName: 'Test Admin', role: 'Zarządzający',
+                permissions: ['all'], disabled: false,
+                createdAt: serverTimestamp(), createdBy: 'system'
             });
             console.log('[CritMC] Utworzono domyślne konto test/test w Firestore');
         }
@@ -856,7 +835,7 @@ async function ensureDefaultAdmin() {
 ensureDefaultAdmin();
 
 // ═══════════════════════════════════════════════════════════════════════
-// ─── PERSONEL ──────────────────────────────────────────────────────────
+// ─── PERSONEL ─────────────────────────────────────────────────────────
 // ═══════════════════════════════════════════════════════════════════════
 
 let allPersonel = [], allCreators = [];
@@ -939,7 +918,8 @@ function renderPersonelTable(list) {
     if (!list.length) { tb.innerHTML = `<tr><td colspan="7" class="table-empty">Brak personelu — dodaj pierwszego!</td></tr>`; return; }
     tb.innerHTML = list.map(p => {
         const color = RANK_COLORS[p.rank] || '#6b7280';
-        const socials = [p.dc && `<a href="${p.dc}" target="_blank" style="color:#7289da;text-decoration:none;font-size:.8rem;"><i class="fa-brands fa-discord"></i></a>`,
+        const socials = [
+            p.dc && `<a href="${p.dc}" target="_blank" style="color:#7289da;text-decoration:none;font-size:.8rem;"><i class="fa-brands fa-discord"></i></a>`,
             p.yt && `<a href="${p.yt}" target="_blank" style="color:#ff0000;text-decoration:none;font-size:.8rem;"><i class="fa-brands fa-youtube"></i></a>`,
             p.tt && `<a href="${p.tt}" target="_blank" style="color:#00f0ff;text-decoration:none;font-size:.8rem;"><i class="fa-brands fa-tiktok"></i></a>`
         ].filter(Boolean).join(' ');
@@ -1023,7 +1003,7 @@ function showPmMsg(type, text) {
     el.className = `modal-msg ${type}`; el.innerHTML = text; el.style.display = 'block';
 }
 
-// ─── TWÓRCY ──────────────────────────────────────────────────────────
+// ─── TWÓRCY ───────────────────────────────────────────────────────────
 
 async function _loadCreatorsList() {
     try {
@@ -1043,7 +1023,8 @@ function renderCreatorsTable(list) {
     if (!tb) return;
     if (!list.length) { tb.innerHTML = `<tr><td colspan="5" class="table-empty">Brak twórców.</td></tr>`; return; }
     tb.innerHTML = list.map(c => {
-        const socials = [c.yt && `<a href="${c.yt}" target="_blank" style="color:#ff0000;text-decoration:none;font-size:.8rem;"><i class="fa-brands fa-youtube"></i></a>`,
+        const socials = [
+            c.yt && `<a href="${c.yt}" target="_blank" style="color:#ff0000;text-decoration:none;font-size:.8rem;"><i class="fa-brands fa-youtube"></i></a>`,
             c.tt && `<a href="${c.tt}" target="_blank" style="color:#00f0ff;text-decoration:none;font-size:.8rem;"><i class="fa-brands fa-tiktok"></i></a>`,
             c.dc && `<a href="${c.dc}" target="_blank" style="color:#7289da;text-decoration:none;font-size:.8rem;"><i class="fa-brands fa-discord"></i></a>`
         ].filter(Boolean).join(' ');
@@ -1119,34 +1100,83 @@ function showCmMsg(type, text) {
 // ─── STRONA (SITE PAGE) ────────────────────────────────────────────────
 // ═══════════════════════════════════════════════════════════════════════
 
-window.loadSitePage = async function() {
-    await Promise.all([siteLoadEntries(), siteLoadChanges(), siteLoadMedia(), siteLoadProposals(), siteLoadContestInfo()]);
+// ─── _currentContestId ────────────────────────────────────────────────
+function _currentContestId() {
+    const sel = document.getElementById('site-contest-select');
+    return (sel && sel.value) ? sel.value : 'start';
+}
+
+// ─── siteLoadContestList ──────────────────────────────────────────────
+async function siteLoadContestList() {
+    const sel = document.getElementById('site-contest-select');
+    if (!sel) return;
+    try {
+        const snap = await getDocs(collection(db, 'contests'));
+        const ids = snap.docs.map(d => d.id);
+        if (!ids.length) {
+            sel.innerHTML = '<option value="start">start</option>';
+            return;
+        }
+        sel.innerHTML = ids.map(id => `<option value="${id}">${id}</option>`).join('');
+    } catch(e) {
+        sel.innerHTML = '<option value="start">start</option>';
+        console.error('siteLoadContestList:', e);
+    }
+}
+
+// ─── siteNewContest ────────────────────────────────────────────────────
+window.siteNewContest = async function() {
+    const id = prompt('Podaj ID nowego konkursu (np. "konkurs2025"):');
+    if (!id || !id.trim()) return;
+    const contestId = id.trim();
+    try {
+        const ref = doc(db, 'contests', contestId);
+        const snap = await getDoc(ref);
+        if (snap.exists()) { showToast('error', `Konkurs "${contestId}" już istnieje!`); return; }
+        await setDoc(ref, {
+            participants: 0, aktywny: true,
+            nagroda: '', winners: [], winnersCount: 2,
+            createdAt: new Date().toISOString()
+        });
+        showToast('success', `Konkurs "${contestId}" utworzony!`);
+        await siteLoadContestList();
+        const sel = document.getElementById('site-contest-select');
+        if (sel) sel.value = contestId;
+        await siteLoadContestInfo();
+    } catch(e) { showToast('error', 'Błąd: ' + e.message); }
 };
 
+// ─── loadSitePage ─────────────────────────────────────────────────────
+window.loadSitePage = async function() {
+    await siteLoadContestList();
+    await Promise.all([siteLoadContestInfo(), siteLoadEntries(), siteLoadChanges(), siteLoadMedia(), siteLoadProposals()]);
+};
+
+// ─── switchSiteTab ────────────────────────────────────────────────────
 window.switchSiteTab = function(tab) {
-    // Przyciski
     document.querySelectorAll('.site-tab-btn').forEach(b => {
         b.classList.toggle('active', b.getAttribute('data-site-tab') === tab);
     });
-    // Panele — użyj sp-active żeby nie kolidować z CSS .page.active
     document.querySelectorAll('.site-tab-panel').forEach(p => {
-        const isTarget = p.id === 'site-tab-' + tab;
-        p.classList.toggle('sp-active', isTarget);
+        p.classList.toggle('sp-active', p.id === 'site-tab-' + tab);
     });
 };
 
-// ─── Konkurs ────────────────────────────────────────────────────────
-
+// ─── siteLoadContestInfo ──────────────────────────────────────────────
 async function siteLoadContestInfo() {
+    const contestId = _currentContestId();
     try {
-        const snap = await getDoc(doc(db, 'contests', 'start'));
+        const snap = await getDoc(doc(db, 'contests', contestId));
         if (snap.exists()) {
             const d = snap.data();
-            const n = document.getElementById('site-contest-nagroda');
+            const n  = document.getElementById('site-contest-nagroda');
             const dt = document.getElementById('site-contest-date');
             const wc = document.getElementById('site-contest-winners-count');
-            if (n) n.value = d.nagroda || '';
-            if (dt && d.wyniki) dt.value = d.wyniki.includes('T') ? d.wyniki.slice(0,16) : d.wyniki + 'T20:00';
+            if (n)  n.value  = d.nagroda || '';
+            if (dt && d.wyniki) {
+                // Normalize to datetime-local format (YYYY-MM-DDTHH:MM)
+                dt.value = d.wyniki.includes('T') ? d.wyniki.slice(0, 16) : d.wyniki + 'T20:00';
+            }
             if (wc) wc.value = d.winnersCount || 2;
             _buildWinnersInputs(d.winnersCount || 2);
         } else {
@@ -1155,6 +1185,7 @@ async function siteLoadContestInfo() {
     } catch(e) { console.error('siteLoadContestInfo:', e); _buildWinnersInputs(2); }
 }
 
+// ─── _buildWinnersInputs ──────────────────────────────────────────────
 function _buildWinnersInputs(n) {
     const c = document.getElementById('site-winners-inputs');
     if (!c) return;
@@ -1172,14 +1203,20 @@ document.addEventListener('change', e => {
     if (e.target && e.target.id === 'site-contest-winners-count') {
         _buildWinnersInputs(parseInt(e.target.value) || 2);
     }
+    if (e.target && e.target.id === 'site-contest-select') {
+        siteLoadContestInfo();
+        siteLoadEntries();
+    }
 });
 
+// ─── siteUpdateContest ────────────────────────────────────────────────
 window.siteUpdateContest = async function() {
+    const contestId = _currentContestId();
     const nagroda = document.getElementById('site-contest-nagroda').value.trim();
     const dateVal = document.getElementById('site-contest-date').value;
     const wc = parseInt(document.getElementById('site-contest-winners-count').value) || 2;
     try {
-        const ref = doc(db, 'contests', 'start');
+        const ref = doc(db, 'contests', contestId);
         const snap = await getDoc(ref);
         const upd = { winnersCount: wc };
         if (nagroda) upd.nagroda = nagroda;
@@ -1191,13 +1228,15 @@ window.siteUpdateContest = async function() {
     } catch(e) { showSiteContestMsg('Błąd: ' + e.message, '#ef4444'); }
 };
 
+// ─── siteAnnounceWinners ──────────────────────────────────────────────
 window.siteAnnounceWinners = async function() {
+    const contestId = _currentContestId();
     const inputs = document.querySelectorAll('#site-winners-inputs input');
     const winners = [...inputs].map(i => i.value.trim()).filter(Boolean);
     if (!winners.length) { showSiteContestMsg('Wpisz nicki zwycięzców!', '#ef4444'); return; }
     if (!confirm('Ogłosić zwycięzców: ' + winners.join(', ') + '?')) return;
     try {
-        const ref = doc(db, 'contests', 'start');
+        const ref = doc(db, 'contests', contestId);
         const snap = await getDoc(ref);
         if (snap.exists()) {
             await updateDoc(ref, { aktywny: false, winners, winnersDate: new Date().toISOString() });
@@ -1208,33 +1247,40 @@ window.siteAnnounceWinners = async function() {
     } catch(e) { showSiteContestMsg('Błąd: ' + e.message, '#ef4444'); }
 };
 
+// ─── siteEndContest ────────────────────────────────────────────────────
 window.siteEndContest = async function() {
+    const contestId = _currentContestId();
     if (!confirm('Zakończyć konkurs bez wyników?')) return;
     try {
-        const ref = doc(db, 'contests', 'start');
+        const ref = doc(db, 'contests', contestId);
         const snap = await getDoc(ref);
         if (snap.exists()) { await updateDoc(ref, { aktywny: false }); }
         showSiteContestMsg('Konkurs zakończony.', '#f59e0b');
     } catch(e) { showSiteContestMsg('Błąd: ' + e.message, '#ef4444'); }
 };
 
+// ─── siteDeleteContest ─────────────────────────────────────────────────
 window.siteDeleteContest = async function() {
+    const contestId = _currentContestId();
     if (!confirm('USUNĄĆ CAŁY KONKURS? Tej operacji nie można cofnąć!')) return;
     try {
-        const entriesSnap = await getDocs(collection(db, 'contests', 'start', 'entries'));
+        const entriesSnap = await getDocs(collection(db, 'contests', contestId, 'entries'));
         for (const d of entriesSnap.docs) await deleteDoc(d.ref);
-        await deleteDoc(doc(db, 'contests', 'start'));
+        await deleteDoc(doc(db, 'contests', contestId));
         showSiteContestMsg('Konkurs usunięty.', '#ef4444');
+        await siteLoadContestList();
         await siteLoadEntries();
     } catch(e) { showSiteContestMsg('Błąd: ' + e.message, '#ef4444'); }
 };
 
+// ─── siteRestartContest ────────────────────────────────────────────────
 window.siteRestartContest = async function() {
+    const contestId = _currentContestId();
     if (!confirm('Zresetować konkurs (usunąć uczestników i ustawić aktywny)?')) return;
     try {
-        const entriesSnap = await getDocs(collection(db, 'contests', 'start', 'entries'));
+        const entriesSnap = await getDocs(collection(db, 'contests', contestId, 'entries'));
         for (const d of entriesSnap.docs) await deleteDoc(d.ref);
-        const ref = doc(db, 'contests', 'start');
+        const ref = doc(db, 'contests', contestId);
         await setDoc(ref, {
             participants: 0, aktywny: true,
             winners: [], nagroda: document.getElementById('site-contest-nagroda').value.trim() || '2x Ranga CRIT na 14 dni',
@@ -1245,6 +1291,7 @@ window.siteRestartContest = async function() {
     } catch(e) { showSiteContestMsg('Błąd: ' + e.message, '#ef4444'); }
 };
 
+// ─── showSiteContestMsg ────────────────────────────────────────────────
 function showSiteContestMsg(text, color) {
     const el = document.getElementById('site-contest-msg');
     if (!el) return;
@@ -1252,13 +1299,15 @@ function showSiteContestMsg(text, color) {
     setTimeout(() => { el.textContent = ''; }, 3500);
 }
 
+// ─── siteLoadEntries ──────────────────────────────────────────────────
 window.siteLoadEntries = async function() {
+    const contestId = _currentContestId();
     const tb = document.getElementById('site-entries-tbody');
     const cntEl = document.getElementById('site-entries-count');
     if (!tb) return;
     tb.innerHTML = `<tr><td colspan="5" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>`;
     try {
-        const snap = await getDocs(collection(db, 'contests', 'start', 'entries'));
+        const snap = await getDocs(collection(db, 'contests', contestId, 'entries'));
         const entries = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         if (cntEl) cntEl.textContent = `(${entries.length})`;
         if (!entries.length) { tb.innerHTML = `<tr><td colspan="5" class="table-empty">Brak uczestników.</td></tr>`; return; }
@@ -1273,11 +1322,13 @@ window.siteLoadEntries = async function() {
     } catch(e) { tb.innerHTML = `<tr><td colspan="5" class="table-empty" style="color:#ef4444;">Błąd: ${e.message}</td></tr>`; }
 };
 
+// ─── siteRemoveEntry ──────────────────────────────────────────────────
 window.siteRemoveEntry = async function(nick) {
+    const contestId = _currentContestId();
     if (!confirm(`Usunąć ${nick} z konkursu?`)) return;
     try {
-        await deleteDoc(doc(db, 'contests', 'start', 'entries', nick));
-        const ref = doc(db, 'contests', 'start');
+        await deleteDoc(doc(db, 'contests', contestId, 'entries', nick));
+        const ref = doc(db, 'contests', contestId);
         const snap = await getDoc(ref);
         if (snap.exists()) await updateDoc(ref, { participants: Math.max(0, (snap.data().participants||1) - 1) });
         showToast('success', `Usunięto ${nick}`);
@@ -1285,8 +1336,7 @@ window.siteRemoveEntry = async function(nick) {
     } catch(e) { showToast('error', 'Błąd: ' + e.message); }
 };
 
-// ─── Zmiany serwerowe ────────────────────────────────────────────────
-
+// ─── siteLoadChanges ──────────────────────────────────────────────────
 async function siteLoadChanges() {
     try {
         const snap = await getDoc(doc(db, 'server_content', 'changes'));
@@ -1300,6 +1350,7 @@ async function siteLoadChanges() {
     } catch(e) { console.error('siteLoadChanges:', e); }
 }
 
+// ─── siteSaveChanges ──────────────────────────────────────────────────
 window.siteSaveChanges = async function() {
     const msgEl = document.getElementById('site-changes-msg');
     const vals = {
@@ -1318,8 +1369,7 @@ window.siteSaveChanges = async function() {
     }
 };
 
-// ─── Media ────────────────────────────────────────────────────────────
-
+// ─── siteLoadMedia ────────────────────────────────────────────────────
 async function siteLoadMedia() {
     try {
         const snap = await getDoc(doc(db, 'server_content', 'media'));
@@ -1333,12 +1383,13 @@ async function siteLoadMedia() {
     } catch(e) { console.error('siteLoadMedia:', e); }
 }
 
+// ─── siteSaveMedia ────────────────────────────────────────────────────
 window.siteSaveMedia = async function() {
     const msgEl = document.getElementById('site-media-msg');
     const vals = {
         discord: { url: document.getElementById('site-dc-url').value.trim(), sub: document.getElementById('site-dc-sub').value.trim() },
         youtube: { url: document.getElementById('site-yt-url').value.trim(), handle: document.getElementById('site-yt-handle').value.trim() },
-        tiktok: { url: document.getElementById('site-tt-url').value.trim(), handle: document.getElementById('site-tt-handle').value.trim() },
+        tiktok:  { url: document.getElementById('site-tt-url').value.trim(), handle: document.getElementById('site-tt-handle').value.trim() },
         updatedAt: new Date().toISOString()
     };
     try {
@@ -1350,8 +1401,7 @@ window.siteSaveMedia = async function() {
     }
 };
 
-// ─── Propozycje graczy ────────────────────────────────────────────────
-
+// ─── siteLoadProposals ────────────────────────────────────────────────
 window.siteLoadProposals = async function() {
     const tb = document.getElementById('site-proposals-tbody');
     if (!tb) return;
@@ -1375,6 +1425,7 @@ window.siteLoadProposals = async function() {
     } catch(e) { tb.innerHTML = `<tr><td colspan="5" class="table-empty" style="color:#ef4444;">Błąd: ${e.message}</td></tr>`; }
 };
 
+// ─── siteDeleteProposal ───────────────────────────────────────────────
 window.siteDeleteProposal = async function(id) {
     if (!confirm('Usunąć tę propozycję?')) return;
     try {
@@ -1421,34 +1472,39 @@ window.saveMyAccount = async function() {
     try {
         const upd = {};
         if (newLogin) {
-            // Sprawdź czy login wolny
-            const check = await getDocs(query(collection(db, 'admins'), where('login','==',newLogin)));
+            const check = await getDocs(query(collection(db, 'admins'), where('login', '==', newLogin)));
             if (!check.empty && check.docs[0].id !== currentUser.id) { showMyMsg('error', 'Ten login jest już zajęty!'); return; }
             upd.login = newLogin;
         }
         if (newPassword) upd.password = newPassword;
 
         await updateDoc(doc(db, 'admins', currentUser.id), upd);
-
         if (newLogin) currentUser.login = newLogin;
         showMyMsg('success', '✓ Dane zaktualizowane! Przy następnym logowaniu użyj nowych danych.');
         showToast('success', 'Konto zaktualizowane!');
-        loadMyAccount();
+        window.loadMyAccount();
     } catch(e) { showMyMsg('error', 'Błąd: ' + e.message); }
 };
 
 // ═══════════════════════════════════════════════════════════════════════
-// ─── ROZSZERZENIE applyPermissions O NOWE ZAKŁADKI ─────────────────────
+// ─── ROZSZERZENIE UPRAWNIEŃ ─────────────────────────────────────────────
 // ═══════════════════════════════════════════════════════════════════════
 
-// Hookuj się na initPanelUI żeby schować nowe zakładki na podstawie uprawnień
-const _origInitPanelUI = initPanelUI;
-// Nadpisujemy applyPermissions bezpośrednio — dodajemy do już istniejącej
-const _baseApplyPermissions = applyPermissions;
-window._extendedApplyPermissions = function() {
-    _baseApplyPermissions();
-    const siteNav = document.querySelector('.nav-btn[data-page="site"]');
+// Simple function that hides site/personel/admins nav buttons from non-managers,
+// shows myaccount to all logged-in users.
+function _extendedApplyPermissions() {
+    const isManager = hasPermission('all');
+
+    const siteNav     = document.querySelector('.nav-btn[data-page="site"]');
     const personelNav = document.querySelector('.nav-btn[data-page="personel"]');
-    if (siteNav)    siteNav.style.display    = hasPermission('all') ? '' : 'none';
-    if (personelNav) personelNav.style.display = hasPermission('all') ? '' : 'none';
-};
+    const adminsNav   = document.querySelector('.nav-btn[data-page="admins"]');
+    const myaccNav    = document.querySelector('.nav-btn[data-page="myaccount"]');
+
+    if (siteNav)     siteNav.style.display     = isManager ? '' : 'none';
+    if (personelNav) personelNav.style.display  = isManager ? '' : 'none';
+    if (adminsNav)   adminsNav.style.display    = isManager ? '' : 'none';
+    if (myaccNav)    myaccNav.style.display     = '';
+}
+
+// Expose to window so inline scripts can call it if needed
+window._extendedApplyPermissions = _extendedApplyPermissions;
