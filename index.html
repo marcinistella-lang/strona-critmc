@@ -63,50 +63,14 @@
                 <div class="launch-banner">PLANOWANY START<br>POD KONIEC SIERPNIA</div>
             </div>
 
-            <!-- Karta konkursu -->
-            <div class="contest-card" id="contest-start">
-                <div class="contest-icon"><i class="fa-solid fa-trophy"></i></div>
-                <div class="contest-info">
-                    <div class="contest-title">Konkurs Startowy</div>
-                    <div class="contest-desc">
-                        <div><strong>Nagroda:</strong> Ranga CRIT na 14 dni</div>
-                        <div style="font-size:0.85rem;color:var(--text-muted);margin-top:0.2rem;">Ilosc: <strong style="color:#f2c84a;">2 szt.</strong></div>
-                    </div>
-                    <div class="contest-meta">
-                        <span class="contest-timer" id="contest-timer"><i class="fa-solid fa-clock"></i> Ladowanie...</span>
-                        <span class="contest-count"><i class="fa-solid fa-users"></i> <span id="contest-count-start">0</span> uczestnikow</span>
-                    </div>
-                </div>
-                <div class="contest-btns">
-                    <button class="contest-btn" onclick="openContest('start')"><i class="fa-solid fa-trophy"></i> Wez udzial</button>
-                    <div id="contest-joined-info" style="display:none;align-items:center;gap:.5rem;background:rgba(0,230,118,.12);border:1px solid rgba(0,230,118,.3);border-radius:12px;padding:.6rem 1.2rem;font-size:.9rem;font-weight:700;color:#00e676;">
-                        <i class="fa-solid fa-check-circle"></i> Juz zapisany!
-                    </div>
-                </div>
-            </div>
-
-            <!-- Karta wynikow -->
-            <div class="contest-card" id="contest-winners" style="display:none; flex-direction:column; align-items:flex-start; gap:1rem;">
-                <div style="display:flex;align-items:center;gap:1rem;width:100%;">
-                    <div class="contest-icon" style="color:#f2c84a;"><i class="fa-solid fa-trophy"></i></div>
+            <div id="contests-list" style="display:flex;flex-direction:column;gap:1rem;">
+                <div class="contest-card" style="justify-content:center;">
+                    <div class="contest-icon"><i class="fa-solid fa-spinner fa-spin"></i></div>
                     <div class="contest-info">
-                        <div class="contest-title">Wyniki Konkursu Startowego</div>
-                        <div class="contest-desc">Nagroda: 2x Ranga CRIT na 14 dni</div>
+                        <div class="contest-title">Ladowanie konkursow</div>
+                        <div class="contest-desc">Pobieram aktualne konkursy z bazy danych...</div>
                     </div>
                 </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;width:100%;">
-                    <div style="background:linear-gradient(135deg,rgba(242,200,74,0.15),rgba(255,140,0,0.08));border:1px solid rgba(242,200,74,0.3);border-radius:14px;padding:1.2rem;text-align:center;">
-                        <div style="font-size:2rem;margin-bottom:0.3rem;">&#x1F947;</div>
-                        <div style="font-size:0.7rem;font-weight:800;color:#f2c84a;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.3rem;">Zwyciezca #1</div>
-                        <div style="font-size:1.1rem;font-weight:900;color:#fff;" id="winner-1">--</div>
-                    </div>
-                    <div style="background:linear-gradient(135deg,rgba(242,200,74,0.15),rgba(255,140,0,0.08));border:1px solid rgba(242,200,74,0.3);border-radius:14px;padding:1.2rem;text-align:center;">
-                        <div style="font-size:2rem;margin-bottom:0.3rem;">&#x1F948;</div>
-                        <div style="font-size:0.7rem;font-weight:800;color:#f2c84a;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.3rem;">Zwyciezca #2</div>
-                        <div style="font-size:1.1rem;font-weight:900;color:#fff;" id="winner-2">--</div>
-                    </div>
-                </div>
-                <div style="font-size:0.8rem;color:var(--text-muted);text-align:center;width:100%;">Gratulacje! Skontaktuj sie z administracja na Discordzie po nagrode.</div>
             </div>
 
             <!-- Modal: Formularz konkursu -->
@@ -118,8 +82,8 @@
                     </div>
                     <div style="display:flex;flex-direction:column;gap:1rem;">
                         <div style="background:rgba(242,200,74,0.08);border:1px solid rgba(242,200,74,0.2);border-radius:10px;padding:0.8rem 1rem;">
-                            <div style="font-weight:800;color:#f2c84a;margin-bottom:0.3rem;"><i class="fa-solid fa-gift"></i> Nagroda: 2x Ranga CRIT na 14 dni</div>
-                            <div style="font-size:0.82rem;color:var(--text-muted);">Wyniki: 25 sierpnia 2026, godz. 20:00</div>
+                            <div id="contest-modal-prize" style="font-weight:800;color:#f2c84a;margin-bottom:0.3rem;"><i class="fa-solid fa-gift"></i> Nagroda: Ladowanie...</div>
+                            <div id="contest-modal-date" style="font-size:0.82rem;color:var(--text-muted);">Wyniki: --</div>
                         </div>
                         <div>
                             <label style="font-size:0.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;display:block;margin-bottom:0.4rem;">Nick Minecraft *</label>
@@ -448,7 +412,7 @@
 
     <script src="home.js"></script>
     <script type="module">
-        import { joinContest, getContestCount, getContest } from './firebase.js';
+        import { joinContest } from './firebase.js';
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
         import { getFirestore, doc, getDoc, getDocs, collection, query, orderBy, addDoc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
 
@@ -463,88 +427,183 @@
         const db2 = getFirestore(_fbApp);
         window._firestoreDb = db2;
 
-        // ─── KONKURS — timer i dołączanie ────────────────────────────────
-        const CONTEST_ID = 'start';
-        let WYNIKI_DATE   = new Date('2026-08-25T20:00:00');
-        const HIDE_DATE   = new Date('2026-09-30T00:00:00');
+        // ─── KONKURSY — wiele kart, timer i dolaczanie ──────────────────
+        let contestsCache = [];
+        let currentContestId = null;
 
-        // Załaduj date wynikow z Firestore żeby timer był dynamiczny
-        async function loadContestDate() {
-            try {
-                const snap = await getDoc(doc(db2, 'contests', CONTEST_ID));
-                if (snap.exists() && snap.data().wyniki) {
-                    const d = new Date(snap.data().wyniki);
-                    if (!isNaN(d)) WYNIKI_DATE = d;
-                }
-            } catch(e) {}
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
         }
-        loadContestDate();
 
-        function updateTimer() {
-            const el = document.getElementById('contest-timer');
-            if (!el) return;
-            const diff = WYNIKI_DATE - new Date();
-            if (diff <= 0) { el.innerHTML = '<i class="fa-solid fa-flag-checkered"></i> Wyniki juz ogloszone!'; return; }
-            const d = Math.floor(diff/86400000), h = Math.floor((diff%86400000)/3600000), m = Math.floor((diff%3600000)/60000);
-            if (d >= 10) {
-                el.innerHTML = '<i class="fa-solid fa-clock"></i> ' + d + 'd ' + h + 'h';
-            } else if (d > 0) {
-                el.innerHTML = '<i class="fa-solid fa-clock"></i> ' + d + 'd ' + h + 'h ' + m + 'm';
-            } else {
-                const s = Math.floor((diff % 60000) / 1000);
-                el.innerHTML = '<i class="fa-solid fa-clock"></i> ' + h + 'h ' + m + 'm ' + s + 's';
+        function normalizeContestDate(value) {
+            if (!value) return null;
+            const normalized = String(value).includes('T') ? String(value) : `${value}T20:00`;
+            const date = new Date(normalized);
+            return Number.isNaN(date.getTime()) ? null : date;
+        }
+
+        function formatContestDate(value) {
+            const date = normalizeContestDate(value);
+            if (!date) return 'Data wynikow wkrotce';
+            return date.toLocaleString('pl-PL', {
+                day: '2-digit',
+                month: 'long',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function contestTimerText(contest) {
+            const date = normalizeContestDate(contest.wyniki);
+            if (!date) return '<i class="fa-solid fa-clock"></i> Data wynikow wkrotce';
+            const diff = date - new Date();
+            if (diff <= 0) return '<i class="fa-solid fa-flag-checkered"></i> Wyniki gotowe';
+            const d = Math.floor(diff / 86400000);
+            const h = Math.floor((diff % 86400000) / 3600000);
+            const m = Math.floor((diff % 3600000) / 60000);
+            const s = Math.floor((diff % 60000) / 1000);
+            if (d > 0) return `<i class="fa-solid fa-clock"></i> ${d}d ${h}h ${m}m`;
+            return `<i class="fa-solid fa-clock"></i> ${h}h ${m}m ${s}s`;
+        }
+
+        function getContestPrize(contest) {
+            return contest?.nagroda || 'Ranga CRIT na 14 dni';
+        }
+
+        function buildWinnersMarkup(contest) {
+            const winners = Array.isArray(contest.winners) ? contest.winners.filter(Boolean) : [];
+            const winnersHtml = winners.length
+                ? winners.map((winner, index) => `
+                    <div style="background:linear-gradient(135deg,rgba(242,200,74,0.15),rgba(255,140,0,0.08));border:1px solid rgba(242,200,74,0.3);border-radius:14px;padding:1.2rem;text-align:center;">
+                        <div style="font-size:2rem;margin-bottom:0.3rem;">${index === 0 ? '&#x1F947;' : index === 1 ? '&#x1F948;' : '&#x1F949;'}</div>
+                        <div style="font-size:0.7rem;font-weight:800;color:#f2c84a;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.3rem;">Zwyciezca #${index + 1}</div>
+                        <div style="font-size:1.1rem;font-weight:900;color:#fff;">${escapeHtml(winner)}</div>
+                    </div>
+                `).join('')
+                : `
+                    <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:1rem;color:var(--text-muted);text-align:center;">
+                        Brak wpisanych zwyciezcow.
+                    </div>
+                `;
+
+            return `
+                <div class="contest-card" style="display:flex;flex-direction:column;align-items:flex-start;gap:1rem;">
+                    <div style="display:flex;align-items:center;gap:1rem;width:100%;">
+                        <div class="contest-icon" style="color:#f2c84a;"><i class="fa-solid fa-trophy"></i></div>
+                        <div class="contest-info">
+                            <div class="contest-title">Wyniki konkursu: ${escapeHtml(contest.id)}</div>
+                            <div class="contest-desc">Nagroda: ${escapeHtml(getContestPrize(contest))}</div>
+                        </div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;width:100%;">${winnersHtml}</div>
+                    <div style="font-size:0.8rem;color:var(--text-muted);text-align:center;width:100%;">Gratulacje! Skontaktuj sie z administracja na Discordzie po nagrode.</div>
+                </div>
+            `;
+        }
+
+        function buildActiveContestMarkup(contest) {
+            const joined = localStorage.getItem(`critmc_contest_joined_${contest.id}`);
+            const winnersCount = contest.winnersCount || (Array.isArray(contest.winners) ? contest.winners.length : 2) || 2;
+            return `
+                <div class="contest-card">
+                    <div class="contest-icon"><i class="fa-solid fa-trophy"></i></div>
+                    <div class="contest-info">
+                        <div class="contest-title">${escapeHtml(contest.id)}</div>
+                        <div class="contest-desc">
+                            <div><strong>Nagroda:</strong> ${escapeHtml(getContestPrize(contest))}</div>
+                            <div style="font-size:0.85rem;color:var(--text-muted);margin-top:0.2rem;">Ilosc zwyciezcow: <strong style="color:#f2c84a;">${escapeHtml(winnersCount)}</strong></div>
+                            <div style="font-size:0.8rem;color:var(--text-muted);margin-top:0.25rem;">Wyniki: ${escapeHtml(formatContestDate(contest.wyniki))}</div>
+                        </div>
+                        <div class="contest-meta">
+                            <span class="contest-timer" data-contest-timer="${escapeHtml(contest.id)}">${contestTimerText(contest)}</span>
+                            <span class="contest-count"><i class="fa-solid fa-users"></i> <span>${escapeHtml(contest.participants || 0)}</span> uczestnikow</span>
+                        </div>
+                    </div>
+                    <div class="contest-btns">
+                        ${joined
+                            ? `<div style="display:flex;align-items:center;gap:.5rem;background:rgba(0,230,118,.12);border:1px solid rgba(0,230,118,.3);border-radius:12px;padding:.6rem 1.2rem;font-size:.9rem;font-weight:700;color:#00e676;"><i class="fa-solid fa-check-circle"></i> Juz zapisany!</div>`
+                            : `<button class="contest-btn" data-contest-id="${encodeURIComponent(contest.id)}" onclick="openContest(decodeURIComponent(this.dataset.contestId))"><i class="fa-solid fa-trophy"></i> Wez udzial</button>`}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderContestCards() {
+            const container = document.getElementById('contests-list');
+            if (!container) return;
+            if (!contestsCache.length) {
+                container.innerHTML = `
+                    <div class="contest-card" style="justify-content:center;">
+                        <div class="contest-icon"><i class="fa-solid fa-circle-info"></i></div>
+                        <div class="contest-info">
+                            <div class="contest-title">Brak aktywnych konkursow</div>
+                            <div class="contest-desc">Nowe konkursy pojawia sie tutaj automatycznie po dodaniu w panelu.</div>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            const sorted = [...contestsCache].sort((a, b) => {
+                if ((a.aktywny !== false) !== (b.aktywny !== false)) return a.aktywny === false ? 1 : -1;
+                const aDate = normalizeContestDate(a.wyniki)?.getTime() || 0;
+                const bDate = normalizeContestDate(b.wyniki)?.getTime() || 0;
+                return aDate - bDate;
+            });
+
+            container.innerHTML = sorted.map(contest => {
+                const winners = Array.isArray(contest.winners) ? contest.winners.filter(Boolean) : [];
+                if (contest.aktywny === false && winners.length) return buildWinnersMarkup(contest);
+                return buildActiveContestMarkup(contest);
+            }).join('');
+        }
+
+        function updateContestTimers() {
+            document.querySelectorAll('[data-contest-timer]').forEach(el => {
+                const contest = contestsCache.find(item => item.id === el.getAttribute('data-contest-timer'));
+                if (!contest) return;
+                el.innerHTML = contestTimerText(contest);
+            });
+        }
+
+        async function loadContests() {
+            try {
+                const snap = await getDocs(collection(db2, 'contests'));
+                contestsCache = snap.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
+                renderContestCards();
+                updateContestTimers();
+            } catch (e) {
+                const container = document.getElementById('contests-list');
+                if (container) {
+                    container.innerHTML = `
+                        <div class="contest-card" style="justify-content:center;">
+                            <div class="contest-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                            <div class="contest-info">
+                                <div class="contest-title">Nie udalo sie pobrac konkursow</div>
+                                <div class="contest-desc">Sprobuj odswiezyc strone za chwile.</div>
+                            </div>
+                        </div>
+                    `;
+                }
             }
         }
-        updateTimer();
-        setInterval(updateTimer, 1000);
 
-        async function initContest() {
-            try {
-                const contest = await Promise.race([getContest(CONTEST_ID), new Promise(r => setTimeout(() => r(null), 5000))]);
-                const card = document.getElementById('contest-start');
-                const win  = document.getElementById('contest-winners');
-                if (new Date() >= HIDE_DATE) { if(card) card.style.display='none'; if(win) win.style.display='none'; return; }
-                if (contest && !contest.aktywny && contest.winners && contest.winners.length > 0) {
-                    if (card) card.style.display = 'none';
-                    if (win) {
-                        win.style.display = 'flex';
-                        const w1 = document.getElementById('winner-1');
-                        const w2 = document.getElementById('winner-2');
-                        if (w1) w1.textContent = contest.winners[0] || '--';
-                        if (w2) w2.textContent = contest.winners[1] || '--';
-                    }
-                    if (contest.wyniki) {
-                        const d = new Date(contest.wyniki); if (!isNaN(d)) WYNIKI_DATE = d;
-                    }
-                    return;
-                }
-                if (card) card.style.display = 'flex';
-                if (win)  win.style.display  = 'none';
-                if (contest && contest.nagroda) {
-                    const nagrodaEl = document.querySelector('#contest-start .contest-desc strong');
-                    if (nagrodaEl) nagrodaEl.textContent = contest.nagroda;
-                }
-                if (contest && contest.wyniki) {
-                    const d = new Date(contest.wyniki); if (!isNaN(d)) WYNIKI_DATE = d;
-                }
-            } catch(e) {
-                const c = document.getElementById('contest-start');
-                if (c) c.style.display = 'flex';
-            }
-        }
-        initContest();
-
-        async function loadCount() {
-            try {
-                const c   = await getContestCount(CONTEST_ID);
-                const el  = document.getElementById('contest-count-start');
-                if (el) el.textContent = c;
-            } catch(e) {}
-        }
-        loadCount();
+        setInterval(updateContestTimers, 1000);
+        loadContests();
 
         window.openContest = function(id) {
-            window._currentContest = id;
+            currentContestId = id;
+            const contest = contestsCache.find(item => item.id === id) || { id };
+            const prizeEl = document.getElementById('contest-modal-prize');
+            const dateEl = document.getElementById('contest-modal-date');
+            if (prizeEl) prizeEl.innerHTML = `<i class="fa-solid fa-gift"></i> Nagroda: ${escapeHtml(getContestPrize(contest))}`;
+            if (dateEl) dateEl.textContent = `Wyniki: ${formatContestDate(contest.wyniki)}`;
             document.getElementById('contest-overlay').classList.add('open');
             document.getElementById('contest-msg').textContent = '';
             ['contest-nick-mc','contest-nick-dc','contest-secret'].forEach(i => {
@@ -563,27 +622,15 @@
             if (!mc || !dc || !sec) { msg.textContent='Wypelnij wszystkie pola!'; msg.style.color='#ff5252'; return; }
             msg.textContent = 'Zapisuje...'; msg.style.color = 'var(--text-muted)';
             try {
-                const r = await joinContest(window._currentContest || 'start', { nickMC: mc, nickDC: dc, secret: sec });
+                const r = await joinContest(currentContestId || 'start', { nickMC: mc, nickDC: dc, secret: sec });
                 msg.textContent = r.message; msg.style.color = r.success ? '#00e676' : '#ff5252';
                 if (r.success) {
-                    loadCount();
-                    localStorage.setItem('critmc_contest_joined_' + (window._currentContest||'start'), '1');
-                    checkContestJoined();
+                    localStorage.setItem('critmc_contest_joined_' + (currentContestId || 'start'), '1');
+                    await loadContests();
                     setTimeout(() => document.getElementById('contest-overlay').classList.remove('open'), 2500);
                 }
             } catch(e) { msg.textContent = 'Blad polaczenia.'; msg.style.color = '#ff5252'; }
         };
-
-        function checkContestJoined() {
-            const joined    = localStorage.getItem('critmc_contest_joined_start');
-            const btn       = document.querySelector('#contest-start .contest-btn');
-            const joinedInfo = document.getElementById('contest-joined-info');
-            if (joined && btn) {
-                btn.style.display = 'none';
-                if (joinedInfo) joinedInfo.style.display = 'flex';
-            }
-        }
-        checkContestJoined();
 
         // ─── ZMIANY SERWEROWE — tylko odczyt ─────────────────────────────
         async function loadChanges() {
@@ -645,17 +692,51 @@
                 }
             } catch(e) { console.warn('loadOwners:', e.message); }
 
-            // Personel
+            // Personel + konta administracyjne widoczne publicznie
             try {
-                const perSnap = await getDocs(query(collection(db2, 'personel'), orderBy('order', 'asc')));
+                const [perSnap, adminsSnap] = await Promise.all([
+                    getDocs(query(collection(db2, 'personel'), orderBy('order', 'asc'))),
+                    getDocs(collection(db2, 'admins'))
+                ]);
                 const grid = document.getElementById('section-admins-dynamic');
                 if (grid) {
-                    if (perSnap.empty) {
+                    const entries = perSnap.docs.map(d => ({ id: d.id, source: 'personel', ...d.data() }));
+                    const known = new Set(entries.map(item => String(item.nick || '').trim().toLowerCase()).filter(Boolean));
+
+                    adminsSnap.docs.forEach(d => {
+                        const admin = { id: d.id, ...d.data() };
+                        if (admin.disabled) return;
+                        const nick = String(admin.publicNick || admin.displayName || admin.login || '').trim();
+                        if (!nick) return;
+                        const key = nick.toLowerCase();
+                        if (known.has(key)) return;
+                        known.add(key);
+                        entries.push({
+                            id: `admin-${admin.id}`,
+                            source: 'admin',
+                            nick,
+                            rank: admin.role || 'Admin',
+                            desc: admin.desc || '',
+                            perms: Array.isArray(admin.permissions) ? admin.permissions.join(', ') : '',
+                            since: admin.createdAt?.seconds
+                                ? new Date(admin.createdAt.seconds * 1000).toISOString().slice(0, 10)
+                                : '',
+                            order: 50
+                        });
+                    });
+
+                    entries.sort((a, b) => {
+                        const orderA = Number.isFinite(Number(a.order)) ? Number(a.order) : 99;
+                        const orderB = Number.isFinite(Number(b.order)) ? Number(b.order) : 99;
+                        if (orderA !== orderB) return orderA - orderB;
+                        return String(a.nick || '').localeCompare(String(b.nick || ''), 'pl');
+                    });
+
+                    if (!entries.length) {
                         grid.innerHTML = '<div style="text-align:center;padding:1.5rem;color:var(--text-muted);font-size:.9rem;grid-column:1/-1;">Brak personelu.</div>';
                     } else {
                         const RC = { 'ChatMod':'#059669','Pomocnik':'#047857','Moderator':'#7c3aed','Admin':'#b91c1c','Technik':'#0284c7','Zarządzający':'#ff1744' };
-                        grid.innerHTML = perSnap.docs.map(d => {
-                            const p = { id: d.id, ...d.data() };
+                        grid.innerHTML = entries.map(p => {
                             const rc = RC[p.rank] || '#9ca3af';
                             const socials = [
                                 p.yt && `<a href="${p.yt}" target="_blank" class="team-social-btn team-yt"><i class="fa-brands fa-youtube"></i> YT</a>`,
@@ -677,6 +758,7 @@
                                     <p><i class="fa-solid fa-crown"></i> <strong>Ranga:</strong> ${p.rank||'—'}</p>
                                     ${p.perms ? `<p><i class="fa-solid fa-key"></i> <strong>Uprawnienia:</strong> ${p.perms}</p>` : ''}
                                     <p><i class="fa-solid fa-calendar"></i> <strong>Od:</strong> ${sinceStr}</p>
+                                    ${p.source === 'admin' ? `<p><i class="fa-solid fa-user-shield"></i> <strong>Zrodlo:</strong> Konto administracyjne panelu</p>` : ''}
                                     ${socials ? `<div class="creator-socials">${socials}</div>` : ''}
                                 </div>
                             </div>`;

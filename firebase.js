@@ -14,6 +14,11 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+function formatDatetimeLocalValue(date) {
+    const pad = (value) => String(value).padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 // --- KONKURS ---
 
 // Pobierz dane konkursu
@@ -26,6 +31,8 @@ export async function getContest(contestId) {
 // Zapisz zgłoszenie
 export async function joinContest(contestId, data) {
     const { nickMC, nickDC, secret } = data;
+    const defaultDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    defaultDate.setHours(20, 0, 0, 0);
 
     // Sprawdź czy nick MC już dołączył
     const entryRef = doc(db, "contests", contestId, "entries", nickMC);
@@ -49,7 +56,9 @@ export async function joinContest(contestId, data) {
         await setDoc(contestRef, {
             participants: 1,
             nagroda: "2x Ranga CRIT na 14 dni",
-            wyniki: "2025-08-25",
+            winners: [],
+            winnersCount: 2,
+            wyniki: formatDatetimeLocalValue(defaultDate),
             aktywny: true
         });
     } else {

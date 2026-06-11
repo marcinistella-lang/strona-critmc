@@ -105,10 +105,6 @@
                     <i class="fa-solid fa-user-shield"></i>
                     <span>Administratorzy</span>
                 </button>
-                <button class="nav-btn" data-page="myaccount" onclick="switchPage('myaccount');loadMyAccount();">
-                    <i class="fa-solid fa-circle-user"></i>
-                    <span>Moje konto</span>
-                </button>
             </nav>
 
             <div class="sidebar-footer">
@@ -740,33 +736,6 @@
                 </div>
             </div>
 
-            <!-- ===== STRONA: MOJE KONTO ===== -->
-            <div id="page-myaccount" class="page">
-                <div class="page-header">
-                    <h1>Moje Konto</h1>
-                    <p>Zmień dane logowania do panelu</p>
-                </div>
-                <div class="table-card" style="padding:1.5rem;max-width:480px;">
-                    <div style="display:flex;flex-direction:column;gap:1rem;">
-                        <div class="modal-field">
-                            <label>Nowy login <span style="color:#999;font-weight:400;">(zostaw puste żeby nie zmieniać)</span></label>
-                            <input type="text" id="my-new-login" placeholder="Nowy login..." autocomplete="off" style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
-                        </div>
-                        <div class="modal-field">
-                            <label>Nowe hasło <span style="color:#999;font-weight:400;">(zostaw puste żeby nie zmieniać)</span></label>
-                            <input type="password" id="my-new-password" placeholder="Nowe hasło..." autocomplete="new-password" style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
-                        </div>
-                        <div class="modal-field">
-                            <label>Potwierdź hasło</label>
-                            <input type="password" id="my-confirm-password" placeholder="Powtórz hasło..." autocomplete="new-password" style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
-                        </div>
-                        <div id="myaccount-info" style="background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.2);border-radius:var(--radius-sm);padding:.8rem 1rem;font-size:.85rem;color:#3b82f6;"></div>
-                        <div id="myaccount-msg" class="modal-msg" style="display:none;"></div>
-                        <button class="modal-submit-btn" onclick="saveMyAccount()"><i class="fa-solid fa-floppy-disk"></i> Zapisz zmiany</button>
-                    </div>
-                </div>
-            </div>
-
         </main>
     </div>
 
@@ -793,6 +762,10 @@
                     <input type="password" id="aa-password" placeholder="Nowe hasło..." autocomplete="new-password">
                 </div>
                 <div class="modal-field">
+                    <label>Opis <span style="color:#999;font-weight:400;">(widoczny na stronie przy personelu)</span></label>
+                    <textarea id="aa-desc" rows="2" placeholder="np. Moderator serwera, odpowiedzialny za czat..." style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea>
+                </div>
+                <div class="modal-field">
                     <label>Ranga</label>
                     <select id="aa-role" style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
                         <option value="ChatMod">ChatMod</option>
@@ -806,10 +779,16 @@
                     <label>Uprawnienia</label>
                     <div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.3rem;">
                         <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;">
-                            <input type="checkbox" class="perm-checkbox" value="ban"> Ban/Unban
+                            <input type="checkbox" class="perm-checkbox" value="ban"> Ban
                         </label>
                         <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;">
-                            <input type="checkbox" class="perm-checkbox" value="mute"> Mute/Unmute
+                            <input type="checkbox" class="perm-checkbox" value="unban"> Unban
+                        </label>
+                        <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;">
+                            <input type="checkbox" class="perm-checkbox" value="mute"> Mute
+                        </label>
+                        <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;">
+                            <input type="checkbox" class="perm-checkbox" value="unmute"> Unmute
                         </label>
                         <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;">
                             <input type="checkbox" class="perm-checkbox" value="kick"> Kick
@@ -1151,8 +1130,7 @@
                 stats:     'Statystyki Adminów',
                 admins:    'Administratorzy',
                 personel:  'Personel',
-                site:      'Zarządzanie Stroną',
-                myaccount: 'Moje Konto'
+                site:      'Zarządzanie Stroną'
             };
             document.getElementById('topbar-title').textContent = titles[pageName] || pageName;
         }

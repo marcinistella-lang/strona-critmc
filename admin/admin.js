@@ -28,8 +28,8 @@ const DEFAULT_ACCOUNTS = [
 // ─── Uprawnienia per ranga ────────────────────────────────────────────
 const ROLE_PERMISSIONS = {
     'ChatMod':      ['mute', 'unmute', 'warn', 'check'],
-    'Pomocnik':     ['mute', 'unmute', 'kick', 'warn', 'check', 'players'],
-    'Moderator':    ['ban', 'unban', 'mute', 'unmute', 'kick', 'warn', 'check', 'players', 'logs'],
+    'Pomocnik':     ['mute', 'warn', 'check', 'players'],
+    'Moderator':    ['ban', 'mute', 'unmute', 'kick', 'warn', 'check', 'players', 'logs'],
     'Admin':        ['ban', 'unban', 'mute', 'unmute', 'kick', 'warn', 'check', 'players', 'logs', 'notes'],
     'Zarządzający': ['all']
 };
@@ -38,6 +38,28 @@ function hasPermission(perm) {
     if (!currentUser) return false;
     const perms = currentUser.permissions || [];
     return perms.includes('all') || perms.includes(perm);
+}
+
+function requirePermission(perm, label) {
+    if (hasPermission(perm)) return true;
+    showToast('error', `Brak uprawnienia: ${label || perm}`);
+    return false;
+}
+
+function permissionsForRole(role) {
+    return [...(ROLE_PERMISSIONS[role] || [])];
+}
+
+function setAdminPermissionsSelection(perms = []) {
+    document.querySelectorAll('.perm-checkbox').forEach(cb => {
+        cb.checked = perms.includes(cb.value);
+    });
+}
+
+function ensureAdminPermissions(perms = []) {
+    const unique = [...new Set(perms.filter(Boolean))];
+    if (unique.includes('all')) return ['all'];
+    return unique;
 }
 
 // ─── Nasłuch na login z inline scriptu ──────────────────────────────
@@ -267,6 +289,7 @@ window.filterBans = function() {
 };
 
 window.quickUnban = async function(nick, banId) {
+    if (!requirePermission('unban', 'unban')) return;
     if (!confirm(`Odbanować ${nick}?`)) return;
     try {
         await deleteDoc(doc(db, 'bans', banId));
@@ -314,6 +337,7 @@ window.filterMutes = function() {
 };
 
 window.quickUnmute = async function(nick, muteId) {
+    if (!requirePermission('unmute', 'unmute')) return;
     if (!confirm(`Odmutować ${nick}?`)) return;
     try {
         await deleteDoc(doc(db, 'mutes', muteId));
@@ -512,6 +536,19 @@ window.addEventListener('apSubmitAction', async () => {
 // ─── WYKONAJ AKCJĘ ────────────────────────────────────────────────────
 async function executeAction(action, nick, uuid, reason, duration) {
     const admin = currentUser?.displayName || 'Panel';
+    const actionPerm = {
+        ban: 'ban',
+        unban: 'unban',
+        mute: 'mute',
+        unmute: 'unmute',
+        kick: 'kick',
+        warn: 'warn',
+        check: 'check'
+    }[action];
+
+    if (actionPerm && !requirePermission(actionPerm, action.toUpperCase())) {
+        throw new Error(`Brak uprawnienia do akcji ${action.toUpperCase()}`);
+    }
 
     if (action === 'ban') {
         await addDoc(collection(db, 'bans'), {
@@ -540,6 +577,8 @@ async function executeAction(action, nick, uuid, reason, duration) {
         snap.forEach(async d => await deleteDoc(d.ref));
         const pSnap = await getDocs(query(collection(db, 'players'), where('nick', '==', nick)));
         pSnap.forEach(async d => await updateDoc(d.ref, { muted: false }));
+    } else if (action === 'kick' || action === 'warn' || action === 'check') {
+        // Te akcje są dziś logowane w panelu, ale nie zmieniają dokumentów Firestore.
     }
     await logAction(action, nick, admin, reason, duration || '—');
 }
@@ -717,7 +756,10 @@ function renderAdminAccounts(list) {
     }
     tb.innerHTML = list.map(a => `
         <tr>
-            <td><span style="font-weight:700;">${a.displayName || a.login}</span></td>
+            <td>
+                <div style="font-weight:700;">${a.displayName || a.login}</div>
+                ${a.desc ? `<div style="font-size:.78rem;color:var(--text-secondary);margin-top:.2rem;">${a.desc}</div>` : ''}
+            </td>
             <td><span style="font-family:monospace;font-size:.82rem;color:var(--text-secondary);">${a.login}</span></td>
             <td>${rankBadge(a.role)}</td>
             <td>
@@ -746,7 +788,8 @@ window.openAddAdminModal = function() {
     document.getElementById('aa-login').value = '';
     document.getElementById('aa-password').value = '';
     document.getElementById('aa-role').value = 'Pomocnik';
-    document.querySelectorAll('.perm-checkbox').forEach(cb => cb.checked = false);
+    const descEl = document.getElementById('aa-desc'); if (descEl) descEl.value = '';
+    setAdminPermissionsSelection(permissionsForRole('Pomocnik'));
     document.getElementById('aa-msg').style.display = 'none';
     document.getElementById('admin-account-modal').classList.add('open');
 };
@@ -760,9 +803,8 @@ window.editAdminAccount = function(id) {
     document.getElementById('aa-login').value = admin.login || '';
     document.getElementById('aa-password').value = '';
     document.getElementById('aa-role').value = admin.role || 'Pomocnik';
-    document.querySelectorAll('.perm-checkbox').forEach(cb => {
-        cb.checked = (admin.permissions || []).includes(cb.value);
-    });
+    const descEl = document.getElementById('aa-desc'); if (descEl) descEl.value = admin.desc || '';
+    setAdminPermissionsSelection(admin.permissions || permissionsForRole(admin.role));
     document.getElementById('aa-msg').style.display = 'none';
     document.getElementById('admin-account-modal').classList.add('open');
 };
@@ -773,12 +815,14 @@ window.saveAdminAccount = async function() {
     const login       = document.getElementById('aa-login').value.trim();
     const password    = document.getElementById('aa-password').value;
     const role        = document.getElementById('aa-role').value;
-    const perms       = [...document.querySelectorAll('.perm-checkbox:checked')].map(cb => cb.value);
+    const perms       = ensureAdminPermissions([...document.querySelectorAll('.perm-checkbox:checked')].map(cb => cb.value));
+    const descEl      = document.getElementById('aa-desc');
+    const desc        = descEl ? descEl.value.trim() : '';
 
     if (!displayName || !login) { showAaMsg('error', 'Wypełnij nazwę i login!'); return; }
 
     try {
-        const data = { displayName, login, role, permissions: perms };
+        const data = { displayName, login, role, permissions: perms, desc };
         if (password) data.password = password;
 
         if (id) {
@@ -809,6 +853,14 @@ window.toggleAdminDisable = async function(id, disable) {
         await window.loadAdminAccounts();
     } catch (e) { showToast('error', 'Błąd: ' + e.message); }
 };
+
+const adminRoleSelect = document.getElementById('aa-role');
+if (adminRoleSelect) {
+    adminRoleSelect.addEventListener('change', () => {
+        if (document.getElementById('aa-id').value) return;
+        setAdminPermissionsSelection(permissionsForRole(adminRoleSelect.value));
+    });
+}
 
 function showAaMsg(type, text) {
     const el = document.getElementById('aa-msg');
@@ -1106,18 +1158,28 @@ function _currentContestId() {
     return (sel && sel.value) ? sel.value : 'start';
 }
 
+function formatDatetimeLocalValue(date) {
+    const pad = (value) => String(value).padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 // ─── siteLoadContestList ──────────────────────────────────────────────
 async function siteLoadContestList() {
     const sel = document.getElementById('site-contest-select');
     if (!sel) return;
+    const previousVal = sel.value;
     try {
         const snap = await getDocs(collection(db, 'contests'));
-        const ids = snap.docs.map(d => d.id);
+        const ids = snap.docs.map(d => d.id).sort();
         if (!ids.length) {
-            sel.innerHTML = '<option value="start">start</option>';
+            sel.innerHTML = '<option value="start">start (brak)</option>';
             return;
         }
         sel.innerHTML = ids.map(id => `<option value="${id}">${id}</option>`).join('');
+        // Zachowaj poprzedni wybór jeśli nadal istnieje
+        if (previousVal && ids.includes(previousVal)) {
+            sel.value = previousVal;
+        }
     } catch(e) {
         sel.innerHTML = '<option value="start">start</option>';
         console.error('siteLoadContestList:', e);
@@ -1129,6 +1191,8 @@ window.siteNewContest = async function() {
     const id = prompt('Podaj ID nowego konkursu (np. "konkurs2025"):');
     if (!id || !id.trim()) return;
     const contestId = id.trim();
+    const defaultDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    defaultDate.setHours(20, 0, 0, 0);
     try {
         const ref = doc(db, 'contests', contestId);
         const snap = await getDoc(ref);
@@ -1136,6 +1200,7 @@ window.siteNewContest = async function() {
         await setDoc(ref, {
             participants: 0, aktywny: true,
             nagroda: '', winners: [], winnersCount: 2,
+            wyniki: formatDatetimeLocalValue(defaultDate),
             createdAt: new Date().toISOString()
         });
         showToast('success', `Konkurs "${contestId}" utworzony!`);
@@ -1262,13 +1327,20 @@ window.siteEndContest = async function() {
 // ─── siteDeleteContest ─────────────────────────────────────────────────
 window.siteDeleteContest = async function() {
     const contestId = _currentContestId();
-    if (!confirm('USUNĄĆ CAŁY KONKURS? Tej operacji nie można cofnąć!')) return;
+    if (!confirm(`USUNĄĆ konkurs "${contestId}"? Tej operacji nie można cofnąć!`)) return;
     try {
         const entriesSnap = await getDocs(collection(db, 'contests', contestId, 'entries'));
         for (const d of entriesSnap.docs) await deleteDoc(d.ref);
         await deleteDoc(doc(db, 'contests', contestId));
         showSiteContestMsg('Konkurs usunięty.', '#ef4444');
+        showToast('success', `Usunięto konkurs "${contestId}"`);
+        // Odśwież listę i przejdź do pierwszego dostępnego
         await siteLoadContestList();
+        const sel = document.getElementById('site-contest-select');
+        if (sel && sel.options.length > 0) {
+            sel.selectedIndex = 0;
+        }
+        await siteLoadContestInfo();
         await siteLoadEntries();
     } catch(e) { showSiteContestMsg('Błąd: ' + e.message, '#ef4444'); }
 };
@@ -1436,74 +1508,19 @@ window.siteDeleteProposal = async function(id) {
 };
 
 // ═══════════════════════════════════════════════════════════════════════
-// ─── MOJE KONTO ────────────────────────────────────────────────────────
-// ═══════════════════════════════════════════════════════════════════════
-
-window.loadMyAccount = function() {
-    const infoEl = document.getElementById('myaccount-info');
-    if (infoEl && currentUser) {
-        infoEl.innerHTML = `<i class="fa-solid fa-circle-user"></i> Zalogowany jako: <strong>${currentUser.displayName}</strong> · login: <code style="background:rgba(59,130,246,.15);padding:.1rem .4rem;border-radius:4px;">${currentUser.login}</code> · ranga: <strong>${currentUser.role}</strong>`;
-    }
-    ['my-new-login','my-new-password','my-confirm-password'].forEach(id => {
-        const el = document.getElementById(id); if (el) el.value = '';
-    });
-    const msg = document.getElementById('myaccount-msg');
-    if (msg) msg.style.display = 'none';
-};
-
-window.saveMyAccount = async function() {
-    const newLogin    = document.getElementById('my-new-login').value.trim();
-    const newPassword = document.getElementById('my-new-password').value;
-    const confirmPw   = document.getElementById('my-confirm-password').value;
-    const msgEl       = document.getElementById('myaccount-msg');
-
-    const showMyMsg = (type, text) => {
-        if (!msgEl) return;
-        msgEl.className = `modal-msg ${type}`;
-        msgEl.innerHTML = `<i class="fa-solid fa-${type==='error'?'circle-exclamation':'check'}"></i> ${text}`;
-        msgEl.style.display = 'block';
-    };
-
-    if (!newLogin && !newPassword) { showMyMsg('error', 'Wpisz nowy login lub hasło!'); return; }
-    if (newPassword && newPassword !== confirmPw) { showMyMsg('error', 'Hasła się nie zgadzają!'); return; }
-    if (newPassword && newPassword.length < 4) { showMyMsg('error', 'Hasło musi mieć min. 4 znaki!'); return; }
-    if (!currentUser?.id) { showMyMsg('error', 'Błąd: brak ID użytkownika!'); return; }
-
-    try {
-        const upd = {};
-        if (newLogin) {
-            const check = await getDocs(query(collection(db, 'admins'), where('login', '==', newLogin)));
-            if (!check.empty && check.docs[0].id !== currentUser.id) { showMyMsg('error', 'Ten login jest już zajęty!'); return; }
-            upd.login = newLogin;
-        }
-        if (newPassword) upd.password = newPassword;
-
-        await updateDoc(doc(db, 'admins', currentUser.id), upd);
-        if (newLogin) currentUser.login = newLogin;
-        showMyMsg('success', '✓ Dane zaktualizowane! Przy następnym logowaniu użyj nowych danych.');
-        showToast('success', 'Konto zaktualizowane!');
-        window.loadMyAccount();
-    } catch(e) { showMyMsg('error', 'Błąd: ' + e.message); }
-};
-
-// ═══════════════════════════════════════════════════════════════════════
 // ─── ROZSZERZENIE UPRAWNIEŃ ─────────────────────────────────────────────
 // ═══════════════════════════════════════════════════════════════════════
 
-// Simple function that hides site/personel/admins nav buttons from non-managers,
-// shows myaccount to all logged-in users.
 function _extendedApplyPermissions() {
     const isManager = hasPermission('all');
 
     const siteNav     = document.querySelector('.nav-btn[data-page="site"]');
     const personelNav = document.querySelector('.nav-btn[data-page="personel"]');
     const adminsNav   = document.querySelector('.nav-btn[data-page="admins"]');
-    const myaccNav    = document.querySelector('.nav-btn[data-page="myaccount"]');
 
     if (siteNav)     siteNav.style.display     = isManager ? '' : 'none';
     if (personelNav) personelNav.style.display  = isManager ? '' : 'none';
     if (adminsNav)   adminsNav.style.display    = isManager ? '' : 'none';
-    if (myaccNav)    myaccNav.style.display     = '';
 }
 
 // Expose to window so inline scripts can call it if needed
