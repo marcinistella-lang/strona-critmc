@@ -99,11 +99,19 @@
                     <i class="fa-solid fa-globe"></i>
                     <span>Strona</span>
                 </button>
+                <button class="nav-btn" data-page="shop" onclick="switchPage('shop');loadShopPage();">
+                    <i class="fa-solid fa-shop"></i>
+                    <span>Sklep</span>
+                </button>
 
                 <div class="nav-section-label" style="margin-top:1.5rem;">Konto</div>
                 <button class="nav-btn" data-page="admins" onclick="switchPage('admins');loadAdminAccounts();">
                     <i class="fa-solid fa-user-shield"></i>
                     <span>Administratorzy</span>
+                </button>
+                <button class="nav-btn" data-page="permissions" onclick="switchPage('permissions');loadPermissionsPage();">
+                    <i class="fa-solid fa-key"></i>
+                    <span>Uprawnienia</span>
                 </button>
             </nav>
 
@@ -354,6 +362,20 @@
                                 style="width:100%;padding:0.7rem 0.9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:0.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
                         </div>
 
+                        <div class="modal-field" style="margin-bottom:1.5rem;">
+                            <label>Załącznik do akcji <span style="color:#999;font-weight:400;">(opcjonalny)</span></label>
+                            <select id="ap-attachment-type" style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);margin-bottom:.6rem;" onchange="toggleActionAttachmentFields('ap')">
+                                <option value="">Brak załącznika</option>
+                                <option value="link">Link</option>
+                                <option value="text">Tekst / notatka</option>
+                                <option value="file">Plik / zdjęcie / nagranie</option>
+                            </select>
+                            <input type="text" id="ap-attachment-link" placeholder="https://..." style="display:none;width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);margin-bottom:.6rem;">
+                            <textarea id="ap-attachment-text" rows="3" placeholder="Wpisz opis, krótką notatkę albo streszczenie dowodu..." style="display:none;width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;margin-bottom:.6rem;"></textarea>
+                            <input type="file" id="ap-attachment-file" accept="image/*,video/*,.zip,.rar,.7z,.txt,.pdf" style="display:none;width:100%;padding:.55rem .7rem;border:1.5px dashed var(--border);border-radius:var(--radius-sm);font-size:.88rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);margin-bottom:.45rem;">
+                            <div style="font-size:.76rem;color:var(--text-secondary);line-height:1.5;">Na tym etapie panel zapisuje metadane załącznika. Faktyczny upload plików podłączymy po spięciu z bazą plików.</div>
+                        </div>
+
                         <div id="ap-msg" style="display:none;margin-bottom:1rem;padding:0.7rem 1rem;border-radius:var(--radius-sm);font-size:0.88rem;font-weight:600;"></div>
 
                         <button onclick="apSubmit()" style="width:100%;padding:0.9rem;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:0.95rem;font-weight:800;cursor:pointer;transition:all .2s;font-family:var(--font);">
@@ -522,6 +544,65 @@
                                 </tr>
                             </thead>
                             <tbody id="admin-accounts-tbody">
+                                <tr><td colspan="6" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== STRONA: UPRAWNIENIA ===== -->
+            <div id="page-permissions" class="page">
+                <div class="page-header">
+                    <h1>Uprawnienia</h1>
+                    <p>Zarządzaj uprawnieniami rang administracyjnych po polsku</p>
+                </div>
+                <div class="table-card" style="padding:1.2rem;margin-bottom:1rem;">
+                    <div style="font-size:.88rem;color:var(--text-secondary);line-height:1.6;">
+                        Tutaj ustawiasz domyślne uprawnienia dla rang. Nowe konta administratorów będą mogły automatycznie korzystać z tych zestawów.
+                    </div>
+                </div>
+                <div id="permissions-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:1rem;">
+                    <div class="table-card" style="padding:1.5rem;text-align:center;color:var(--text-secondary);">
+                        <i class="fa-solid fa-spinner fa-spin"></i> Ładowanie uprawnień...
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== STRONA: SKLEP ===== -->
+            <div id="page-shop" class="page">
+                <div class="page-header">
+                    <h1>Sklep</h1>
+                    <p>Zarządzaj zestawami, rangami, itemkami i multimediami sklepu</p>
+                </div>
+                <div style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:1rem;">
+                    <div style="display:flex;gap:.6rem;flex-wrap:wrap;">
+                        <select id="shop-type-filter" onchange="filterShopItems()" style="padding:.65rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                            <option value="">Wszystkie typy</option>
+                            <option value="ranga">Rangi</option>
+                            <option value="zestaw">Zestawy</option>
+                            <option value="item">Itemki</option>
+                            <option value="klucz">Klucze</option>
+                        </select>
+                    </div>
+                    <button class="modal-submit-btn" style="width:auto;padding:.6rem 1.4rem;" onclick="openShopItemModal()">
+                        <i class="fa-solid fa-plus"></i> Dodaj produkt
+                    </button>
+                </div>
+                <div class="table-card">
+                    <div class="table-wrap">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Nazwa</th>
+                                    <th>Typ</th>
+                                    <th>Cena</th>
+                                    <th>Status</th>
+                                    <th>Media</th>
+                                    <th>Akcje</th>
+                                </tr>
+                            </thead>
+                            <tbody id="shop-items-tbody">
                                 <tr><td colspan="6" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>
                             </tbody>
                         </table>
@@ -779,28 +860,37 @@
                     <label>Uprawnienia</label>
                     <div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.3rem;">
                         <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;">
-                            <input type="checkbox" class="perm-checkbox" value="ban"> Ban
+                            <input type="checkbox" class="perm-checkbox" value="ban"> Nadawanie banów
                         </label>
                         <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;">
-                            <input type="checkbox" class="perm-checkbox" value="unban"> Unban
+                            <input type="checkbox" class="perm-checkbox" value="unban"> Zdejmowanie banów
                         </label>
                         <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;">
-                            <input type="checkbox" class="perm-checkbox" value="mute"> Mute
+                            <input type="checkbox" class="perm-checkbox" value="mute"> Nadawanie mutów
                         </label>
                         <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;">
-                            <input type="checkbox" class="perm-checkbox" value="unmute"> Unmute
+                            <input type="checkbox" class="perm-checkbox" value="unmute"> Zdejmowanie mutów
                         </label>
                         <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;">
-                            <input type="checkbox" class="perm-checkbox" value="kick"> Kick
+                            <input type="checkbox" class="perm-checkbox" value="kick"> Wyrzucanie graczy
                         </label>
                         <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;">
                             <input type="checkbox" class="perm-checkbox" value="warn"> Ostrzeżenia
                         </label>
                         <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;">
-                            <input type="checkbox" class="perm-checkbox" value="players"> Gracze
+                            <input type="checkbox" class="perm-checkbox" value="players"> Podgląd graczy
                         </label>
                         <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;">
-                            <input type="checkbox" class="perm-checkbox" value="logs"> Logi
+                            <input type="checkbox" class="perm-checkbox" value="logs"> Podgląd logów
+                        </label>
+                        <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;">
+                            <input type="checkbox" class="perm-checkbox" value="shop"> Zarządzanie sklepem
+                        </label>
+                        <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;">
+                            <input type="checkbox" class="perm-checkbox" value="site"> Zarządzanie stroną
+                        </label>
+                        <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;">
+                            <input type="checkbox" class="perm-checkbox" value="permissions_manage"> Zarządzanie uprawnieniami
                         </label>
                         <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:rgba(255,23,68,.08);border:1.5px solid rgba(255,23,68,.25);padding:.35rem .75rem;border-radius:6px;color:var(--accent);">
                             <input type="checkbox" class="perm-checkbox" value="all"> Wszystko (Zarządzający)
@@ -1001,6 +1091,65 @@
         </div>
     </div>
 
+    <!-- ===== MODAL: PRODUKT SKLEPU ===== -->
+    <div class="modal-overlay" id="shop-item-modal" onclick="closeModal(event)">
+        <div class="modal-box" style="max-width:640px;">
+            <div class="modal-header">
+                <div class="modal-title" id="shop-item-modal-title">Dodaj produkt sklepu</div>
+                <button class="modal-close" onclick="document.getElementById('shop-item-modal').classList.remove('open')"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="shop-item-id">
+                <div class="modal-field">
+                    <label>Typ produktu</label>
+                    <select id="shop-item-type" style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                        <option value="ranga">Ranga</option>
+                        <option value="zestaw">Zestaw</option>
+                        <option value="item">Itemek</option>
+                        <option value="klucz">Klucz</option>
+                    </select>
+                </div>
+                <div class="modal-field">
+                    <label>Nazwa</label>
+                    <input type="text" id="shop-item-name" placeholder="Np. CRIT, Zestaw BOSS, Klucz Medium...">
+                </div>
+                <div class="modal-field">
+                    <label>Opis</label>
+                    <textarea id="shop-item-desc" rows="3" placeholder="Opis produktu..." style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.8rem;">
+                    <div class="modal-field">
+                        <label>Cena</label>
+                        <input type="number" id="shop-item-price" min="0" step="0.01" placeholder="0.00">
+                    </div>
+                    <div class="modal-field">
+                        <label>Stara cena</label>
+                        <input type="number" id="shop-item-old-price" min="0" step="0.01" placeholder="0.00">
+                    </div>
+                    <div class="modal-field">
+                        <label>Kolejność</label>
+                        <input type="number" id="shop-item-order" min="0" step="1" value="99">
+                    </div>
+                </div>
+                <div class="modal-field">
+                    <label>Lista itemów / bonusów</label>
+                    <textarea id="shop-item-items" rows="4" placeholder="Jeden bonus lub item w osobnej linii..." style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea>
+                </div>
+                <div class="modal-field">
+                    <label>Link do obrazka / filmu / pliku</label>
+                    <input type="text" id="shop-item-media-url" placeholder="Tutaj później podepniesz link z bazy plików B2">
+                </div>
+                <div class="modal-field">
+                    <label style="display:flex;align-items:center;gap:.5rem;">
+                        <input type="checkbox" id="shop-item-active" checked> Produkt aktywny
+                    </label>
+                </div>
+                <div id="shop-item-msg" class="modal-msg" style="display:none;"></div>
+                <button class="modal-submit-btn" onclick="saveShopItem()"><i class="fa-solid fa-floppy-disk"></i> Zapisz produkt</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Firebase Admin Module -->
     <script type="module" src="admin.js"></script>
 
@@ -1129,8 +1278,10 @@
                 logs:      'Logi Akcji',
                 stats:     'Statystyki Adminów',
                 admins:    'Administratorzy',
+                permissions:'Uprawnienia',
                 personel:  'Personel',
-                site:      'Zarządzanie Stroną'
+                site:      'Zarządzanie Stroną',
+                shop:      'Sklep'
             };
             document.getElementById('topbar-title').textContent = titles[pageName] || pageName;
         }

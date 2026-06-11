@@ -29,9 +29,31 @@ const DEFAULT_ACCOUNTS = [
 const ROLE_PERMISSIONS = {
     'ChatMod':      ['mute', 'unmute', 'warn', 'check'],
     'Pomocnik':     ['mute', 'warn', 'check', 'players'],
-    'Moderator':    ['ban', 'mute', 'unmute', 'kick', 'warn', 'check', 'players', 'logs'],
-    'Admin':        ['ban', 'unban', 'mute', 'unmute', 'kick', 'warn', 'check', 'players', 'logs', 'notes'],
+    'Moderator':    ['ban', 'mute', 'unmute', 'kick', 'warn', 'check', 'players', 'logs', 'evidence_view'],
+    'Admin':        ['ban', 'unban', 'mute', 'unmute', 'kick', 'warn', 'check', 'players', 'logs', 'notes', 'site', 'shop', 'media_manage', 'evidence_view'],
     'Zarządzający': ['all']
+};
+
+const ROLE_ORDER = ['ChatMod', 'Pomocnik', 'Moderator', 'Admin', 'Zarządzający'];
+const PERMISSIONS_PL = {
+    players: { label: 'Podgląd graczy', desc: 'Może przeglądać listę graczy i ich status.' },
+    ban: { label: 'Nadawanie banów', desc: 'Może nadawać bany na graczy.' },
+    unban: { label: 'Zdejmowanie banów', desc: 'Może odbanowywać graczy.' },
+    mute: { label: 'Nadawanie mutów', desc: 'Może nadawać muty.' },
+    unmute: { label: 'Zdejmowanie mutów', desc: 'Może zdejmować muty.' },
+    kick: { label: 'Wyrzucanie graczy', desc: 'Może wyrzucać graczy z serwera.' },
+    warn: { label: 'Ostrzeżenia', desc: 'Może nadawać ostrzeżenia administracyjne.' },
+    check: { label: 'Sprawdzanie graczy', desc: 'Może wykonywać akcje kontrolne i sprawdzenia.' },
+    logs: { label: 'Podgląd logów', desc: 'Może przeglądać historię akcji administracji.' },
+    notes: { label: 'Notatki administracyjne', desc: 'Może dodawać notatki do graczy.' },
+    site: { label: 'Zarządzanie stroną', desc: 'Może edytować konkursy, media i treści strony.' },
+    shop: { label: 'Zarządzanie sklepem', desc: 'Może edytować produkty, zestawy i ceny sklepu.' },
+    media_manage: { label: 'Zarządzanie mediami', desc: 'Może dodawać multimedia do strony i aktualności.' },
+    evidence_view: { label: 'Podgląd załączników', desc: 'Może otwierać dowody, linki i załączniki do kar.' },
+    evidence_delete: { label: 'Usuwanie załączników', desc: 'Może usuwać załączniki z bazy plików.' },
+    permissions_manage: { label: 'Zarządzanie uprawnieniami', desc: 'Może edytować domyślne uprawnienia rang.' },
+    admins_manage: { label: 'Zarządzanie administratorami', desc: 'Może dodawać i edytować konta administratorów.' },
+    all: { label: 'Pełny dostęp', desc: 'Ma pełny dostęp do całego panelu.' }
 };
 
 function hasPermission(perm) {
@@ -60,6 +82,25 @@ function ensureAdminPermissions(perms = []) {
     const unique = [...new Set(perms.filter(Boolean))];
     if (unique.includes('all')) return ['all'];
     return unique;
+}
+
+function permissionLabel(key) {
+    return PERMISSIONS_PL[key]?.label || key;
+}
+
+async function loadRolePermissionsFromStore() {
+    try {
+        const snap = await getDoc(doc(db, 'panel_settings', 'role_permissions'));
+        if (!snap.exists()) return;
+        const roles = snap.data()?.roles || {};
+        Object.entries(roles).forEach(([role, perms]) => {
+            if (Array.isArray(perms)) {
+                ROLE_PERMISSIONS[role] = ensureAdminPermissions(perms);
+            }
+        });
+    } catch (e) {
+        console.warn('loadRolePermissionsFromStore:', e.message);
+    }
 }
 
 // ─── Nasłuch na login z inline scriptu ──────────────────────────────
@@ -136,9 +177,15 @@ function applyPermissions() {
         });
     });
     const adminsNav = document.querySelector('.nav-btn[data-page="admins"]');
-    if (adminsNav) adminsNav.style.display = hasPermission('all') ? '' : 'none';
+    if (adminsNav) adminsNav.style.display = (hasPermission('all') || hasPermission('admins_manage')) ? '' : 'none';
     const logsNav = document.querySelector('.nav-btn[data-page="logs"]');
     if (logsNav) logsNav.style.display = hasPermission('logs') ? '' : 'none';
+    const siteNav = document.querySelector('.nav-btn[data-page="site"]');
+    if (siteNav) siteNav.style.display = (hasPermission('site') || hasPermission('all')) ? '' : 'none';
+    const shopNav = document.querySelector('.nav-btn[data-page="shop"]');
+    if (shopNav) shopNav.style.display = (hasPermission('shop') || hasPermission('all')) ? '' : 'none';
+    const permNav = document.querySelector('.nav-btn[data-page="permissions"]');
+    if (permNav) permNav.style.display = (hasPermission('permissions_manage') || hasPermission('all')) ? '' : 'none';
 }
 
 // ─── showLoginError ────────────────────────────────────────────────────
@@ -162,6 +209,7 @@ function loadAll() {
     loadBans();
     loadMutes();
     loadLogs();
+    loadRolePermissionsFromStore();
 }
 
 // ─── Server status ────────────────────────────────────────────────────
@@ -464,11 +512,12 @@ function loadRecentLogs() {
 }
 
 // ─── LOG AKCJI ────────────────────────────────────────────────────────
-async function logAction(action, player, admin, reason, duration) {
+async function logAction(action, player, admin, reason, duration, extra = {}) {
     try {
         await addDoc(collection(db, 'admin_logs'), {
             action, player, admin, reason,
             duration: duration || '—',
+            ...extra,
             date: serverTimestamp()
         });
     } catch (e) { console.error('logAction:', e); }
@@ -510,6 +559,7 @@ window.addEventListener('apSubmitAction', async () => {
     const custom   = document.getElementById('ap-duration-custom').value.trim();
     const duration = custom || window._apDuration;
     const reason   = document.getElementById('ap-reason').value.trim();
+    const attachment = buildActionAttachmentPayload('ap');
 
     if (!nick)   { showApMsg('error', 'Podaj nick gracza!'); return; }
     if (!action) { showApMsg('error', 'Wybierz rodzaj akcji!'); return; }
@@ -518,12 +568,13 @@ window.addEventListener('apSubmitAction', async () => {
     if (!noDur.includes(action) && !duration) { showApMsg('error', 'Wybierz czas trwania!'); return; }
 
     try {
-        await executeAction(action, nick, '', reason, duration);
+        await executeAction(action, nick, '', reason, duration, attachment);
         showApMsg('success', `✓ ${action.toUpperCase()} na ${nick} wykonane`);
         showToast('success', `${action.toUpperCase()} na ${nick} wykonane`);
         document.getElementById('ap-nick').value = '';
         document.getElementById('ap-reason').value = '';
         document.getElementById('ap-duration-custom').value = '';
+        resetActionAttachmentFields('ap');
         document.querySelectorAll('#page-action .action-btn').forEach(b => b.classList.remove('selected'));
         document.querySelectorAll('#page-action .dur-btn').forEach(b => b.classList.remove('selected'));
         window._apAction = null; window._apDuration = null;
@@ -534,7 +585,7 @@ window.addEventListener('apSubmitAction', async () => {
 });
 
 // ─── WYKONAJ AKCJĘ ────────────────────────────────────────────────────
-async function executeAction(action, nick, uuid, reason, duration) {
+async function executeAction(action, nick, uuid, reason, duration, attachment = null) {
     const admin = currentUser?.displayName || 'Panel';
     const actionPerm = {
         ban: 'ban',
@@ -553,7 +604,7 @@ async function executeAction(action, nick, uuid, reason, duration) {
     if (action === 'ban') {
         await addDoc(collection(db, 'bans'), {
             player: nick, uuid, reason, bannedBy: admin,
-            duration, date: serverTimestamp()
+            duration, attachment, date: serverTimestamp()
         });
         const snap = await getDocs(query(collection(db, 'players'), where('nick', '==', nick)));
         snap.forEach(async d => await updateDoc(d.ref, { banned: true }));
@@ -567,7 +618,7 @@ async function executeAction(action, nick, uuid, reason, duration) {
     } else if (action === 'mute') {
         await addDoc(collection(db, 'mutes'), {
             player: nick, uuid, reason, mutedBy: admin,
-            duration, date: serverTimestamp()
+            duration, attachment, date: serverTimestamp()
         });
         const snap = await getDocs(query(collection(db, 'players'), where('nick', '==', nick)));
         snap.forEach(async d => await updateDoc(d.ref, { muted: true }));
@@ -580,7 +631,53 @@ async function executeAction(action, nick, uuid, reason, duration) {
     } else if (action === 'kick' || action === 'warn' || action === 'check') {
         // Te akcje są dziś logowane w panelu, ale nie zmieniają dokumentów Firestore.
     }
-    await logAction(action, nick, admin, reason, duration || '—');
+    await logAction(action, nick, admin, reason, duration || '—', attachment ? { attachment } : {});
+}
+
+window.toggleActionAttachmentFields = function(prefix) {
+    const typeEl = document.getElementById(`${prefix}-attachment-type`);
+    const type = typeEl ? typeEl.value : '';
+    const linkEl = document.getElementById(`${prefix}-attachment-link`);
+    const textEl = document.getElementById(`${prefix}-attachment-text`);
+    const fileEl = document.getElementById(`${prefix}-attachment-file`);
+    if (linkEl) linkEl.style.display = type === 'link' ? 'block' : 'none';
+    if (textEl) textEl.style.display = type === 'text' ? 'block' : 'none';
+    if (fileEl) fileEl.style.display = type === 'file' ? 'block' : 'none';
+};
+
+function resetActionAttachmentFields(prefix) {
+    ['type', 'link', 'text'].forEach(name => {
+        const el = document.getElementById(`${prefix}-attachment-${name}`);
+        if (el) el.value = '';
+    });
+    const fileEl = document.getElementById(`${prefix}-attachment-file`);
+    if (fileEl) fileEl.value = '';
+    window.toggleActionAttachmentFields(prefix);
+}
+
+function buildActionAttachmentPayload(prefix) {
+    const type = document.getElementById(`${prefix}-attachment-type`)?.value || '';
+    if (!type) return null;
+    if (type === 'link') {
+        const url = document.getElementById(`${prefix}-attachment-link`)?.value.trim();
+        return url ? { type, url } : null;
+    }
+    if (type === 'text') {
+        const text = document.getElementById(`${prefix}-attachment-text`)?.value.trim();
+        return text ? { type, text } : null;
+    }
+    if (type === 'file') {
+        const file = document.getElementById(`${prefix}-attachment-file`)?.files?.[0];
+        if (!file) return null;
+        return {
+            type,
+            fileName: file.name,
+            mimeType: file.type || 'application/octet-stream',
+            size: file.size,
+            status: 'oczekuje_na_podpiecie_bazy_plikow'
+        };
+    }
+    return null;
 }
 
 // ─── SZCZEGÓŁY GRACZA ─────────────────────────────────────────────────
@@ -736,6 +833,7 @@ function showToast(type, message) {
 
 // ─── ZARZĄDZANIE ADMINAMI ─────────────────────────────────────────────
 let allAdmins = [];
+let allShopItems = [];
 
 window.loadAdminAccounts = async function() {
     try {
@@ -764,7 +862,7 @@ function renderAdminAccounts(list) {
             <td>${rankBadge(a.role)}</td>
             <td>
                 <div style="display:flex;flex-wrap:wrap;gap:.3rem;">
-                    ${(a.permissions||[]).map(p => `<span class="badge badge-default" style="font-size:.68rem;">${p}</span>`).join('')}
+                    ${(a.permissions||[]).map(p => `<span class="badge badge-default" style="font-size:.68rem;" title="${PERMISSIONS_PL[p]?.desc || p}">${permissionLabel(p)}</span>`).join('')}
                 </div>
             </td>
             <td>
@@ -853,6 +951,199 @@ window.toggleAdminDisable = async function(id, disable) {
         await window.loadAdminAccounts();
     } catch (e) { showToast('error', 'Błąd: ' + e.message); }
 };
+
+window.loadPermissionsPage = async function() {
+    await loadRolePermissionsFromStore();
+    const grid = document.getElementById('permissions-grid');
+    if (!grid) return;
+    grid.innerHTML = ROLE_ORDER.map(role => {
+        const perms = permissionsForRole(role);
+        const options = Object.entries(PERMISSIONS_PL).filter(([key]) => key !== 'all');
+        return `
+            <div class="table-card" style="padding:1.2rem;">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:.8rem;margin-bottom:1rem;">
+                    <div>
+                        <div style="font-size:1rem;font-weight:800;color:var(--text-primary);">${role}</div>
+                        <div style="font-size:.78rem;color:var(--text-secondary);">Domyślne uprawnienia tej rangi</div>
+                    </div>
+                    <button class="modal-submit-btn" style="width:auto;padding:.45rem 1rem;" onclick="saveRolePermissions('${role}')">
+                        <i class="fa-solid fa-floppy-disk"></i> Zapisz
+                    </button>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:.65rem;">
+                    ${options.map(([key, meta]) => `
+                        <label style="display:flex;gap:.75rem;align-items:flex-start;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:.7rem .8rem;cursor:pointer;">
+                            <input type="checkbox" class="role-permission-checkbox" data-role="${role}" value="${key}" ${perms.includes(key) ? 'checked' : ''} style="margin-top:.15rem;">
+                            <div>
+                                <div style="font-size:.88rem;font-weight:700;color:var(--text-primary);">${meta.label}</div>
+                                <div style="font-size:.76rem;color:var(--text-secondary);line-height:1.45;">${meta.desc}</div>
+                            </div>
+                        </label>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    }).join('');
+};
+
+window.saveRolePermissions = async function(role) {
+    if (!requirePermission('permissions_manage', 'zarządzanie uprawnieniami')) return;
+    const selected = [...document.querySelectorAll(`.role-permission-checkbox[data-role="${role}"]:checked`)].map(cb => cb.value);
+    ROLE_PERMISSIONS[role] = ensureAdminPermissions(selected);
+    try {
+        await setDoc(doc(db, 'panel_settings', 'role_permissions'), {
+            roles: ROLE_ORDER.reduce((acc, roleName) => {
+                acc[roleName] = ROLE_PERMISSIONS[roleName] || [];
+                return acc;
+            }, {}),
+            updatedAt: serverTimestamp(),
+            updatedBy: currentUser?.displayName || 'Panel'
+        });
+        showToast('success', `Zapisano uprawnienia dla roli ${role}`);
+    } catch (e) {
+        showToast('error', 'Błąd zapisu uprawnień: ' + e.message);
+    }
+};
+
+window.loadShopPage = async function() {
+    const tb = document.getElementById('shop-items-tbody');
+    if (!tb) return;
+    tb.innerHTML = `<tr><td colspan="6" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>`;
+    try {
+        const snap = await getDocs(collection(db, 'shop_items'));
+        allShopItems = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+            .sort((a, b) => (a.sortOrder ?? 99) - (b.sortOrder ?? 99));
+        window.filterShopItems();
+    } catch (e) {
+        tb.innerHTML = `<tr><td colspan="6" class="table-empty" style="color:#ef4444;">Błąd: ${e.message}</td></tr>`;
+    }
+};
+
+function renderShopItems(list) {
+    const tb = document.getElementById('shop-items-tbody');
+    if (!tb) return;
+    if (!list.length) {
+        tb.innerHTML = `<tr><td colspan="6" class="table-empty">Brak produktów sklepu. Dodaj pierwszy produkt.</td></tr>`;
+        return;
+    }
+    tb.innerHTML = list.map(item => `
+        <tr>
+            <td>
+                <div style="font-weight:700;">${item.name || '—'}</div>
+                ${item.desc ? `<div style="font-size:.78rem;color:var(--text-secondary);margin-top:.2rem;">${item.desc}</div>` : ''}
+            </td>
+            <td><span class="badge badge-default">${item.type || '—'}</span></td>
+            <td>
+                <div style="font-weight:700;">${item.price ?? '—'} PLN</div>
+                ${item.oldPrice ? `<div style="font-size:.75rem;color:var(--text-secondary);text-decoration:line-through;">${item.oldPrice} PLN</div>` : ''}
+            </td>
+            <td><span class="badge ${item.active === false ? 'badge-banned' : 'badge-online'}">${item.active === false ? 'Ukryty' : 'Aktywny'}</span></td>
+            <td style="font-size:.8rem;color:var(--text-secondary);">${item.mediaUrl ? 'Podpięte' : 'Brak'}</td>
+            <td>
+                <div style="display:flex;gap:.4rem;">
+                    <button class="tbl-btn" onclick="editShopItem('${item.id}')"><i class="fa-solid fa-pen"></i></button>
+                    <button class="tbl-btn tbl-btn-red" onclick='deleteShopItem("${item.id}", ${JSON.stringify(item.name || "")})'><i class="fa-solid fa-trash"></i></button>
+                </div>
+            </td>
+        </tr>
+    `).join('');
+};
+
+window.filterShopItems = function() {
+    const type = document.getElementById('shop-type-filter')?.value || '';
+    const filtered = type ? allShopItems.filter(item => item.type === type) : allShopItems;
+    renderShopItems(filtered);
+};
+
+window.openShopItemModal = function() {
+    document.getElementById('shop-item-modal-title').textContent = 'Dodaj produkt sklepu';
+    document.getElementById('shop-item-id').value = '';
+    document.getElementById('shop-item-type').value = 'ranga';
+    document.getElementById('shop-item-name').value = '';
+    document.getElementById('shop-item-desc').value = '';
+    document.getElementById('shop-item-price').value = '';
+    document.getElementById('shop-item-old-price').value = '';
+    document.getElementById('shop-item-order').value = '99';
+    document.getElementById('shop-item-items').value = '';
+    document.getElementById('shop-item-media-url').value = '';
+    document.getElementById('shop-item-active').checked = true;
+    const msg = document.getElementById('shop-item-msg');
+    if (msg) msg.style.display = 'none';
+    document.getElementById('shop-item-modal').classList.add('open');
+};
+
+window.editShopItem = function(id) {
+    const item = allShopItems.find(entry => entry.id === id);
+    if (!item) return;
+    document.getElementById('shop-item-modal-title').textContent = 'Edytuj produkt sklepu';
+    document.getElementById('shop-item-id').value = item.id;
+    document.getElementById('shop-item-type').value = item.type || 'ranga';
+    document.getElementById('shop-item-name').value = item.name || '';
+    document.getElementById('shop-item-desc').value = item.desc || '';
+    document.getElementById('shop-item-price').value = item.price ?? '';
+    document.getElementById('shop-item-old-price').value = item.oldPrice ?? '';
+    document.getElementById('shop-item-order').value = item.sortOrder ?? 99;
+    document.getElementById('shop-item-items').value = item.itemsText || '';
+    document.getElementById('shop-item-media-url').value = item.mediaUrl || '';
+    document.getElementById('shop-item-active').checked = item.active !== false;
+    const msg = document.getElementById('shop-item-msg');
+    if (msg) msg.style.display = 'none';
+    document.getElementById('shop-item-modal').classList.add('open');
+};
+
+window.saveShopItem = async function() {
+    if (!requirePermission('shop', 'zarządzanie sklepem')) return;
+    const id = document.getElementById('shop-item-id').value;
+    const name = document.getElementById('shop-item-name').value.trim();
+    const type = document.getElementById('shop-item-type').value;
+    if (!name) { showShopItemMsg('error', 'Podaj nazwę produktu.'); return; }
+    const data = {
+        type,
+        name,
+        desc: document.getElementById('shop-item-desc').value.trim(),
+        price: Number(document.getElementById('shop-item-price').value || 0),
+        oldPrice: Number(document.getElementById('shop-item-old-price').value || 0) || null,
+        sortOrder: parseInt(document.getElementById('shop-item-order').value || '99', 10),
+        itemsText: document.getElementById('shop-item-items').value.trim(),
+        mediaUrl: document.getElementById('shop-item-media-url').value.trim(),
+        active: document.getElementById('shop-item-active').checked,
+        updatedAt: serverTimestamp(),
+        updatedBy: currentUser?.displayName || 'Panel'
+    };
+    try {
+        if (id) {
+            await updateDoc(doc(db, 'shop_items', id), data);
+        } else {
+            data.createdAt = serverTimestamp();
+            await addDoc(collection(db, 'shop_items'), data);
+        }
+        showShopItemMsg('success', 'Produkt zapisany.');
+        await window.loadShopPage();
+        setTimeout(() => document.getElementById('shop-item-modal').classList.remove('open'), 1000);
+    } catch (e) {
+        showShopItemMsg('error', 'Błąd: ' + e.message);
+    }
+};
+
+window.deleteShopItem = async function(id, name) {
+    if (!requirePermission('shop', 'zarządzanie sklepem')) return;
+    if (!confirm(`Usunąć produkt "${name}"?`)) return;
+    try {
+        await deleteDoc(doc(db, 'shop_items', id));
+        showToast('success', `Usunięto produkt ${name}`);
+        await window.loadShopPage();
+    } catch (e) {
+        showToast('error', 'Błąd: ' + e.message);
+    }
+};
+
+function showShopItemMsg(type, text) {
+    const el = document.getElementById('shop-item-msg');
+    if (!el) return;
+    el.className = `modal-msg ${type}`;
+    el.innerHTML = text;
+    el.style.display = 'block';
+}
 
 const adminRoleSelect = document.getElementById('aa-role');
 if (adminRoleSelect) {
@@ -1512,15 +1803,17 @@ window.siteDeleteProposal = async function(id) {
 // ═══════════════════════════════════════════════════════════════════════
 
 function _extendedApplyPermissions() {
-    const isManager = hasPermission('all');
-
     const siteNav     = document.querySelector('.nav-btn[data-page="site"]');
+    const shopNav     = document.querySelector('.nav-btn[data-page="shop"]');
     const personelNav = document.querySelector('.nav-btn[data-page="personel"]');
     const adminsNav   = document.querySelector('.nav-btn[data-page="admins"]');
+    const permsNav    = document.querySelector('.nav-btn[data-page="permissions"]');
 
-    if (siteNav)     siteNav.style.display     = isManager ? '' : 'none';
-    if (personelNav) personelNav.style.display  = isManager ? '' : 'none';
-    if (adminsNav)   adminsNav.style.display    = isManager ? '' : 'none';
+    if (siteNav)     siteNav.style.display     = (hasPermission('site') || hasPermission('all')) ? '' : 'none';
+    if (shopNav)     shopNav.style.display     = (hasPermission('shop') || hasPermission('all')) ? '' : 'none';
+    if (personelNav) personelNav.style.display = hasPermission('all') ? '' : 'none';
+    if (adminsNav)   adminsNav.style.display   = (hasPermission('admins_manage') || hasPermission('all')) ? '' : 'none';
+    if (permsNav)    permsNav.style.display    = (hasPermission('permissions_manage') || hasPermission('all')) ? '' : 'none';
 }
 
 // Expose to window so inline scripts can call it if needed
