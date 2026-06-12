@@ -94,7 +94,7 @@ const PERMISSIONS_PL = {
 
     check: { label: 'Sprawdźzanie graczy', desc: 'Może wykonywać akcjęe kontrolne i sprawdzenia.' },
 
-    logs: { label: 'Podgląd logĂłw', desc: 'Może przeglądać historię akcjęi administracji.' },
+    logs: { label: 'Podgląd logów', desc: 'Może przeglądać historię akcjęi administracji.' },
 
     notes: { label: 'Notatki administracyjne', desc: 'Może dodawać notatkęi do graczy.' },
 
@@ -104,13 +104,13 @@ const PERMISSIONS_PL = {
 
     media_manage: { label: 'Zarządzanie mediami', desc: 'Może dodawać multimedia do stronąy i aktualno>ci.' },
 
-    evidence_view: { label: 'Podgląd załącznikĂłw', desc: 'Może otwierać dowody, linki i załączniki do kar.' },
+    evidence_view: { label: 'Podgląd załączników', desc: 'Może otwierać dowody, linki i załączniki do kar.' },
 
-    evidence_delete: { label: 'Usuńwanie załącznikĂłw', desc: 'Może usuwać załączniki z bazy plikĂłw.' },
+    evidence_delete: { label: 'Usuwanie załączników', desc: 'Może usuwać załączniki z bazy plików.' },
 
     permissions_manage: { label: 'Zarządzanie uprawnieniami', desc: 'Może edytować domy>lne uprawnienia rang.' },
 
-    admins_manage: { label: 'Zarządzanie administratorami', desc: 'Może dodawać i edytować konta administratorĂłw.' },
+    admins_manage: { label: 'Zarządzanie administratorami', desc: 'Może dodawać i edytować konta administratorów.' },
 
     all: { label: 'Pełny dostęp', desc: 'Ma pełny dostęp do całego panelu.' }
 
@@ -230,7 +230,7 @@ window.checkAlts = function(isApPage = false) {
 
 
 
-    // Usuńń poprzedni popup je>li byćł
+    // Usuńń poprzedni popup jeśli byćł
 
     document.getElementById('alts-popup-overlay')..remove();
 
@@ -350,7 +350,7 @@ window.addEventListener('adminLogin', async (e) => {
 
     } catch (err) {
 
-        console.warn('[CritMC] Firestore niedostępny, prĂłba fallback:', err.message);
+        console.warn('[CritMC] Firestore niedostępny, próba fallback:', err.message);
 
     }
 
@@ -2621,7 +2621,7 @@ window.submitNote = async function() {
 
         });
 
-        showNoteMsg('success', 'âś“ Notatka zapisana!');
+        showNoteMsg('success', '✓ Notatka zapisana!');
 
         showToast('success', `Notatka dodana do ${nick}`);
 
@@ -2775,7 +2775,7 @@ function renderAdminAccounts(list) {
 
                 <div style="display:flex;flex-wrap:wrap;gap:.3rem;">
 
-                    ${(a.permissions||[]).map(p => `<span class="badge badge-default" style="font-size:.68rem;" title="${PERMISSIONS_PL[p]ł.desc || p}">${permissionLabel(p)}</span>`).join('')}
+                    ${(a.permissions||[]).map(p => `<span class="badge badge-default" style="font-size:.68rem;" title="${PERMISSIONS_PL[p]?.desc || p}">${permissionLabel(p)}</span>`).join('')}
 
                 </div>
 
@@ -2919,7 +2919,7 @@ window.saveAdminAccount = async function() {
 
         }
 
-        showAaMsg('success', id ? 'âś“ Zaktualizowano!' : 'âś“ Konto utworzone!');
+        showAaMsg('success', id ? '✓ Zaktualizowano!' : '✓ Konto utworzone!');
 
         await window.loadAdminAccounts();
 
@@ -2939,7 +2939,7 @@ window.toggleAdminDisable = async function(id, disable) {
 
     const action = disable === 'true' ? 'zablokować' : 'odblokować';
 
-    if (!confirm(`Czy na pewno chcesz ${action} to kontoł`)) return;
+    if (!confirm(`Czy na pewno chcesz ${action} to konto?`)) return;
 
     try {
 
@@ -3205,9 +3205,9 @@ window.editShopItem = function(id) {
 
     document.getElementById('shop-item-desc').value = item.desc || '';
 
-    document.getElementById('shop-item-price').value = item.price ł?? '';
+    document.getElementById('shop-item-price').value = item.price ?? '';
 
-    document.getElementById('shop-item-old-price').value = item.oldPrice ł?? '';
+    document.getElementById('shop-item-old-price').value = item.oldPrice ?? '';
 
     document.getElementById('shop-item-order').value = item.sortOrder łł 99;
 
@@ -3245,7 +3245,7 @@ window.saveShopItem = async function() {
 
 
 
-    // Upload pliku do Backblaze je>li wybrany
+    // Upload pliku do Backblaze jeśli wybrany
 
     const fileInput = document.getElementById('shop-item-media-file');
 
@@ -3335,7 +3335,7 @@ window.saveShopItem = async function() {
 
         }
 
-        showShopItemMsg('success', 'âś“ Produkt zapisany!');
+        showShopItemMsg('success', '✓ Produkt zapisany!');
 
         await window.loadShopPage();
 
@@ -3363,13 +3363,13 @@ window.deleteShopItem = async function(id, name) {
 
     if (!requirePermission('shop', 'zarządzanie sklepem')) return;
 
-    if (!confirm(`Usuńnąć produkt "${name}"ł`)) return;
+    if (!confirm(`Usunąć produkt "${name}"?)) return;
 
     try {
 
         await deleteDoc(doc(db, 'shop_items', id));
 
-        showToast('success', `Usuńnięto produkt ${name}`);
+        showToast('success', `Usunięto produkt ${name}`);
 
         await window.loadShopPage();
 
@@ -3575,7 +3575,7 @@ window.saveCowowner = async function() {
 
         }});
 
-        showToast('success', 'WspĂłłwła>ciciel zapisany!');
+        showToast('success', 'Współwłaściciel zapisany!');
 
     } catch(e) { showToast('error', 'Błąd: ' + e.message); }
 
@@ -3759,7 +3759,7 @@ window.savePersonelMember = async function() {
 
         else { data.createdAt = serverTimestamp(); await addDoc(collection(db, 'personel'), data); }
 
-        showPmMsg('success', id ? 'âś“ Zaktualizowano!' : 'âś“ Dodano!');
+        showPmMsg('success', id ? '✓ Zaktualizowano!' : '✓ Dodano!');
 
         await _loadPersonelList();
 
@@ -3773,13 +3773,13 @@ window.savePersonelMember = async function() {
 
 window.deletePersonelMember = async function(id, nick) {
 
-    if (!confirm(`Usuńnąć ${nick} z personeluł`)) return;
+    if (!confirm(`Usunąć ${nick} z personelu?`)) return;
 
     try {
 
         await deleteDoc(doc(db, 'personel', id));
 
-        showToast('success', `Usuńnięto ${nick}`);
+        showToast('success', `Usunięto ${nick}`);
 
         await _loadPersonelList();
 
@@ -3837,7 +3837,7 @@ function renderCreatorsTable(list) {
 
     if (!tb) return;
 
-    if (!list.length) { tb.innerHTML = `<tr><td colspan="5" class="table-empty">Brak twĂłrcĂłw.</td></tr>`; return; }
+    if (!list.length) { tb.innerHTML = `<tr><td colspan="5" class="table-empty">Brak twórców.</td></tr>`; return; }
 
     tb.innerHTML = list.map(c => {
 
@@ -3879,7 +3879,7 @@ function renderCreatorsTable(list) {
 
 window.openCreatorModal = function() {
 
-    document.getElementById('creator-modal-title').textContent = 'Dodaj twĂłrcę';
+    document.getElementById('creator-modal-title').textContent = 'Dodaj twórcę';
 
     document.getElementById('cm-id').value = '';
 
@@ -3899,7 +3899,7 @@ window.editCreator = function(id) {
 
     if (!c) return;
 
-    document.getElementById('creator-modal-title').textContent = 'Edytuj twĂłrcę';
+    document.getElementById('creator-modal-title').textContent = 'Edytuj twórcę';
 
     document.getElementById('cm-id').value = id;
 
@@ -3945,7 +3945,7 @@ window.saveCreator = async function() {
 
         else { data.createdAt = serverTimestamp(); await addDoc(collection(db, 'creators'), data); }
 
-        showCmMsg('success', id ? 'âś“ Zaktualizowano!' : 'âś“ Dodano!');
+        showCmMsg('success', id ? '✓ Zaktualizowano!' : '✓ Dodano!');
 
         await _loadCreatorsList();
 
@@ -3959,13 +3959,13 @@ window.saveCreator = async function() {
 
 window.deleteCreator = async function(id, nick) {
 
-    if (!confirm(`Usuńnąć ${nick} z twĂłrcĂłwł`)) return;
+    if (!confirm(`Usunąć ${nick} z twórców?`)) return;
 
     try {
 
         await deleteDoc(doc(db, 'creators', id));
 
-        showToast('success', `Usuńnięto ${nick}`);
+        showToast('success', `Usunięto ${nick}`);
 
         await _loadCreatorsList();
 
@@ -4111,7 +4111,7 @@ async function siteLoadContestList() {
 
         sel.innerHTML = ids.map(id => `<option value="${id}">${id}</option>`).join('');
 
-        // Zachowaj poprzedni wybĂłr je>li nadal istnieje
+        // Zachowaj poprzedni wybór jeśli nadal istnieje
 
         if (previousVal && ids.includes(previousVal)) {
 
@@ -4147,7 +4147,7 @@ window.siteNewContest = async function() {
 
     if (!id || !id.trim()) return;
 
-    const contestId = id.trim().replace(/[\/\\ł#\[\]]+/g, '-').replace(/\s+/g, '-');
+    const contestId = id.trim().replace(/[\/\\?#\[\]]+/g, '-').replace(/\s+/g, '-');
 
     if (!contestId) {
 
@@ -4377,7 +4377,7 @@ window.siteUpdateContest = async function() {
 
         await siteLoadContestInfo();
 
-        showSiteContestMsg('âś“ Zapisano!', '#00e676');
+        showSiteContestMsg('✓ Zapisano!', '#00e676');
 
     } catch(e) { showSiteContestMsg('Błąd: ' + e.message, '#ef4444'); }
 
@@ -4397,9 +4397,9 @@ window.siteAnnounceWinners = async function() {
 
     const winners = [...inputs].map(i => i.value.trim()).filter(Boolean);
 
-    if (!winners.length) { showSiteContestMsg('Wpisz nicki zwycięzcĂłw!', '#ef4444'); return; }
+    if (!winners.length) { showSiteContestMsg('Wpisz nicki zwycięzców!', '#ef4444'); return; }
 
-    if (!confirm('Ogłosić zwycięzcĂłw: ' + winners.join(', ') + 'ł')) return;
+    if (!confirm('Ogłosić zwycięzców: ' + winners.join(', ') + '?')) return;
 
     try {
 
@@ -4419,7 +4419,7 @@ window.siteAnnounceWinners = async function() {
 
         await siteLoadContestInfo();
 
-        showSiteContestMsg('âś“ Zwycięzcy ogłoszeni!', '#00e676');
+        showSiteContestMsg('✓ Zwycięzcy ogłoszeni!', '#00e676');
 
     } catch(e) { showSiteContestMsg('Błąd: ' + e.message, '#ef4444'); }
 
@@ -4435,7 +4435,7 @@ window.siteEndContest = async function() {
 
     const contestId = _currentContestId();
 
-    if (!confirm('Zakończyć konkurs bez wynikĂłwł')) return;
+    if (!confirm('Zakończyć konkurs bez wyników?')) return;
 
     try {
 
@@ -4463,7 +4463,7 @@ window.siteDeleteContest = async function() {
 
     const contestId = _currentContestId();
 
-    if (!confirm(`USUNĄĆ konkurs "${contestId}"ł Tej operacji nie można cofnąć!`)) return;
+    if (!confirm(`USUNĄĆ konkurs "${contestId}"? Tej operacji nie można cofnąć!`)) return;
 
     try {
 
@@ -4475,7 +4475,7 @@ window.siteDeleteContest = async function() {
 
         showSiteContestMsg('Konkurs usunąćięty.', '#ef4444');
 
-        showToast('success', `Usuńnięto konkurs "${contestId}"`);
+        showToast('success', `Usunięto konkurs "${contestId}"`);
 
         await siteLoadContestList();
 
@@ -4505,7 +4505,7 @@ window.siteRestartContest = async function() {
 
     const contestId = _currentContestId();
 
-    if (!confirm('Zresetować konkurs (usunąćąć uczestnikĂłw i ustawić aktywny)ł')) return;
+    if (!confirm('Zresetować konkurs (usunąćąć uczestników i ustawić aktywny)?')) return;
 
     try {
 
@@ -4527,7 +4527,7 @@ window.siteRestartContest = async function() {
 
         await siteLoadContestInfo();
 
-        showSiteContestMsg('âś“ Konkurs zresetowany!', '#00e676');
+        showSiteContestMsg('✓ Konkurs zresetowany!', '#00e676');
 
         await siteLoadEntries();
 
@@ -4575,7 +4575,7 @@ window.siteLoadEntries = async function() {
 
         if (cntEl) cntEl.textContent = `(${entries.length})`;
 
-        if (!entries.length) { tb.innerHTML = `<tr><td colspan="5" class="table-empty">Brak uczestnikĂłw.</td></tr>`; return; }
+        if (!entries.length) { tb.innerHTML = `<tr><td colspan="5" class="table-empty">Brak uczestników.</td></tr>`; return; }
 
         tb.innerHTML = entries.map(e => `
 
@@ -4605,7 +4605,7 @@ window.siteRemoveEntry = async function(nick) {
 
     const contestId = _currentContestId();
 
-    if (!confirm(`Usuńnąć ${nick} z konkursuł`)) return;
+    if (!confirm(`Usunąć ${nick} z konkursu?`)) return;
 
     try {
 
@@ -4617,7 +4617,7 @@ window.siteRemoveEntry = async function(nick) {
 
         if (snap.exists()) await updateDoc(ref, { participants: Math.max(0, (snap.data().participants||1) - 1) });
 
-        showToast('success', `Usuńnięto ${nick}`);
+        showToast('success', `Usunięto ${nick}`);
 
         await siteLoadEntries();
 
@@ -4679,7 +4679,7 @@ window.siteSaveChanges = async function() {
 
         await setDoc(doc(db, 'server_content', 'changes'), vals);
 
-        if (msgEl) { msgEl.textContent = 'âś“ Opublikowano!'; msgEl.style.color = '#00e676'; setTimeout(() => { msgEl.textContent = ''; }, 3000); }
+        if (msgEl) { msgEl.textContent = '✓ Opublikowano!'; msgEl.style.color = '#00e676'; setTimeout(() => { msgEl.textContent = ''; }, 3000); }
 
         showToast('success', 'Zmieńany serwerowe opublikowane!');
 
@@ -4743,9 +4743,9 @@ window.siteSaveMedia = async function() {
 
         await setDoc(doc(db, 'server_content', 'media'), vals);
 
-        if (msgEl) { msgEl.textContent = 'âś“ Zapisano!'; msgEl.style.color = '#00e676'; setTimeout(() => { msgEl.textContent = ''; }, 2500); }
+        if (msgEl) { msgEl.textContent = '✓ Zapisano!'; msgEl.style.color = '#00e676'; setTimeout(() => { msgEl.textContent = ''; }, 2500); }
 
-        showToast('success', 'Linki mediĂłw zapisane!');
+        showToast('success', 'Linki mediów zapisane!');
 
     } catch(e) {
 
@@ -4809,7 +4809,7 @@ window.siteLoadProposals = async function() {
 
 window.siteDeleteProposal = async function(id) {
 
-    if (!confirm('Usuńnąć tę propozycjęł')) return;
+    if (!confirm('Usunąć tę propozycję?')) return;
 
     try {
 
