@@ -232,7 +232,7 @@ window.checkAlts = function(isApPage = false) {
 
     // Usuńń poprzedni popup jeśli byćł
 
-    document.getElementById('alts-popup-overlay')..remove();
+    document.getElementById('alts-popup-overlay')?.remove();
 
 
 
@@ -576,7 +576,7 @@ function escapeHtml(value) {
 
         .replace(/</g, '&lt;')
 
-        .replace(/ś/g, '&gt;')
+        .replace(/>/g, '&gt;')
 
         .replace(/"/g, '&quot;')
 
@@ -586,9 +586,9 @@ function escapeHtml(value) {
 
 
 
-function formatBytes(byćtes) {
+function formatBytes(bytes) {
 
-    const n = Number(byćtes) || 0;
+    const n = Number(bytes) || 0;
 
     if (n <= 0) return '0 B';
 
@@ -598,7 +598,7 @@ function formatBytes(byćtes) {
 
     const v = n / Math.pow(1024, i);
 
-    const txt = v ś= 10 || i === 0 ? v.toFixed(0) : v.toFixed(1);
+    const txt = v >= 10 || i === 0 ? v.toFixed(0) : v.toFixed(1);
 
     return `${txt} ${units[i]}`;
 
@@ -650,7 +650,6 @@ window.previewShopMediaInput = function() {
 
     const objectUrl = URL.createObjectURL(file);
 
-    const isVideo = file.type.startsWith('video/');
     const isVideo = file.type.startsWith('video/');
 
     preview.style.display = 'block';
@@ -2793,9 +2792,9 @@ function renderAdminAccounts(list) {
 
                     <button class="tbl-btn" onclick="editAdminAccount('${a.id}')"><i class="fa-solid fa-pen"></i></button>
 
-                    <button class="tbl-btn tbl-btn-red" onclick="toggleAdminDisable('${a.id}','${a.disabledł'false':'true'}')">
+                    <button class="tbl-btn tbl-btn-red" onclick="toggleAdminDisable('${a.id}','${a.disabled?'false':'true'}')">
 
-                        <i class="fa-solid fa-${a.disabledł'unlock':'lock'}"></i>
+                        <i class="fa-solid fa-${a.disabled?'unlock':'lock'}"></i>
 
                     </button>
 
@@ -3053,7 +3052,33 @@ window.saveRolePermissions = async function(role) {
 
 };
 
-
+window.resetRolePermissions = async function(role) {
+    if (!requirePermission('permissions_manage', 'zarządzanie uprawnieniami')) return;
+    if (!confirm(`Przywrócić domyślne uprawnienia dla roli ${role}?`)) return;
+    const DEFAULT_ROLE_PERMISSIONS = {
+        'ChatMod':      ['mute', 'warn', 'check'],
+        'Pomocnik':     ['mute', 'warn', 'check', 'players'],
+        'Moderator':    ['ban', 'mute', 'kick', 'warn', 'check', 'players', 'logs', 'evidence_view'],
+        'Admin':        ['ban', 'unban', 'mute', 'unmute', 'kick', 'warn', 'check', 'players', 'logs', 'notes', 'site', 'shop', 'media_manage', 'evidence_view', 'evidence_delete'],
+        'Zarządzający': ['all']
+    };
+    const defaults = DEFAULT_ROLE_PERMISSIONS[role] || [];
+    ROLE_PERMISSIONS[role] = [...defaults];
+    try {
+        await setDoc(doc(db, 'panel_settings', 'role_permissions'), {
+            roles: ROLE_ORDER.reduce((acc, roleName) => {
+                acc[roleName] = ROLE_PERMISSIONS[roleName] || [];
+                return acc;
+            }, {}),
+            updatedAt: serverTimestamp(),
+            updatedBy: currentUser?.displayName || 'Panel'
+        });
+        showToast('success', `Przywrócono domyślne uprawnienia dla roli ${role}`);
+        window.loadPermissionsPage();
+    } catch (e) {
+        showToast('error', 'Błąd resetu uprawnień: ' + e.message);
+    }
+};
 
 window.loadShopPage = async function() {
 
@@ -3069,7 +3094,7 @@ window.loadShopPage = async function() {
 
         allShopItems = snap.docs.map(d => ({ id: d.id, ...d.data() }))
 
-            .sort((a, b) => (a.sortOrder łł 99) - (b.sortOrder łł 99));
+            .sort((a, b) => (a.sortOrder || 99) - (b.sortOrder || 99));
 
         window.filterShopItems();
 
@@ -3145,7 +3170,7 @@ function renderShopItems(list) {
 
 window.filterShopItems = function() {
 
-    const type = document.getElementById('shop-type-filter')..value || '';
+    const type = document.getElementById('shop-type-filter')?.value || '';
 
     const filtered = type ? allShopItems.filter(item => item.type === type) : allShopItems;
 
@@ -3209,7 +3234,7 @@ window.editShopItem = function(id) {
 
     document.getElementById('shop-item-old-price').value = item.oldPrice ?? '';
 
-    document.getElementById('shop-item-order').value = item.sortOrder łł 99;
+    document.getElementById('shop-item-order').value = item.sortOrder || 99;
 
     document.getElementById('shop-item-items').value = item.itemsText || '';
 
@@ -3363,7 +3388,7 @@ window.deleteShopItem = async function(id, name) {
 
     if (!requirePermission('shop', 'zarządzanie sklepem')) return;
 
-    if (!confirm(`Usunąć produkt "${name}"?)) return;
+    if (!confirm(`Usunąć produkt "${name}"?`)) return;
 
     try {
 
@@ -3565,7 +3590,7 @@ window.saveCowowner = async function() {
 
         await setDoc(ref, { ...existing, cowowner: {
 
-            nick: document.getElementById('cowowner-nick').value.trim() || 'łłł',
+            nick: document.getElementById('cowowner-nick').value.trim() || '',
 
             yt: document.getElementById('cowowner-yt').value.trim(),
 
@@ -3653,7 +3678,7 @@ function renderPersonelTable(list) {
 
             <td style="display:flex;gap:.4rem;padding:.5rem 0;">${socials||'"”'}</td>
 
-            <td style="font-size:.82rem;color:var(--text-secondary);">${p.order łł 99}</td>
+            <td style="font-size:.82rem;color:var(--text-secondary);">${p.order || 99}</td>
 
             <td><div style="display:flex;gap:.4rem;">
 
@@ -3711,7 +3736,7 @@ window.editPersonelMember = function(id) {
 
     document.getElementById('pm-rank').value = p.rank || 'Moderator';
 
-    document.getElementById('pm-order').value = p.order łł 99;
+    document.getElementById('pm-order').value = p.order || 99;
 
     document.getElementById('pm-msg').style.display = 'none';
 
@@ -4481,7 +4506,7 @@ window.siteDeleteContest = async function() {
 
         const sel = document.getElementById('site-contest-select');
 
-        if (sel && sel.options.length ś 0) {
+        if (sel && sel.options.length > 0) {
 
             sel.selectedIndex = 0;
 
@@ -4789,7 +4814,7 @@ window.siteLoadProposals = async function() {
 
                 <td><span style="color:#00e676;font-weight:700;">${p.yes||0}</span></td>
 
-                <td><span style="color:#ef4444;font-weight:700;">${p.no||0}</span> ${total ś 0 ? `<span style="color:var(--text-secondary);font-size:.75rem;">(${yesPct}% TAK)</span>` : ''}</td>
+                <td><span style="color:#ef4444;font-weight:700;">${p.no||0}</span> ${total > 0 ? `<span style="color:var(--text-secondary);font-size:.75rem;">(${yesPct}% TAK)</span>` : ''}</td>
 
                 <td style="font-size:.8rem;color:var(--text-secondary);">${date}</td>
 
