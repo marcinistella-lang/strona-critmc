@@ -15,10 +15,12 @@ const app = initializeApp({
     appId: "1:674591154096:web:fee55d9cf1c83dcfbe8075"
 });
 const db = getFirestore(app);
+const FILE_WORKER_URL = "https://critmc-b2-files.marcinstella.workers.dev";
 
 // ─── Stan ─────────────────────────────────────────────────────────────
 let currentUser = null;
 let allPlayers = [], allBans = [], allMutes = [], allLogs = [];
+let allFiles = [];
 
 // ─── Domyślne konta (fallback gdy Firestore puste) ───────────────────
 const DEFAULT_ACCOUNTS = [
@@ -27,9 +29,9 @@ const DEFAULT_ACCOUNTS = [
 
 // ─── Uprawnienia per ranga ────────────────────────────────────────────
 const ROLE_PERMISSIONS = {
-    'ChatMod':      ['mute', 'unmute', 'warn', 'check'],
+    'ChatMod':      ['mute', 'warn', 'check'],
     'Pomocnik':     ['mute', 'warn', 'check', 'players'],
-    'Moderator':    ['ban', 'mute', 'unmute', 'kick', 'warn', 'check', 'players', 'logs', 'evidence_view'],
+    'Moderator':    ['ban', 'mute', 'kick', 'warn', 'check', 'players', 'logs', 'evidence_view'],
     'Admin':        ['ban', 'unban', 'mute', 'unmute', 'kick', 'warn', 'check', 'players', 'logs', 'notes', 'site', 'shop', 'media_manage', 'evidence_view'],
     'Zarządzający': ['all']
 };
@@ -180,6 +182,8 @@ function applyPermissions() {
     if (adminsNav) adminsNav.style.display = (hasPermission('all') || hasPermission('admins_manage')) ? '' : 'none';
     const logsNav = document.querySelector('.nav-btn[data-page="logs"]');
     if (logsNav) logsNav.style.display = hasPermission('logs') ? '' : 'none';
+    const filesNav = document.querySelector('.nav-btn[data-page="files"]');
+    if (filesNav) filesNav.style.display = (hasPermission('evidence_view') || hasPermission('all')) ? '' : 'none';
     const siteNav = document.querySelector('.nav-btn[data-page="site"]');
     if (siteNav) siteNav.style.display = (hasPermission('site') || hasPermission('all')) ? '' : 'none';
     const shopNav = document.querySelector('.nav-btn[data-page="shop"]');
@@ -229,6 +233,128 @@ function formatDate(val) {
     else d = new Date(val);
     if (isNaN(d)) return '—';
     return d.toLocaleString('pl-PL', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+}
+
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function formatBytes(bytes) {
+    const n = Number(bytes) || 0;
+    if (n <= 0) return '0 B';
+    const units = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.min(Math.floor(Math.log(n) / Math.log(1024)), units.length - 1);
+    const v = n / Math.pow(1024, i);
+    const txt = v >= 10 || i === 0 ? v.toFixed(0) : v.toFixed(1);
+    return `${txt} ${units[i]}`;
+}
+
+window.openAttachmentUrl = function(encodedUrl) {
+    const url = decodeURIComponent(encodedUrl || '');
+    if (!url) return;
+    window.open(url, '_blank', 'noopener');
+};
+
+window.showAttachmentText = function(encodedText) {
+    const text = decodeURIComponent(encodedText || '');
+    if (!text) return;
+    alert(text);
+};
+
+function renderAttachmentCell(attachment) {
+    if (!attachment || !attachment.type) return `<span style="color:var(--text-secondary);">—</span>`;
+
+    if (attachment.type === 'link' && attachment.url) {
+        return `<button class="tbl-btn" onclick="openAttachmentUrl('${encodeURIComponent(attachment.url)}')" title="Otwórz link">
+            <i class="fa-solid fa-link"></i>
+        </button>`;
+    }
+
+    if (attachment.type === 'text' && attachment.text) {
+        const short = attachment.text.length > 24 ? attachment.text.slice(0, 24) + '…' : attachment.text;
+        return `<button class="tbl-btn" onclick="showAttachmentText('${encodeURIComponent(attachment.text)}')" title="Pokaż treść">
+            <i class="fa-solid fa-note-sticky"></i> ${escapeHtml(short)}
+        </button>`;
+    }
+
+    if (attachment.type === 'file') {
+        if (attachment.url) {
+            const label = escapeHtml(attachment.fileName || 'plik');
+            return `<button class="tbl-btn" onclick="openAttachmentUrl('${encodeURIComponent(attachment.url)}')" title="Otwórz plik">
+                <i class="fa-solid fa-paperclip"></i> ${label}
+            </button>`;
+        }
+        if (attachment.provider === 'b2' || attachment.fileKey) {
+            const label = escapeHtml(attachment.fileName || 'plik B2');
+            return `<span class="tbl-btn" title="${escapeHtml(attachment.fileKey || 'Backblaze B2')}">
+                <i class="fa-solid fa-paperclip"></i> ${label}
+            </span>`;
+        }
+        return `<span style="color:var(--text-secondary);font-size:.82rem;">${escapeHtml(attachment.status || 'brak')}</span>`;
+    }
+
+    return `<span style="color:var(--text-secondary);">—</span>`;
+}
+
+async function uploadEvidenceFile(file, meta) {
+    if (!file) throw new Error('Brak pliku do wyslania');
+
+    const admin = meta?.admin || currentUser?.displayName || 'Panel';
+    const player = meta?.player || '';
+    const action = meta?.action || '';
+    const reason = meta?.reason || '';
+
+    const form = new FormData();
+    form.append('file', file);
+    form.append('player', player);
+    form.append('action', action);
+    form.append('reason', reason);
+    form.append('admin', admin);
+
+    const res = await fetch(`${FILE_WORKER_URL}/upload/evidence`, {
+        method: 'POST',
+        body: form
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok || !data?.ok || !data?.file) {
+        throw new Error(data?.error || 'Nie udalo sie wyslac pliku do Backblaze');
+    }
+
+    const uploaded = data.file;
+    const fileRefDoc = await addDoc(collection(db, 'files'), {
+        kind: 'evidence',
+        provider: 'b2',
+        bucket: uploaded.bucket,
+        fileKey: uploaded.fileKey,
+        b2FileId: uploaded.b2FileId,
+        originalName: uploaded.fileName || file.name,
+        mimeType: uploaded.mimeType || file.type || 'application/octet-stream',
+        size: uploaded.size || file.size || 0,
+        uploadedAt: serverTimestamp(),
+        uploadedBy: admin,
+        player,
+        action,
+        reason,
+        status: 'ready'
+    });
+
+    return {
+        type: 'file',
+        provider: 'b2',
+        fileId: fileRefDoc.id,
+        fileName: uploaded.fileName || file.name,
+        mimeType: uploaded.mimeType || file.type || 'application/octet-stream',
+        size: uploaded.size || file.size || 0,
+        bucket: uploaded.bucket,
+        fileKey: uploaded.fileKey,
+        b2FileId: uploaded.b2FileId,
+        status: 'ready'
+    };
 }
 
 function rankBadge(rank) {
@@ -313,7 +439,7 @@ async function loadBans() {
 
 function renderBans(list) {
     const tb = document.getElementById('bans-tbody');
-    if (!list.length) { tb.innerHTML = `<tr><td colspan="6" class="table-empty"><i class="fa-solid fa-check-circle" style="color:var(--accent-green)"></i> Brak aktywnych banów</td></tr>`; return; }
+    if (!list.length) { tb.innerHTML = `<tr><td colspan="7" class="table-empty"><i class="fa-solid fa-check-circle" style="color:var(--accent-green)"></i> Brak aktywnych banów</td></tr>`; return; }
     tb.innerHTML = list.map(b => `
         <tr>
             <td><div class="player-cell">${head(b.player)}<div class="player-name">${b.player}</div></div></td>
@@ -321,7 +447,12 @@ function renderBans(list) {
             <td><span style="font-weight:700;">${b.bannedBy||'—'}</span></td>
             <td style="font-size:.82rem;color:var(--text-secondary);">${formatDate(b.date)}</td>
             <td>${b.duration==='permanent'?`<span class="badge badge-action-ban">Permanentny</span>`:`<span style="font-size:.82rem;">${b.duration||'—'}</span>`}</td>
-            <td><button class="tbl-btn tbl-btn-green" onclick="quickUnban('${b.player}','${b.id}')"><i class="fa-solid fa-check"></i> Unban</button></td>
+            <td>${renderAttachmentCell(b.attachment)}</td>
+            <td><div style="display:flex;gap:.4rem;flex-wrap:wrap;">
+                <button class="tbl-btn" onclick="viewBanDetails('${b.id}')"><i class="fa-solid fa-eye"></i> Zobacz</button>
+                <button class="tbl-btn" onclick="openEditBanModal('${b.id}')"><i class="fa-solid fa-pen"></i> Edytuj</button>
+                <button class="tbl-btn tbl-btn-green" onclick="quickUnban('${b.player}','${b.id}')"><i class="fa-solid fa-check"></i> Unban</button>
+            </div></td>
         </tr>`).join('');
 }
 
@@ -334,6 +465,194 @@ window.filterBans = function() {
         if (t === 'temporary' && b.duration === 'permanent') return false;
         return true;
     }));
+};
+
+function banById(banId) {
+    return allBans.find(b => b.id === banId) || null;
+}
+
+function toDatetimeLocalValue(value) {
+    let d;
+    if (value instanceof Timestamp) d = value.toDate();
+    else if (value?.seconds) d = new Date(value.seconds * 1000);
+    else if (value) d = new Date(value);
+    else d = new Date();
+    if (isNaN(d)) d = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function datetimeLocalToDate(value) {
+    if (!value) return null;
+    const d = new Date(value);
+    return isNaN(d) ? null : d;
+}
+
+function attachmentSummary(attachment) {
+    if (!attachment || !attachment.type) return 'Brak';
+    if (attachment.type === 'link') return attachment.url || 'Link';
+    if (attachment.type === 'text') return attachment.text || 'Notatka';
+    if (attachment.type === 'file') return attachment.fileName || attachment.fileKey || 'Plik';
+    return attachment.type;
+}
+
+function ensureBanModals() {
+    if (document.getElementById('ban-detail-modal')) return;
+
+    const wrap = document.createElement('div');
+    wrap.innerHTML = `
+        <div class="modal-overlay" id="ban-detail-modal" onclick="closeModal(event)">
+            <div class="modal-box" style="max-width:720px;">
+                <div class="modal-header">
+                    <div class="modal-title">Szczegoly bana</div>
+                    <button class="modal-close" onclick="document.getElementById('ban-detail-modal').classList.remove('open')"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div class="modal-body" id="ban-detail-body"></div>
+            </div>
+        </div>
+        <div class="modal-overlay" id="ban-edit-modal" onclick="closeModal(event)">
+            <div class="modal-box" style="max-width:760px;">
+                <div class="modal-header">
+                    <div class="modal-title">Edytuj bana</div>
+                    <button class="modal-close" onclick="document.getElementById('ban-edit-modal').classList.remove('open')"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="ban-edit-id">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+                        <div class="modal-field"><label>Gracz</label><input type="text" id="ban-edit-player"></div>
+                        <div class="modal-field"><label>Nadany przez</label><input type="text" id="ban-edit-by"></div>
+                    </div>
+                    <div class="modal-field"><label>Powod</label><input type="text" id="ban-edit-reason"></div>
+                    <div class="modal-field"><label>Opis / notatka</label><textarea id="ban-edit-description" rows="3" style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg-card);outline:none;font-family:var(--font);resize:vertical;"></textarea></div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+                        <div class="modal-field"><label>Czas bana</label><input type="text" id="ban-edit-duration" placeholder="permanent, 7d, 12h..."></div>
+                        <div class="modal-field"><label>Data i godzina nadania</label><input type="datetime-local" id="ban-edit-date"></div>
+                    </div>
+                    <div class="modal-field">
+                        <label>Zalacznik</label>
+                        <select id="ban-edit-attachment-type" style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.92rem;color:var(--text-primary);background:var(--bg-card);outline:none;font-family:var(--font);margin-bottom:.6rem;" onchange="toggleActionAttachmentFields('ban-edit')">
+                            <option value="">Bez zmian</option>
+                            <option value="remove">Usun zalacznik</option>
+                            <option value="link">Nowy link</option>
+                            <option value="text">Nowa notatka</option>
+                            <option value="file">Nowy plik Backblaze</option>
+                        </select>
+                        <input type="text" id="ban-edit-attachment-link" placeholder="https://..." style="display:none;width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.92rem;color:var(--text-primary);background:var(--bg-card);outline:none;font-family:var(--font);margin-bottom:.6rem;">
+                        <textarea id="ban-edit-attachment-text" rows="3" placeholder="Tresc notatki..." style="display:none;width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg-card);outline:none;font-family:var(--font);resize:vertical;margin-bottom:.6rem;"></textarea>
+                        <input type="file" id="ban-edit-attachment-file" accept="image/*,video/*,.zip,.rar,.7z,.txt,.pdf" style="display:none;width:100%;padding:.55rem .7rem;border:1.5px dashed var(--border);border-radius:var(--radius-sm);font-size:.88rem;color:var(--text-primary);background:var(--bg-card);outline:none;font-family:var(--font);margin-bottom:.45rem;">
+                        <div id="ban-edit-current-attachment" style="font-size:.78rem;color:var(--text-secondary);"></div>
+                    </div>
+                    <div id="ban-edit-msg" class="modal-msg" style="display:none;"></div>
+                    <button class="modal-submit-btn" onclick="saveEditedBan()"><i class="fa-solid fa-floppy-disk"></i> Zapisz zmiany</button>
+                </div>
+            </div>
+        </div>`;
+    Array.from(wrap.children).forEach(el => document.body.appendChild(el));
+}
+
+window.viewBanDetails = function(banId) {
+    const b = banById(banId);
+    if (!b) { showToast('error', 'Nie znaleziono bana.'); return; }
+    ensureBanModals();
+    const body = document.getElementById('ban-detail-body');
+    body.innerHTML = `
+        <div class="modal-player-info">${head(b.player)}<div><div style="font-weight:800;">${escapeHtml(b.player || 'Brak gracza')}</div><div style="font-size:.78rem;color:var(--text-secondary);">ID: ${escapeHtml(b.id)}</div></div></div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.8rem;">
+            <div><label style="font-size:.72rem;color:var(--text-secondary);font-weight:800;text-transform:uppercase;">Powod</label><div>${escapeHtml(b.reason || 'Brak')}</div></div>
+            <div><label style="font-size:.72rem;color:var(--text-secondary);font-weight:800;text-transform:uppercase;">Przez kogo</label><div>${escapeHtml(b.bannedBy || 'Brak')}</div></div>
+            <div><label style="font-size:.72rem;color:var(--text-secondary);font-weight:800;text-transform:uppercase;">Data</label><div>${formatDate(b.date)}</div></div>
+            <div><label style="font-size:.72rem;color:var(--text-secondary);font-weight:800;text-transform:uppercase;">Czas</label><div>${escapeHtml(b.duration || 'Brak')}</div></div>
+            <div><label style="font-size:.72rem;color:var(--text-secondary);font-weight:800;text-transform:uppercase;">UUID</label><div>${escapeHtml(b.uuid || 'Brak')}</div></div>
+            <div><label style="font-size:.72rem;color:var(--text-secondary);font-weight:800;text-transform:uppercase;">Zalacznik</label><div>${escapeHtml(attachmentSummary(b.attachment))}</div></div>
+        </div>
+        <div><label style="font-size:.72rem;color:var(--text-secondary);font-weight:800;text-transform:uppercase;">Opis / notatka</label><div style="white-space:pre-wrap;">${escapeHtml(b.description || b.note || 'Brak')}</div></div>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+            ${b.attachment ? renderAttachmentCell(b.attachment) : ''}
+            <button class="tbl-btn" onclick="document.getElementById('ban-detail-modal').classList.remove('open');openEditBanModal('${b.id}')"><i class="fa-solid fa-pen"></i> Edytuj</button>
+        </div>`;
+    document.getElementById('ban-detail-modal').classList.add('open');
+};
+
+window.openEditBanModal = function(banId) {
+    const b = banById(banId);
+    if (!b) { showToast('error', 'Nie znaleziono bana.'); return; }
+    if (!requirePermission('ban', 'edycja bana')) return;
+    ensureBanModals();
+    document.getElementById('ban-edit-id').value = b.id;
+    document.getElementById('ban-edit-player').value = b.player || '';
+    document.getElementById('ban-edit-by').value = b.bannedBy || '';
+    document.getElementById('ban-edit-reason').value = b.reason || '';
+    document.getElementById('ban-edit-description').value = b.description || b.note || '';
+    document.getElementById('ban-edit-duration').value = b.duration || '';
+    document.getElementById('ban-edit-date').value = toDatetimeLocalValue(b.date);
+    document.getElementById('ban-edit-attachment-type').value = '';
+    document.getElementById('ban-edit-attachment-link').value = '';
+    document.getElementById('ban-edit-attachment-text').value = '';
+    document.getElementById('ban-edit-attachment-file').value = '';
+    document.getElementById('ban-edit-current-attachment').textContent = `Obecny: ${attachmentSummary(b.attachment)}`;
+    document.getElementById('ban-edit-msg').style.display = 'none';
+    window.toggleActionAttachmentFields('ban-edit');
+    document.getElementById('ban-edit-modal').classList.add('open');
+};
+
+window.saveEditedBan = async function() {
+    const banId = document.getElementById('ban-edit-id')?.value;
+    const b = banById(banId);
+    if (!b) { showToast('error', 'Nie znaleziono bana.'); return; }
+    if (!requirePermission('ban', 'edycja bana')) return;
+    const msg = document.getElementById('ban-edit-msg');
+    const showEditMsg = (type, text) => {
+        if (!msg) return;
+        msg.className = `modal-msg ${type}`;
+        msg.textContent = text;
+        msg.style.display = 'block';
+    };
+
+    try {
+        const date = datetimeLocalToDate(document.getElementById('ban-edit-date').value);
+        const updates = {
+            player: document.getElementById('ban-edit-player').value.trim(),
+            bannedBy: document.getElementById('ban-edit-by').value.trim(),
+            reason: document.getElementById('ban-edit-reason').value.trim(),
+            description: document.getElementById('ban-edit-description').value.trim(),
+            duration: document.getElementById('ban-edit-duration').value.trim(),
+            editedAt: serverTimestamp(),
+            editedBy: currentUser?.displayName || 'Admin'
+        };
+        if (date) updates.date = Timestamp.fromDate(date);
+
+        const attachmentMode = document.getElementById('ban-edit-attachment-type').value;
+        if (attachmentMode === 'remove') {
+            updates.attachment = null;
+        } else if (attachmentMode === 'link') {
+            const url = document.getElementById('ban-edit-attachment-link').value.trim();
+            if (!url) throw new Error('Podaj link zalacznika.');
+            updates.attachment = { type: 'link', url };
+        } else if (attachmentMode === 'text') {
+            const text = document.getElementById('ban-edit-attachment-text').value.trim();
+            if (!text) throw new Error('Podaj tresc notatki.');
+            updates.attachment = { type: 'text', text };
+        } else if (attachmentMode === 'file') {
+            const file = document.getElementById('ban-edit-attachment-file').files?.[0];
+            if (!file) throw new Error('Wybierz plik.');
+            showEditMsg('success', 'Wysylam plik do Backblaze...');
+            updates.attachment = await uploadEvidenceFile(file, {
+                player: updates.player,
+                action: 'ban',
+                reason: updates.reason,
+                admin: currentUser?.displayName || 'Panel'
+            });
+        }
+
+        await updateDoc(doc(db, 'bans', banId), updates);
+        await logAction('edit-ban', updates.player || b.player, currentUser?.displayName || 'Admin', 'Edytowano bana', updates.duration || '---', { banId });
+        showToast('success', 'Ban zapisany.');
+        document.getElementById('ban-edit-modal').classList.remove('open');
+        await loadBans();
+        await loadLogs();
+    } catch (e) {
+        showEditMsg('error', 'Blad: ' + e.message);
+    }
 };
 
 window.quickUnban = async function(nick, banId) {
@@ -361,7 +680,7 @@ async function loadMutes() {
 
 function renderMutes(list) {
     const tb = document.getElementById('mutes-tbody');
-    if (!list.length) { tb.innerHTML = `<tr><td colspan="6" class="table-empty"><i class="fa-solid fa-check-circle" style="color:var(--accent-green)"></i> Brak aktywnych mutów</td></tr>`; return; }
+    if (!list.length) { tb.innerHTML = `<tr><td colspan="7" class="table-empty"><i class="fa-solid fa-check-circle" style="color:var(--accent-green)"></i> Brak aktywnych mutów</td></tr>`; return; }
     tb.innerHTML = list.map(m => `
         <tr>
             <td><div class="player-cell">${head(m.player)}<div class="player-name">${m.player}</div></div></td>
@@ -369,6 +688,7 @@ function renderMutes(list) {
             <td><span style="font-weight:700;">${m.mutedBy||'—'}</span></td>
             <td style="font-size:.82rem;color:var(--text-secondary);">${formatDate(m.date)}</td>
             <td>${m.duration==='permanent'?`<span class="badge badge-action-mute">Permanentny</span>`:`<span style="font-size:.82rem;">${m.duration||'—'}</span>`}</td>
+            <td>${renderAttachmentCell(m.attachment)}</td>
             <td><button class="tbl-btn tbl-btn-green" onclick="quickUnmute('${m.player}','${m.id}')"><i class="fa-solid fa-microphone"></i> Unmute</button></td>
         </tr>`).join('');
 }
@@ -411,7 +731,7 @@ async function loadLogs() {
 
 function renderLogs(list) {
     const tb = document.getElementById('logs-tbody');
-    if (!list.length) { tb.innerHTML = `<tr><td colspan="6" class="table-empty">Brak logów</td></tr>`; return; }
+    if (!list.length) { tb.innerHTML = `<tr><td colspan="7" class="table-empty">Brak logów</td></tr>`; return; }
     tb.innerHTML = list.map(l => `
         <tr>
             <td>${actionBadge(l.action)}</td>
@@ -419,6 +739,7 @@ function renderLogs(list) {
             <td><span style="font-weight:700;">${l.admin||'—'}</span></td>
             <td style="max-width:180px;color:var(--text-secondary);font-size:.85rem;">${l.reason||'—'}</td>
             <td style="font-size:.82rem;color:var(--text-secondary);">${l.duration||'—'}</td>
+            <td>${renderAttachmentCell(l.attachment)}</td>
             <td style="font-size:.82rem;color:var(--text-secondary);white-space:nowrap;">${formatDate(l.date)}</td>
         </tr>`).join('');
 }
@@ -559,7 +880,7 @@ window.addEventListener('apSubmitAction', async () => {
     const custom   = document.getElementById('ap-duration-custom').value.trim();
     const duration = custom || window._apDuration;
     const reason   = document.getElementById('ap-reason').value.trim();
-    const attachment = buildActionAttachmentPayload('ap');
+    let attachment = buildActionAttachmentPayload('ap');
 
     if (!nick)   { showApMsg('error', 'Podaj nick gracza!'); return; }
     if (!action) { showApMsg('error', 'Wybierz rodzaj akcji!'); return; }
@@ -568,6 +889,17 @@ window.addEventListener('apSubmitAction', async () => {
     if (!noDur.includes(action) && !duration) { showApMsg('error', 'Wybierz czas trwania!'); return; }
 
     try {
+        if (attachment?.type === 'file') {
+            if (!requirePermission('evidence_view', 'podgląd załączników')) return;
+            showApMsg('info', 'Wysyłam plik...');
+            attachment = await uploadEvidenceFile(attachment.file, {
+                player: nick,
+                action,
+                reason,
+                admin: currentUser?.displayName || 'Panel'
+            });
+        }
+
         await executeAction(action, nick, '', reason, duration, attachment);
         showApMsg('success', `✓ ${action.toUpperCase()} na ${nick} wykonane`);
         showToast('success', `${action.toUpperCase()} na ${nick} wykonane`);
@@ -669,16 +1001,96 @@ function buildActionAttachmentPayload(prefix) {
     if (type === 'file') {
         const file = document.getElementById(`${prefix}-attachment-file`)?.files?.[0];
         if (!file) return null;
-        return {
-            type,
-            fileName: file.name,
-            mimeType: file.type || 'application/octet-stream',
-            size: file.size,
-            status: 'oczekuje_na_podpiecie_bazy_plikow'
-        };
+        return { type, file };
     }
     return null;
 }
+
+// ─── BAZA PLIKÓW (dowody) ─────────────────────────────────────────────
+function renderFiles(list) {
+    const tb = document.getElementById('files-tbody');
+    if (!tb) return;
+    if (!list.length) {
+        tb.innerHTML = `<tr><td colspan="7" class="table-empty">Brak plików.</td></tr>`;
+        return;
+    }
+
+    tb.innerHTML = list.map(f => {
+        const isDeleted = f.status === 'deleted';
+        const openBtn = f.url && !isDeleted
+            ? `<button class="tbl-btn" onclick="openAttachmentUrl('${encodeURIComponent(f.url)}')" title="Otwórz"><i class="fa-solid fa-arrow-up-right-from-square"></i></button>`
+            : '';
+        const delBtn = (!isDeleted && hasPermission('evidence_delete'))
+            ? `<button class="tbl-btn tbl-btn-red" onclick="deleteEvidenceFile('${f.id}')" title="Usuń"><i class="fa-solid fa-trash"></i></button>`
+            : '';
+
+        return `<tr>
+            <td style="max-width:220px;">
+                <div style="display:flex;align-items:center;gap:.5rem;min-width:0;">
+                    <i class="fa-solid fa-paperclip" style="color:var(--text-secondary);"></i>
+                    <div style="min-width:0;">
+                        <div style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(f.originalName || '—')}</div>
+                        <div style="font-size:.75rem;color:var(--text-secondary);">${escapeHtml(f.mimeType || '—')} · ${formatBytes(f.size)}</div>
+                    </div>
+                </div>
+            </td>
+            <td><span style="font-weight:700;">${escapeHtml(f.player || '—')}</span></td>
+            <td>${f.action ? actionBadge(f.action) : '<span style="color:var(--text-secondary);">—</span>'}</td>
+            <td><span style="font-weight:700;">${escapeHtml(f.uploadedBy || '—')}</span></td>
+            <td style="font-size:.82rem;color:var(--text-secondary);white-space:nowrap;">${formatDate(f.uploadedAt)}</td>
+            <td style="font-size:.82rem;color:var(--text-secondary);">${escapeHtml(f.status || '—')}</td>
+            <td><div style="display:flex;gap:.4rem;flex-wrap:wrap;">${openBtn}${delBtn}</div></td>
+        </tr>`;
+    }).join('');
+}
+
+window.loadFilesPage = async function() {
+    if (!requirePermission('evidence_view', 'podgląd załączników')) return;
+    const tb = document.getElementById('files-tbody');
+    if (tb) {
+        tb.innerHTML = `<tr><td colspan="7" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>`;
+    }
+    try {
+        const snap = await getDocs(query(collection(db, 'files'), orderBy('uploadedAt', 'desc')));
+        allFiles = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        renderFiles(allFiles);
+    } catch (e) {
+        if (tb) tb.innerHTML = `<tr><td colspan="7" class="table-empty" style="color:#ef4444;">Błąd: ${escapeHtml(e.message)}</td></tr>`;
+    }
+};
+
+window.filterFiles = function() {
+    const s = (document.getElementById('files-search')?.value || '').toLowerCase();
+    const st = document.getElementById('files-filter-status')?.value || '';
+    renderFiles(allFiles.filter(f => {
+        const name = String(f.originalName || '').toLowerCase();
+        const player = String(f.player || '').toLowerCase();
+        if (s && !name.includes(s) && !player.includes(s)) return false;
+        if (st && String(f.status || '') !== st) return false;
+        return true;
+    }));
+};
+
+window.deleteEvidenceFile = async function(fileId) {
+    if (!requirePermission('evidence_delete', 'usuwanie załączników')) return;
+    if (!confirm('Usunąć ten plik? Linki w logach mogą przestać działać.')) return;
+    try {
+        const refDoc = doc(db, 'files', fileId);
+        const snap = await getDoc(refDoc);
+        if (!snap.exists()) throw new Error('Nie znaleziono pliku w bazie.');
+
+        await updateDoc(refDoc, {
+            status: 'deleted',
+            deletedAt: serverTimestamp(),
+            deletedBy: currentUser?.displayName || 'Admin'
+        });
+
+        showToast('success', 'Plik usunięty.');
+        await window.loadFilesPage();
+    } catch (e) {
+        showToast('error', 'Błąd: ' + e.message);
+    }
+};
 
 // ─── SZCZEGÓŁY GRACZA ─────────────────────────────────────────────────
 window.addEventListener('openPlayerDetail', async (e) => {
@@ -849,15 +1261,15 @@ function renderAdminAccounts(list) {
     const tb = document.getElementById('admin-accounts-tbody');
     if (!tb) return;
     if (!list.length) {
-        tb.innerHTML = `<tr><td colspan="6" class="table-empty">Brak kont administracyjnych</td></tr>`;
+        tb.innerHTML = `<tr><td colspan="7" class="table-empty">Brak kont administracyjnych</td></tr>`;
         return;
     }
     tb.innerHTML = list.map(a => `
         <tr>
             <td>
                 <div style="font-weight:700;">${a.displayName || a.login}</div>
-                ${a.desc ? `<div style="font-size:.78rem;color:var(--text-secondary);margin-top:.2rem;">${a.desc}</div>` : ''}
             </td>
+            <td style="max-width:260px;font-size:.82rem;color:var(--text-secondary);line-height:1.45;">${a.desc || '—'}</td>
             <td><span style="font-family:monospace;font-size:.82rem;color:var(--text-secondary);">${a.login}</span></td>
             <td>${rankBadge(a.role)}</td>
             <td>
@@ -1454,6 +1866,39 @@ function formatDatetimeLocalValue(date) {
     return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
+function normalizeContestDateValue(value) {
+    if (!value) return '';
+    if (typeof value === 'string') {
+        return value.includes('T') ? value.slice(0, 16) : `${value}T20:00`;
+    }
+    if (value instanceof Timestamp) {
+        return formatDatetimeLocalValue(value.toDate());
+    }
+    if (value instanceof Date) {
+        return formatDatetimeLocalValue(value);
+    }
+    if (typeof value.toDate === 'function') {
+        return formatDatetimeLocalValue(value.toDate());
+    }
+    return '';
+}
+
+function renderContestStatusBadge(data = null, contestId = '') {
+    const badge = document.getElementById('site-contest-status-badge');
+    if (!badge) return;
+    if (!data) {
+        badge.innerHTML = `<span class="badge badge-default">${contestId || 'Brak konkursu'}</span>`;
+        return;
+    }
+    const isActive = data.aktywny !== false;
+    const participants = Number(data.participants || 0);
+    badge.innerHTML = `
+        <span class="badge ${isActive ? 'badge-online' : 'badge-banned'}">${isActive ? 'Aktywny' : 'Zakończony'}</span>
+        <span class="badge badge-default" style="margin-left:.35rem;">ID: ${contestId}</span>
+        <span class="badge badge-default" style="margin-left:.35rem;">Uczestnicy: ${participants}</span>
+    `;
+}
+
 // ─── siteLoadContestList ──────────────────────────────────────────────
 async function siteLoadContestList() {
     const sel = document.getElementById('site-contest-select');
@@ -1464,24 +1909,33 @@ async function siteLoadContestList() {
         const ids = snap.docs.map(d => d.id).sort();
         if (!ids.length) {
             sel.innerHTML = '<option value="start">start (brak)</option>';
+            sel.value = 'start';
             return;
         }
         sel.innerHTML = ids.map(id => `<option value="${id}">${id}</option>`).join('');
         // Zachowaj poprzedni wybór jeśli nadal istnieje
         if (previousVal && ids.includes(previousVal)) {
             sel.value = previousVal;
+        } else {
+            sel.value = ids[0];
         }
     } catch(e) {
         sel.innerHTML = '<option value="start">start</option>';
+        sel.value = 'start';
         console.error('siteLoadContestList:', e);
     }
 }
 
 // ─── siteNewContest ────────────────────────────────────────────────────
 window.siteNewContest = async function() {
+    if (!requirePermission('site', 'zarządzanie stroną')) return;
     const id = prompt('Podaj ID nowego konkursu (np. "konkurs2025"):');
     if (!id || !id.trim()) return;
-    const contestId = id.trim();
+    const contestId = id.trim().replace(/[\/\\?#\[\]]+/g, '-').replace(/\s+/g, '-');
+    if (!contestId) {
+        showToast('error', 'ID konkursu jest nieprawidłowe.');
+        return;
+    }
     const defaultDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     defaultDate.setHours(20, 0, 0, 0);
     try {
@@ -1499,6 +1953,7 @@ window.siteNewContest = async function() {
         const sel = document.getElementById('site-contest-select');
         if (sel) sel.value = contestId;
         await siteLoadContestInfo();
+        await siteLoadEntries();
     } catch(e) { showToast('error', 'Błąd: ' + e.message); }
 };
 
@@ -1521,24 +1976,33 @@ window.switchSiteTab = function(tab) {
 // ─── siteLoadContestInfo ──────────────────────────────────────────────
 async function siteLoadContestInfo() {
     const contestId = _currentContestId();
+    const n  = document.getElementById('site-contest-nagroda');
+    const dt = document.getElementById('site-contest-date');
+    const wc = document.getElementById('site-contest-winners-count');
     try {
         const snap = await getDoc(doc(db, 'contests', contestId));
         if (snap.exists()) {
             const d = snap.data();
-            const n  = document.getElementById('site-contest-nagroda');
-            const dt = document.getElementById('site-contest-date');
-            const wc = document.getElementById('site-contest-winners-count');
             if (n)  n.value  = d.nagroda || '';
-            if (dt && d.wyniki) {
-                // Normalize to datetime-local format (YYYY-MM-DDTHH:MM)
-                dt.value = d.wyniki.includes('T') ? d.wyniki.slice(0, 16) : d.wyniki + 'T20:00';
-            }
+            if (dt) dt.value = normalizeContestDateValue(d.wyniki);
             if (wc) wc.value = d.winnersCount || 2;
             _buildWinnersInputs(d.winnersCount || 2);
+            renderContestStatusBadge(d, contestId);
         } else {
+            if (n) n.value = '';
+            if (dt) dt.value = '';
+            if (wc) wc.value = 2;
             _buildWinnersInputs(2);
+            renderContestStatusBadge(null, contestId);
         }
-    } catch(e) { console.error('siteLoadContestInfo:', e); _buildWinnersInputs(2); }
+    } catch(e) {
+        console.error('siteLoadContestInfo:', e);
+        if (n) n.value = '';
+        if (dt) dt.value = '';
+        if (wc) wc.value = 2;
+        _buildWinnersInputs(2);
+        renderContestStatusBadge(null, contestId);
+    }
 }
 
 // ─── _buildWinnersInputs ──────────────────────────────────────────────
@@ -1567,6 +2031,7 @@ document.addEventListener('change', e => {
 
 // ─── siteUpdateContest ────────────────────────────────────────────────
 window.siteUpdateContest = async function() {
+    if (!requirePermission('site', 'zarządzanie stroną')) return;
     const contestId = _currentContestId();
     const nagroda = document.getElementById('site-contest-nagroda').value.trim();
     const dateVal = document.getElementById('site-contest-date').value;
@@ -1580,12 +2045,14 @@ window.siteUpdateContest = async function() {
         if (snap.exists()) { await updateDoc(ref, upd); }
         else { await setDoc(ref, { participants: 0, aktywny: true, ...upd }); }
         _buildWinnersInputs(wc);
+        await siteLoadContestInfo();
         showSiteContestMsg('✓ Zapisano!', '#00e676');
     } catch(e) { showSiteContestMsg('Błąd: ' + e.message, '#ef4444'); }
 };
 
 // ─── siteAnnounceWinners ──────────────────────────────────────────────
 window.siteAnnounceWinners = async function() {
+    if (!requirePermission('site', 'zarządzanie stroną')) return;
     const contestId = _currentContestId();
     const inputs = document.querySelectorAll('#site-winners-inputs input');
     const winners = [...inputs].map(i => i.value.trim()).filter(Boolean);
@@ -1599,25 +2066,33 @@ window.siteAnnounceWinners = async function() {
         } else {
             await setDoc(ref, { participants: 0, aktywny: false, winners, winnersDate: new Date().toISOString() });
         }
+        await siteLoadContestInfo();
         showSiteContestMsg('✓ Zwycięzcy ogłoszeni!', '#00e676');
     } catch(e) { showSiteContestMsg('Błąd: ' + e.message, '#ef4444'); }
 };
 
 // ─── siteEndContest ────────────────────────────────────────────────────
 window.siteEndContest = async function() {
+    if (!requirePermission('site', 'zarządzanie stroną')) return;
     const contestId = _currentContestId();
     if (!confirm('Zakończyć konkurs bez wyników?')) return;
     try {
         const ref = doc(db, 'contests', contestId);
         const snap = await getDoc(ref);
         if (snap.exists()) { await updateDoc(ref, { aktywny: false }); }
+        await siteLoadContestInfo();
         showSiteContestMsg('Konkurs zakończony.', '#f59e0b');
     } catch(e) { showSiteContestMsg('Błąd: ' + e.message, '#ef4444'); }
 };
 
 // ─── siteDeleteContest ─────────────────────────────────────────────────
 window.siteDeleteContest = async function() {
+    if (!requirePermission('site', 'zarządzanie stroną')) return;
     const contestId = _currentContestId();
+    if (!contestId || contestId === 'start') {
+        showSiteContestMsg('Brak konkursu do usunięcia.', '#ef4444');
+        return;
+    }
     if (!confirm(`USUNĄĆ konkurs "${contestId}"? Tej operacji nie można cofnąć!`)) return;
     try {
         const entriesSnap = await getDocs(collection(db, 'contests', contestId, 'entries'));
@@ -1638,6 +2113,7 @@ window.siteDeleteContest = async function() {
 
 // ─── siteRestartContest ────────────────────────────────────────────────
 window.siteRestartContest = async function() {
+    if (!requirePermission('site', 'zarządzanie stroną')) return;
     const contestId = _currentContestId();
     if (!confirm('Zresetować konkurs (usunąć uczestników i ustawić aktywny)?')) return;
     try {
@@ -1649,6 +2125,7 @@ window.siteRestartContest = async function() {
             winners: [], nagroda: document.getElementById('site-contest-nagroda').value.trim() || '2x Ranga CRIT na 14 dni',
             winnersCount: parseInt(document.getElementById('site-contest-winners-count').value) || 2
         });
+        await siteLoadContestInfo();
         showSiteContestMsg('✓ Konkurs zresetowany!', '#00e676');
         await siteLoadEntries();
     } catch(e) { showSiteContestMsg('Błąd: ' + e.message, '#ef4444'); }
@@ -1808,12 +2285,14 @@ function _extendedApplyPermissions() {
     const personelNav = document.querySelector('.nav-btn[data-page="personel"]');
     const adminsNav   = document.querySelector('.nav-btn[data-page="admins"]');
     const permsNav    = document.querySelector('.nav-btn[data-page="permissions"]');
+    const filesNav    = document.querySelector('.nav-btn[data-page="files"]');
 
     if (siteNav)     siteNav.style.display     = (hasPermission('site') || hasPermission('all')) ? '' : 'none';
     if (shopNav)     shopNav.style.display     = (hasPermission('shop') || hasPermission('all')) ? '' : 'none';
     if (personelNav) personelNav.style.display = hasPermission('all') ? '' : 'none';
     if (adminsNav)   adminsNav.style.display   = (hasPermission('admins_manage') || hasPermission('all')) ? '' : 'none';
     if (permsNav)    permsNav.style.display    = (hasPermission('permissions_manage') || hasPermission('all')) ? '' : 'none';
+    if (filesNav)    filesNav.style.display    = (hasPermission('evidence_view') || hasPermission('all')) ? '' : 'none';
 }
 
 // Expose to window so inline scripts can call it if needed

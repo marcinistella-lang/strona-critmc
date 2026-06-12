@@ -536,6 +536,7 @@
                             <thead>
                                 <tr>
                                     <th>Nazwa</th>
+                                    <th>Opis</th>
                                     <th>Login</th>
                                     <th>Ranga</th>
                                     <th>Uprawnienia</th>
@@ -544,7 +545,7 @@
                                 </tr>
                             </thead>
                             <tbody id="admin-accounts-tbody">
-                                <tr><td colspan="6" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>
+                                <tr><td colspan="7" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -698,7 +699,7 @@
                     <!-- Wybór aktywnego konkursu -->
                     <div style="display:flex;align-items:center;gap:.8rem;margin-bottom:1.2rem;flex-wrap:wrap;">
                         <label style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;">Konkurs:</label>
-                        <select id="site-contest-select" onchange="siteLoadContestInfo()" style="flex:1;min-width:180px;padding:.55rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                        <select id="site-contest-select" onchange="siteLoadContestInfo();siteLoadEntries();" style="flex:1;min-width:180px;padding:.55rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
                             <option value="start">start (domyślny)</option>
                         </select>
                         <button class="modal-submit-btn" style="width:auto;padding:.5rem 1.1rem;font-size:.85rem;" onclick="siteNewContest()"><i class="fa-solid fa-plus"></i> Nowy konkurs</button>
