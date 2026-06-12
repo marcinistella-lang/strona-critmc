@@ -29,16 +29,16 @@
                     <input type="text" id="login-username" placeholder="Wpisz login..." autocomplete="username" required>
                 </div>
                 <div class="login-field">
-                    <label><i class="fa-solid fa-lock"></i> HasL�o</label>
+                    <label><i class="fa-solid fa-lock"></i> hasło</label>
                     <div class="password-wrap">
-                        <input type="password" id="login-password" placeholder="Wpisz hasL�o..." autocomplete="current-password" required>
-                        <button type="button" class="pw-toggle" onclick="togglePasswordVisibility()" title="PokaLL/ukryj hasL�o">
+                        <input type="password" id="login-password" placeholder="Wpisz hasło..." autocomplete="current-password" required>
+                        <button type="button" class="pw-toggle" onclick="togglePasswordVisibility()" title="PokaLL/ukryj hasło">
                             <i class="fa-solid fa-eye" id="pw-toggle-icon"></i>
                         </button>
                     </div>
                 </div>
                 <div id="login-error" class="login-error" style="display:none;">
-                    <i class="fa-solid fa-circle-exclamation"></i> BL�ędny login lub hasL�o!
+                    <i class="fa-solid fa-circle-exclamation"></i> BL�ędny login lub hasło!
                 </div>
                 <button type="submit" class="login-btn">
                     <i class="fa-solid fa-right-to-bracket"></i> Zaloguj się
@@ -165,7 +165,7 @@
                 <div class="filters-bar">
                     <div class="filter-search">
                         <i class="fa-solid fa-magnifying-glass"></i>
-                        <input type="text" id="players-search" placeholder="Szukaj po nicku..." oninput="filterPlayers()">
+                        <input type="text" id="players-search" placeholder="Szukaj po nicku lub IP..." oninput="filterPlayers()">
                     </div>
                     <div class="filter-group">
                         <select id="players-filter-rank" onchange="filterPlayers()">
@@ -242,7 +242,7 @@
                             <thead>
                                 <tr>
                                     <th>Gracz</th>
-                                    <th>PowAld</th>
+                                    <th>Powód</th>
                                     <th>Przez kogo</th>
                                     <th>Data</th>
                                     <th>Wygasa</th>
@@ -288,7 +288,7 @@
                             <thead>
                                 <tr>
                                     <th>Gracz</th>
-                                    <th>PowAld</th>
+                                    <th>Powód</th>
                                     <th>Przez kogo</th>
                                     <th>Data</th>
                                     <th>Wygasa</th>
@@ -339,10 +339,10 @@
                                 <button class="action-btn mute-btn"   onclick="apSetAction('mute')">  <i class="fa-solid fa-microphone-slash"></i> Mute</button>
                                 <button class="action-btn unmute-btn" onclick="apSetAction('unmute')"><i class="fa-solid fa-microphone"></i> Unmute</button>
                                 <button class="action-btn kick-btn"   onclick="apSetAction('kick')">  <i class="fa-solid fa-door-open"></i> Kick</button>
-                                <button class="action-btn warn-btn"   onclick="apSetAction('warn')">  <i class="fa-solid fa-triangle-exclamation"></i> OstrzeLLenie</button>
-                                <button class="action-btn check-btn"  onclick="apSetAction('check')"> <i class="fa-solid fa-magnifying-glass"></i> SprawdLs</button>
-                                <button class="action-btn rank-btn"   onclick="apSetAction('rank')" style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);color:#f59e0b;"> <i class="fa-solid fa-star"></i> Ranga</button>
-                                <button class="action-btn message-btn" onclick="apSetAction('message')" style="background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3);color:#3b82f6;"> <i class="fa-solid fa-envelope"></i> WiadomoL�ć</button>
+                                <button class="action-btn warn-btn"   onclick="apSetAction('warn')">  <i class="fa-solid fa-triangle-exclamation"></i> Ostrzeżenie</button>
+                                <button class="action-btn check-btn"  onclick="apSetAction('check')"> <i class="fa-solid fa-magnifying-glass"></i> Sprawdź</button>
+                                <button class="action-btn alts-btn" onclick="checkAlts(true)" style="background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.3);color:#8b5cf6;"><i class="fa-solid fa-users-viewfinder"></i> Multikonta</button>
+                                <button class="action-btn message-btn" onclick="apSetAction('message')" style="background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3);color:#3b82f6;"> <i class="fa-solid fa-envelope"></i> Wiadomość</button>
                             </div>
                         </div>
 
@@ -352,19 +352,19 @@
                                 <button class="dur-btn" onclick="apSetDuration('1h',this)">1h</button>
                                 <button class="dur-btn" onclick="apSetDuration('6h',this)">6h</button>
                                 <button class="dur-btn" onclick="apSetDuration('12h',this)">12h</button>
-                                <button class="dur-btn" onclick="apSetDuration('1d',this)">1 dzieL�</button>
+                                <button class="dur-btn" onclick="apSetDuration('1d',this)">1 dzień</button>
                                 <button class="dur-btn" onclick="apSetDuration('3d',this)">3 dni</button>
                                 <button class="dur-btn" onclick="apSetDuration('7d',this)">7 dni</button>
                                 <button class="dur-btn" onclick="apSetDuration('30d',this)">30 dni</button>
                                 <button class="dur-btn perm-btn" onclick="apSetDuration('permanent',this)">Permanentny</button>
                             </div>
-                            <input type="text" id="ap-duration-custom" placeholder="Lub wpisz wL�asny: 2h, 5d..."
+                            <input type="text" id="ap-duration-custom" placeholder="Lub wpisz własny: 2h, 5d..."
                                 style="width:100%;margin-top:0.5rem;padding:0.7rem 0.9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:0.88rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
                         </div>
 
                         <div class="modal-field" style="margin-bottom:1.5rem;">
-                            <label>PowAld <span style="color:#999;font-weight:400;">(wymagany)</span></label>
-                            <input type="text" id="ap-reason" placeholder="Wpisz powAld..."
+                            <label>Powód <span style="color:#999;font-weight:400;">(wymagany)</span></label>
+                            <input type="text" id="ap-reason" placeholder="Wpisz Powód..."
                                 style="width:100%;padding:0.7rem 0.9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:0.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
                         </div>
 
@@ -377,7 +377,7 @@
                                 <option value="file">Plik / zdjęcie / nagranie</option>
                             </select>
                             <input type="text" id="ap-attachment-link" placeholder="https://..." style="display:none;width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);margin-bottom:.6rem;">
-                            <textarea id="ap-attachment-text" rows="3" placeholder="Wpisz opis, krAltką notatkę albo streszczenie dowodu..." style="display:none;width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;margin-bottom:.6rem;"></textarea>
+                            <textarea id="ap-attachment-text" rows="3" placeholder="Wpisz opis, krótką notatkę albo streszczenie dowodu..." style="display:none;width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;margin-bottom:.6rem;"></textarea>
                             <input type="file" id="ap-attachment-file" accept="image/*,video/*,.zip,.rar,.7z,.txt,.pdf" style="display:none;width:100%;padding:.55rem .7rem;border:1.5px dashed var(--border);border-radius:var(--radius-sm);font-size:.88rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);margin-bottom:.45rem;">
                             <div style="font-size:.76rem;color:var(--text-secondary);line-height:1.5;">Plik zostanie wyslany do bazy plikow i zapisany przy akcji jako zalacznik.</div>
                         </div>
@@ -440,7 +440,7 @@
                                     <th>Akcja</th>
                                     <th>Gracz</th>
                                     <th>Admin</th>
-                                    <th>PowAld</th>
+                                    <th>Powód</th>
                                     <th>Czas trwania</th>
                                     <th>Data</th>
                                 </tr>
@@ -461,7 +461,7 @@
             <div id="page-stats" class="page">
                 <div class="page-header">
                     <h1>Statystyki AdminAlw</h1>
-                    <p>AktywnoL�ć i efektywnoL�ć administracji</p>
+                    <p>Aktywność ć i efektywnościć administracji</p>
                 </div>
 
                 <!-- Karty ogAllne -->
@@ -499,7 +499,7 @@
                 <!-- Tabela adminAlw -->
                 <div class="table-card" style="margin-top:1.5rem;">
                     <div style="padding:.9rem 1.2rem;border-bottom:1px solid var(--border);font-size:.8rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;">
-                        Ranking aktywnoL�ci
+                        Ranking Aktywność ci
                     </div>
                     <div class="table-wrap">
                         <table class="data-table">
@@ -511,7 +511,7 @@
                                     <th>Unban</th>
                                     <th>Muty</th>
                                     <th>Kicki</th>
-                                    <th>OstrzeLLenia</th>
+                                    <th>Ostrzeżenia</th>
                                     <th>Sprawdzenia</th>
                                     <th>Razem</th>
                                     <th>Ostatnia akcja</th>
@@ -614,7 +614,7 @@
                                 </tr>
                             </thead>
                             <tbody id="files-tbody">
-                                <tr><td colspan="8" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ladowanie...</td></tr>
+                                <tr><td colspan="8" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -684,7 +684,7 @@
                     <div class="table-card" style="padding:1.2rem;">
                         <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.8rem;"><i class="fa-solid fa-crown" style="color:#88c5ff;"></i> WspAlL�wL�aL�ciciel</div>
                         <div style="display:flex;flex-direction:column;gap:.6rem;">
-                            <input type="text" id="cowowner-nick" placeholder="Nick MC (lub ??? jeL�li ukryty)..." style="padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                            <input type="text" id="cowowner-nick" placeholder="Nick MC (lub ??? jeśli ukryty)..." style="padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
                             <input type="text" id="cowowner-yt" placeholder="URL YouTube (opcjonalne)..." style="padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
                             <input type="text" id="cowowner-dc" placeholder="URL Discord (opcjonalne)..." style="padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
                             <textarea id="cowowner-desc" rows="2" placeholder="Opis wspAlL�wL�aL�ciciela..." style="padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea>
@@ -787,7 +787,7 @@
                     <!-- Uczestnicy -->
                     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.8rem;">
                         <div style="font-weight:700;">Uczestnicy <span id="site-entries-count" style="color:var(--text-secondary);font-weight:400;font-size:.82rem;"></span></div>
-                        <button class="tbl-btn" onclick="siteLoadEntries()"><i class="fa-solid fa-rotate-right"></i> OdL�wieLL</button>
+                        <button class="tbl-btn" onclick="siteLoadEntries()"><i class="fa-solid fa-rotate-right"></i> Odśwież</button>
                     </div>
                     <div class="table-card">
                         <div class="table-wrap">
@@ -810,7 +810,7 @@
                                 <textarea id="site-edit-zwykle" rows="5" style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea>
                             </div>
                             <div>
-                                <label style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;display:block;margin-bottom:.4rem;">Tryb: SzczegAlL�owe</label>
+                                <label style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;display:block;margin-bottom:.4rem;">Tryb: Szczegółowe</label>
                                 <textarea id="site-edit-szczegolowe" rows="5" style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea>
                             </div>
                             <div>
@@ -854,7 +854,7 @@
                 <div id="site-tab-proposals" class="site-tab-panel">
                     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.8rem;flex-wrap:wrap;gap:.6rem;">
                         <div style="font-weight:700;">Propozycje graczy</div>
-                        <button class="tbl-btn" onclick="siteLoadProposals()"><i class="fa-solid fa-rotate-right"></i> OdL�wieLL</button>
+                        <button class="tbl-btn" onclick="siteLoadProposals()"><i class="fa-solid fa-rotate-right"></i> Odśwież</button>
                     </div>
                     <div class="table-card">
                         <div class="table-wrap">
@@ -891,8 +891,8 @@
                     <input type="text" id="aa-login" placeholder="np. jan123..." autocomplete="off">
                 </div>
                 <div class="modal-field">
-                    <label>HasL�o <span style="color:#999;font-weight:400;">(zostaw puste LLeby nie zmieniać)</span></label>
-                    <input type="password" id="aa-password" placeholder="Nowe hasL�o..." autocomplete="new-password">
+                    <label>hasło <span style="color:#999;font-weight:400;">(zostaw puste LLeby nie zmieniać)</span></label>
+                    <input type="password" id="aa-password" placeholder="Nowe hasło..." autocomplete="new-password">
                 </div>
                 <div class="modal-field">
                     <label>Opis <span style="color:#999;font-weight:400;">(widoczny na stronie przy personelu)</span></label>
@@ -927,7 +927,7 @@
                             <input type="checkbox" class="perm-checkbox" value="kick"> Wyrzucanie graczy
                         </label>
                         <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;">
-                            <input type="checkbox" class="perm-checkbox" value="warn"> OstrzeLLenia
+                            <input type="checkbox" class="perm-checkbox" value="warn"> Ostrzeżenia
                         </label>
                         <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;">
                             <input type="checkbox" class="perm-checkbox" value="players"> Podgląd graczy
@@ -1006,7 +1006,7 @@
                         <button class="action-btn kick-btn" onclick="setAction('kick')"><i class="fa-solid fa-door-open"></i> Kick</button>
                         <button class="action-btn warn-btn" onclick="setAction('warn')"><i class="fa-solid fa-triangle-exclamation"></i> Ostrzeżenie</button>
                         <button class="action-btn check-btn" onclick="setAction('check')"><i class="fa-solid fa-magnifying-glass"></i> Sprawdź</button>
-                        <button class="action-btn rank-btn" onclick="setAction('rank')" style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);color:#f59e0b;"><i class="fa-solid fa-star"></i> Ranga</button>
+                        <button class="action-btn alts-btn" onclick="checkAlts()" style="background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.3);color:#8b5cf6;"><i class="fa-solid fa-users-viewfinder"></i> Multikonta</button>
                         <button class="action-btn message-btn" onclick="setAction('message')" style="background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3);color:#3b82f6;"><i class="fa-solid fa-envelope"></i> Wiadomość</button>
                     </div>
                 </div>
@@ -1018,7 +1018,7 @@
                         <button class="dur-btn" onclick="setDuration('1h')">1h</button>
                         <button class="dur-btn" onclick="setDuration('6h')">6h</button>
                         <button class="dur-btn" onclick="setDuration('12h')">12h</button>
-                        <button class="dur-btn" onclick="setDuration('1d')">1 dzieL�</button>
+                        <button class="dur-btn" onclick="setDuration('1d')">1 dzieńbutton>
                         <button class="dur-btn" onclick="setDuration('3d')">3 dni</button>
                         <button class="dur-btn" onclick="setDuration('7d')">7 dni</button>
                         <button class="dur-btn" onclick="setDuration('30d')">30 dni</button>
@@ -1028,8 +1028,8 @@
                 </div>
 
                 <div class="modal-field">
-                    <label>PowAld <span style="color:#888;font-weight:400;">(wymagany)</span></label>
-                    <input type="text" id="action-reason" placeholder="Podaj powAld...">
+                    <label>Powód <span style="color:#888;font-weight:400;">(wymagany)</span></label>
+                    <input type="text" id="action-reason" placeholder="Podaj Powód...">
                 </div>
 
                 <div id="modal-msg" class="modal-msg" style="display:none;"></div>
@@ -1041,11 +1041,11 @@
         </div>
     </div>
 
-    <!-- ===== MODAL: SZCZEGA�L�Y GRACZA ===== -->
+    <!-- ===== MODAL: SZCZEGÓŁY GRACZA ===== -->
     <div class="modal-overlay" id="player-detail-modal" onclick="closeModal(event)">
         <div class="modal-box" style="max-width:520px;">
             <div class="modal-header">
-                <div class="modal-title">SzczegAlL�y gracza</div>
+                <div class="modal-title">Szczegóły gracza</div>
                 <button class="modal-close" onclick="closePlayerDetail()"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="modal-body" id="player-detail-body">
@@ -1289,7 +1289,7 @@
             const errEl = document.getElementById('login-error');
             if (errEl) {
                 errEl.style.display = 'flex';
-                errEl.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> BL�ędny login lub hasL�o! (${remaining} prAlb do wyrzutu)`;
+                errEl.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> BL�ędny login lub hasło! (${remaining} prób do wyrzutu)`;
             }
         };
 
@@ -1307,7 +1307,7 @@
                 </div>`;
         }
 
-        // Logowanie — tylko brute-force check + przekazanie do admin.js (moduL�)
+        // Logowanie — tylko brute-force check + przekazanie do admin.js (modułu)
         function handleLogin(e) {
             e.preventDefault();
 
@@ -1320,8 +1320,8 @@
             const login    = document.getElementById('login-username').value.trim();
             const password = document.getElementById('login-password').value;
 
-            // PrzekaLL do admin.js (moduL�) ktAlry sprawdza Firestore
-            // admin.js wywoL�a recordFailedAttempt() jeL�li bL�ąd
+            // Przekaż do admin.js (modułu) który sprawdza Firestore
+            // admin.js wywoła recordFailedAttempt() jeśli bL�ąd
             window.dispatchEvent(new CustomEvent('adminLogin', { detail: { login, password } }));
         }
 
@@ -1396,10 +1396,21 @@
             document.querySelectorAll('#modal-action-btns .action-btn').forEach(b => b.classList.remove('selected'));
             const btn = document.querySelector('#modal-action-btns .' + action + '-btn');
             if (btn) btn.classList.add('selected');
-            // Ukryj duration dla unban/unmute/kick
-            const noDuration = ['unban', 'unmute', 'kick'];
+            // Ukryj duration dla unban/unmute/kick/warn/check/message
+            const noDuration = ['unban', 'unmute', 'kick', 'warn', 'check', 'message'];
             document.getElementById('duration-field').style.display =
                 noDuration.includes(action) ? 'none' : 'block';
+            // Zmiń label pola Powód dla wiadomości
+            const reasonLabel = document.getElementById('reason-label');
+            if (reasonLabel) {
+                reasonLabel.innerHTML = action === 'message'
+                    ? 'Treść wiadomości <span style="color:#3b82f6;font-weight:400;">(wymagana)</span>'
+                    : 'Powód <span style="color:#888;font-weight:400;">(wymagany)</span>';
+            }
+            const reasonInput = document.getElementById('action-reason');
+            if (reasonInput) {
+                reasonInput.placeholder = action === 'message' ? 'Wpisz wiadomość do gracza...' : 'Podaj powód...';
+            }
         };
 
         // Zaznaczanie czasu w modalu
@@ -1417,7 +1428,7 @@
             const btn = document.querySelector('#page-action .' + action + '-btn');
             if (btn) btn.classList.add('selected');
             // Ukryj duration dla unban/unmute/kick
-            const noDuration = ['unban', 'unmute', 'kick'];
+            const noDuration = ['unban', 'unmute', 'kick', 'warn', 'check', 'message'];
             const durField = document.getElementById('ap-duration-field');
             if (durField) durField.style.display = noDuration.includes(action) ? 'none' : 'block';
         };

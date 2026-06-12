@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
 import {
     getFirestore, collection, getDocs, doc, getDoc,
-    setDoc, updateDoc, deleteDoc, addDoc,
+    setDoc, updateDoc, deleteDoc, addDoc, onSnapshot,
     query, orderBy, where, serverTimestamp, Timestamp
 } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
 
@@ -106,6 +106,54 @@ async function loadRolePermissionsFromStore() {
 }
 
 // ─── Nasłuch na login z inline scriptu ──────────────────────────────
+window.checkAlts = function(isApPage = false) {
+    const nick = isApPage
+        ? document.getElementById('ap-nick')?.value.trim()
+        : (window._actionModalPlayer?.nick || window._actionModalPlayer?.id);
+    if (!nick) { showToast('error', 'Podaj nick gracza!'); return; }
+
+    const p = allPlayers.find(pl => (pl.nick||pl.id).toLowerCase() === nick.toLowerCase());
+
+    // Usuń poprzedni popup jeśli był
+    document.getElementById('alts-popup-overlay')?.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'alts-popup-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);z-index:1500;display:flex;align-items:center;justify-content:center;padding:1rem;';
+    overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+
+    const ip = p?.ip;
+    let alts = [];
+    if (ip && ip !== 'unknown') {
+        alts = allPlayers.filter(pl => pl.ip === ip && (pl.nick||pl.id).toLowerCase() !== nick.toLowerCase());
+    }
+
+    const ipBadge = ip ? `<span style="font-size:.75rem;background:rgba(59,130,246,.1);color:#3b82f6;border:1px solid rgba(59,130,246,.25);padding:.2rem .55rem;border-radius:999px;font-weight:700;font-family:monospace;">
+        <i class="fa-solid fa-network-wired"></i> ${ip}</span>` : `<span style="font-size:.75rem;color:#9ca3af;">brak IP w bazie</span>`;
+
+    const altsHtml = alts.length === 0
+        ? `<div style="text-align:center;padding:1.5rem;color:var(--text-secondary);font-size:.9rem;"><i class="fa-solid fa-circle-check" style="color:#10b981;font-size:1.4rem;display:block;margin-bottom:.5rem;"></i>Brak powiązanych kont</div>`
+        : alts.map(pl => `<div class="alt-account">
+            <img class="player-head" src="https://mc-heads.net/avatar/${encodeURIComponent(pl.nick||pl.id)}/32" alt="${pl.nick||pl.id}" onerror="this.src='https://mc-heads.net/avatar/Steve/32'">
+            <span>${escapeHtml(pl.nick||pl.id)}</span>
+            <span style="margin-left:auto;font-size:.75rem;color:var(--text-secondary);">${pl.online ? '<span style="color:#10b981;"><i class="fa-solid fa-circle fa-xs"></i> Online</span>' : 'Offline'}</span>
+        </div>`).join('');
+
+    overlay.innerHTML = `<div class="alts-popup">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+            <h3><i class="fa-solid fa-users-viewfinder" style="color:#8b5cf6;"></i> Multikonta — ${escapeHtml(nick)}</h3>
+            <button onclick="document.getElementById('alts-popup-overlay').remove()" style="background:none;border:1.5px solid var(--border);border-radius:6px;width:30px;height:30px;cursor:pointer;font-size:.9rem;color:var(--text-secondary);display:flex;align-items:center;justify-content:center;"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div style="margin-bottom:1rem;">Adres IP: ${ipBadge}</div>
+        <div style="font-size:.75rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.6rem;">
+            Znalezione powiązane konta (${alts.length})
+        </div>
+        ${altsHtml}
+    </div>`;
+
+    document.body.appendChild(overlay);
+};
+
 window.addEventListener('adminLogin', async (e) => {
     const { login, password } = e.detail;
 
@@ -376,13 +424,13 @@ async function uploadEvidenceFile(file, meta) {
 
     const fileRefDoc = await addDoc(collection(db, 'files'), {
         kind:         'evidence',
-        provider:     'b2',
-        bucket:       uploaded.bucket,
-        fileKey:      uploaded.fileKey,
-        b2FileId:     uploaded.b2FileId,
+        provider:     'r2',
+        bucket:       uploaded.bucket   || 'critmc-files',
+        fileKey:      uploaded.fileKey  || '',
+        b2FileId:     uploaded.b2FileId || null,
         originalName: uploaded.fileName || file.name,
         mimeType:     uploaded.mimeType || file.type || 'application/octet-stream',
-        size:         uploaded.size || file.size || 0,
+        size:         uploaded.size     || file.size || 0,
         url:          fileUrl,
         uploadedAt:   serverTimestamp(),
         uploadedBy:   admin,
@@ -430,11 +478,17 @@ function head(nick) {
 }
 
 // ─── GRACZE ───────────────────────────────────────────────────────────
-async function loadPlayers() {
+let unsubscribePlayers = null;
+function loadPlayers() {
+    if (unsubscribePlayers) return; // already listening
     try {
-        const snap = await getDocs(collection(db, 'players'));
-        allPlayers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        renderPlayers(allPlayers);
+        unsubscribePlayers = onSnapshot(collection(db, 'players'), (snap) => {
+            allPlayers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            filterPlayers(); // Używa obecnych filtrów zamiast renderować bez filtrowania
+        }, (e) => {
+            document.getElementById('players-tbody').innerHTML =
+                `<tr><td colspan="5" class="table-empty" style="color:#ef4444;"><i class="fa-solid fa-circle-exclamation"></i> Błąd: ${e.message}</td></tr>`;
+        });
     } catch (e) {
         document.getElementById('players-tbody').innerHTML =
             `<tr><td colspan="5" class="table-empty" style="color:#ef4444;"><i class="fa-solid fa-circle-exclamation"></i> Błąd: ${e.message}</td></tr>`;
@@ -467,7 +521,8 @@ window.filterPlayers = function() {
     const st = document.getElementById('players-filter-status').value;
     renderPlayers(allPlayers.filter(p => {
         const n = (p.nick||p.id||'').toLowerCase();
-        if (s && !n.includes(s)) return false;
+        const ip = (p.ip||'').toLowerCase();
+        if (s && !n.includes(s) && !ip.includes(s)) return false;
         if (r && (p.rank||'default').toLowerCase() !== r) return false;
         if (st === 'online'  && !p.online)  return false;
         if (st === 'offline' && p.online)   return false;
@@ -903,8 +958,12 @@ window.addEventListener('submitModalAction', async () => {
     const player   = window._actionModalPlayer;
 
     if (!action)   { showModalMsg('error', 'Wybierz akcję!'); return; }
-    if (!reason)   { showModalMsg('error', 'Podaj powód!'); return; }
-    const noDur = ['unban', 'unmute', 'kick', 'check'];
+    if (action === 'message') {
+        if (!reason) { showModalMsg('error', 'Podaj treść wiadomości!'); return; }
+    } else {
+        if (!reason) { showModalMsg('error', 'Podaj powód!'); return; }
+    }
+    const noDur = ['unban', 'unmute', 'kick', 'check', 'warn', 'message'];
     if (!noDur.includes(action) && !duration) { showModalMsg('error', 'Wybierz czas trwania!'); return; }
     if (!player)   { showModalMsg('error', 'Brak danych gracza!'); return; }
 
@@ -934,8 +993,12 @@ window.addEventListener('apSubmitAction', async () => {
 
     if (!nick)   { showApMsg('error', 'Podaj nick gracza!'); return; }
     if (!action) { showApMsg('error', 'Wybierz rodzaj akcji!'); return; }
-    if (!reason) { showApMsg('error', 'Podaj powód!'); return; }
-    const noDur = ['unban', 'unmute', 'kick', 'check'];
+    if (action === 'message') {
+        if (!reason) { showApMsg('error', 'Podaj treść wiadomości!'); return; }
+    } else {
+        if (!reason) { showApMsg('error', 'Podaj powód!'); return; }
+    }
+    const noDur = ['unban', 'unmute', 'kick', 'check', 'warn', 'message'];
     if (!noDur.includes(action) && !duration) { showApMsg('error', 'Wybierz czas trwania!'); return; }
 
     try {
@@ -970,13 +1033,8 @@ window.addEventListener('apSubmitAction', async () => {
 async function executeAction(action, nick, uuid, reason, duration, attachment = null) {
     const admin = currentUser?.displayName || 'Panel';
     const actionPerm = {
-        ban: 'ban',
-        unban: 'unban',
-        mute: 'mute',
-        unmute: 'unmute',
-        kick: 'kick',
-        warn: 'warn',
-        check: 'check'
+        ban: 'ban', unban: 'unban', mute: 'mute', unmute: 'unmute',
+        kick: 'kick', warn: 'warn', check: 'check'
     }[action];
 
     if (actionPerm && !requirePermission(actionPerm, action.toUpperCase())) {
@@ -1011,37 +1069,27 @@ async function executeAction(action, nick, uuid, reason, duration, attachment = 
         const pSnap = await getDocs(query(collection(db, 'players'), where('nick', '==', nick)));
         pSnap.forEach(async d => await updateDoc(d.ref, { muted: false }));
     }
-    // kick, warn, check — obsługiwane przez plugin MC przez panel_commands
 
-    // ─── ZAPIS DO panel_commands — plugin MC odbiera i wykonuje na serwerze ───
-    // check nie wymaga akcji w MC
-    if (action !== 'check') {
-        let cmdRank = '';
-        let cmdMsg = '';
-        let cmdReason = reason || '—';
-        
-        if (action === 'rank') {
-            cmdRank = reason;
-            cmdReason = 'Nadanie rangi z panelu';
-        } else if (action === 'message') {
-            cmdMsg = reason;
-            cmdReason = 'Wiadomość z panelu';
-        }
+    // Wysyłamy do panel_commands aby plugin MC wykonał akcję
+    // check i unban/unmute nie wymagają komendy do serwera MC
+    const noMcCmd = ['check', 'ban', 'unban', 'mute', 'unmute'];
+    if (!noMcCmd.includes(action)) {
+        const cmdMsg    = (action === 'message') ? reason : '';
+        const cmdReason = (action === 'message') ? 'Wiadomość z panelu' : (reason || '—');
 
         await addDoc(collection(db, 'panel_commands'), {
-            action:   action,
-            player:   nick,
-            reason:   cmdReason,
-            duration: duration || 'permanent',
-            rank:     cmdRank,
-            message:  cmdMsg,
-            admin:    admin,
-            executed: false,
+            action,
+            player:    nick,
+            reason:    cmdReason,
+            duration:  duration || '—',
+            message:   cmdMsg,
+            admin,
+            executed:  false,
             createdAt: serverTimestamp()
         });
     }
 
-    await logAction(action, nick, admin, cmdReason || reason, duration || '—', attachment ? { attachment } : {});
+    await logAction(action, nick, admin, reason || '—', duration || '—', attachment ? { attachment } : {});
 }
 
 
@@ -1196,6 +1244,7 @@ window.addEventListener('openPlayerDetail', async (e) => {
                 <div style="flex:1;">
                     <div style="font-size:1.2rem;font-weight:800;">${p.nick||p.id}</div>
                     <div style="font-size:.78rem;color:var(--text-secondary);margin-top:.2rem;">${p.uuid||'—'}</div>
+                    <div style="font-size:.78rem;color:var(--accent);margin-top:.1rem;font-weight:600;"><i class="fa-solid fa-network-wired"></i> ${p.ip||'brak ip'}</div>
                 </div>
                 <div style="display:flex;flex-direction:column;gap:.4rem;align-items:flex-end;">
                     ${rankBadge(p.rank)} ${statusBadge(p)}

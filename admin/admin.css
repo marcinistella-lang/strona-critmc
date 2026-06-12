@@ -1,5 +1,5 @@
 /* =============================================================================
-   CritMC Admin Panel — Light Theme
+   CritMC Admin Panel â€” Light Theme
    ============================================================================= */
 
 :root {
@@ -32,12 +32,12 @@
     --color-warn: #f97316;
 
     --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
-    --shadow-md: 0 4px 12px rgba(0,0,0,0.10);
+    --shadow-md: 0 10px 25px -5px rgba(0,0,0,0.08), 0 8px 10px -6px rgba(0,0,0,0.04);
     --shadow-lg: 0 10px 30px rgba(0,0,0,0.15);
 
-    --sidebar-width: 240px;
+    --sidebar-width: 260px;
     --topbar-height: 60px;
-    --radius: 12px;
+    --radius: 16px;
     --radius-sm: 8px;
     --transition: 0.2s ease;
 
@@ -646,7 +646,8 @@ body {
 }
 
 .data-table tbody tr:hover {
-    background: #f9fafb;
+    background: rgba(59,130,246,0.03);
+    transition: background 0.15s ease;
 }
 
 .table-loading {
@@ -910,12 +911,14 @@ body {
     color: #fff;
 }
 
-.ban-btn:hover, .ban-btn.selected     { background: var(--color-ban); border-color: var(--color-ban); }
-.unban-btn:hover, .unban-btn.selected  { background: var(--color-unban); border-color: var(--color-unban); }
-.mute-btn:hover, .mute-btn.selected   { background: var(--color-mute); border-color: var(--color-mute); }
-.unmute-btn:hover, .unmute-btn.selected{ background: var(--color-unmute); border-color: var(--color-unmute); }
-.kick-btn:hover, .kick-btn.selected   { background: var(--color-kick); border-color: var(--color-kick); }
-.warn-btn:hover, .warn-btn.selected   { background: var(--color-warn); border-color: var(--color-warn); }
+.ban-btn:hover, .ban-btn.selected     { background: var(--color-ban); border-color: var(--color-ban); color:#fff; }
+.unban-btn:hover, .unban-btn.selected  { background: var(--color-unban); border-color: var(--color-unban); color:#fff; }
+.mute-btn:hover, .mute-btn.selected   { background: var(--color-mute); border-color: var(--color-mute); color:#fff; }
+.unmute-btn:hover, .unmute-btn.selected{ background: var(--color-unmute); border-color: var(--color-unmute); color:#fff; }
+.kick-btn:hover, .kick-btn.selected   { background: var(--color-kick); border-color: var(--color-kick); color:#fff; }
+.warn-btn:hover, .warn-btn.selected   { background: var(--color-warn); border-color: var(--color-warn); color:#fff; }
+.alts-btn:hover, .alts-btn.selected   { background: #8b5cf6; border-color: #8b5cf6; color:#fff !important; }
+.message-btn:hover, .message-btn.selected { background: #3b82f6; border-color: #3b82f6; color:#fff !important; }
 
 /* Duration buttons */
 .duration-options {
@@ -1085,7 +1088,7 @@ body {
     }
 }
 
-/* Przycisk powrotu do strony głównej */
+/* Przycisk powrotu do strony gĹ‚Ăłwnej */
 .back-to-main-btn {
     display: flex;
     align-items: center;
@@ -1118,7 +1121,7 @@ body {
     }
 }
 
-/* Grid strony Nadaj karę */
+/* Grid strony Nadaj karÄ™ */
 .action-page-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -1132,7 +1135,7 @@ body {
     }
 }
 
-/* Przycisk Sprawdź */
+/* Przycisk SprawdĹş */
 .check-btn:hover, .check-btn.selected {
     background: #0ea5e9;
     border-color: #0ea5e9;
@@ -1145,7 +1148,7 @@ body {
     border: 1px solid rgba(2,132,199,.2);
 }
 
-/* Statystyki — karty overview */
+/* Statystyki â€” karty overview */
 .stats-overview {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -1197,4 +1200,76 @@ body {
 
 @media (max-width: 480px) {
     .stats-overview { grid-template-columns: 1fr; }
+}
+
+/* Online pulse w tabeli */
+.badge-online i {
+    animation: pulse-online 2s ease-in-out infinite;
+}
+@keyframes pulse-online {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* Multikonta modal popup style */
+.alts-popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    z-index: 1000;
+    box-shadow: var(--shadow-lg);
+    min-width: 320px;
+    max-width: 480px;
+    animation: modalIn 0.2s ease forwards;
+}
+
+.alts-popup h3 {
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.alts-popup .alt-account {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 0.75rem;
+    border-radius: var(--radius-sm);
+    background: var(--bg);
+    margin-bottom: 0.5rem;
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+
+.alts-popup .alt-account:last-child {
+    margin-bottom: 0;
+}
+
+.modal-field.message-field textarea {
+    width: 100%;
+    padding: 0.7rem 0.9rem;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 0.92rem;
+    color: var(--text-primary);
+    background: var(--bg-card);
+    outline: none;
+    resize: vertical;
+    min-height: 80px;
+    font-family: var(--font);
+    transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.modal-field.message-field textarea:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
 }
