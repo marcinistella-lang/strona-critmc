@@ -103,6 +103,10 @@
                     <i class="fa-solid fa-shop"></i>
                     <span>Sklep</span>
                 </button>
+                <button class="nav-btn" data-page="files" onclick="switchPage('files');loadFilesPage();">
+                    <i class="fa-solid fa-folder-open"></i>
+                    <span>Pliki</span>
+                </button>
 
                 <div class="nav-section-label" style="margin-top:1.5rem;">Konto</div>
                 <button class="nav-btn" data-page="admins" onclick="switchPage('admins');loadAdminAccounts();">
@@ -373,7 +377,7 @@
                             <input type="text" id="ap-attachment-link" placeholder="https://..." style="display:none;width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);margin-bottom:.6rem;">
                             <textarea id="ap-attachment-text" rows="3" placeholder="Wpisz opis, krótką notatkę albo streszczenie dowodu..." style="display:none;width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;margin-bottom:.6rem;"></textarea>
                             <input type="file" id="ap-attachment-file" accept="image/*,video/*,.zip,.rar,.7z,.txt,.pdf" style="display:none;width:100%;padding:.55rem .7rem;border:1.5px dashed var(--border);border-radius:var(--radius-sm);font-size:.88rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);margin-bottom:.45rem;">
-                            <div style="font-size:.76rem;color:var(--text-secondary);line-height:1.5;">Na tym etapie panel zapisuje metadane załącznika. Faktyczny upload plików podłączymy po spięciu z bazą plików.</div>
+                            <div style="font-size:.76rem;color:var(--text-secondary);line-height:1.5;">Plik zostanie wyslany do bazy plikow i zapisany przy akcji jako zalacznik.</div>
                         </div>
 
                         <div id="ap-msg" style="display:none;margin-bottom:1rem;padding:0.7rem 1rem;border-radius:var(--radius-sm);font-size:0.88rem;font-weight:600;"></div>
@@ -566,6 +570,51 @@
                 <div id="permissions-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:1rem;">
                     <div class="table-card" style="padding:1.5rem;text-align:center;color:var(--text-secondary);">
                         <i class="fa-solid fa-spinner fa-spin"></i> Ładowanie uprawnień...
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== STRONA: PLIKI ===== -->
+            <div id="page-files" class="page">
+                <div class="page-header">
+                    <h1>Pliki</h1>
+                    <p>Podglad, otwieranie i porzadkowanie plikow z panelu</p>
+                </div>
+                <div class="filters-bar">
+                    <div class="filter-search">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="files-search" placeholder="Szukaj po nazwie, graczu albo powodzie..." oninput="filterFiles()">
+                    </div>
+                    <div class="filter-group">
+                        <select id="files-filter-status" onchange="filterFiles()">
+                            <option value="">Wszystkie statusy</option>
+                            <option value="ready">Gotowe</option>
+                            <option value="deleted">Usuniete</option>
+                        </select>
+                        <button class="tbl-btn" onclick="loadFilesPage()">
+                            <i class="fa-solid fa-rotate-right"></i> Odswiez
+                        </button>
+                    </div>
+                </div>
+                <div class="table-card">
+                    <div class="table-wrap">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Podglad</th>
+                                    <th>Nazwa</th>
+                                    <th>Gracz</th>
+                                    <th>Akcja</th>
+                                    <th>Autor</th>
+                                    <th>Data</th>
+                                    <th>Status</th>
+                                    <th>Akcje</th>
+                                </tr>
+                            </thead>
+                            <tbody id="files-tbody">
+                                <tr><td colspan="8" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ladowanie...</td></tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -885,6 +934,12 @@
                             <input type="checkbox" class="perm-checkbox" value="logs"> Podgląd logów
                         </label>
                         <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;">
+                            <input type="checkbox" class="perm-checkbox" value="evidence_view"> Podglad plikow
+                        </label>
+                        <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;">
+                            <input type="checkbox" class="perm-checkbox" value="evidence_delete"> Usuwanie plikow
+                        </label>
+                        <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;">
                             <input type="checkbox" class="perm-checkbox" value="shop"> Zarządzanie sklepem
                         </label>
                         <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;">
@@ -1145,6 +1200,16 @@
                         <input type="checkbox" id="shop-item-active" checked> Produkt aktywny
                     </label>
                 </div>
+                <div class="modal-field">
+                    <label>Wgraj nowe media</label>
+                    <input type="file" id="shop-item-media-file" accept="image/*,video/*,.webp,.gif,.png,.jpg,.jpeg,.mp4,.webm" onchange="previewShopMediaInput()">
+                    <div style="font-size:.76rem;color:var(--text-secondary);line-height:1.5;margin-top:.35rem;">Po zapisie plik zostanie wyslany i automatycznie wpisany w link media.</div>
+                </div>
+                <div id="shop-item-media-preview" class="shop-media-preview" style="display:none;"></div>
+                <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem;">
+                    <button type="button" class="tbl-btn" onclick="previewShopItemMedia()"><i class="fa-solid fa-eye"></i> Podglad media</button>
+                    <button type="button" class="tbl-btn" onclick="openShopPreview()"><i class="fa-solid fa-arrow-up-right-from-square"></i> Podglad sklepu</button>
+                </div>
                 <div id="shop-item-msg" class="modal-msg" style="display:none;"></div>
                 <button class="modal-submit-btn" onclick="saveShopItem()"><i class="fa-solid fa-floppy-disk"></i> Zapisz produkt</button>
             </div>
@@ -1282,7 +1347,8 @@
                 permissions:'Uprawnienia',
                 personel:  'Personel',
                 site:      'Zarządzanie Stroną',
-                shop:      'Sklep'
+                shop:      'Sklep',
+                files:     'Pliki'
             };
             document.getElementById('topbar-title').textContent = titles[pageName] || pageName;
         }

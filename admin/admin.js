@@ -32,7 +32,7 @@ const ROLE_PERMISSIONS = {
     'ChatMod':      ['mute', 'warn', 'check'],
     'Pomocnik':     ['mute', 'warn', 'check', 'players'],
     'Moderator':    ['ban', 'mute', 'kick', 'warn', 'check', 'players', 'logs', 'evidence_view'],
-    'Admin':        ['ban', 'unban', 'mute', 'unmute', 'kick', 'warn', 'check', 'players', 'logs', 'notes', 'site', 'shop', 'media_manage', 'evidence_view'],
+    'Admin':        ['ban', 'unban', 'mute', 'unmute', 'kick', 'warn', 'check', 'players', 'logs', 'notes', 'site', 'shop', 'media_manage', 'evidence_view', 'evidence_delete'],
     'Zarządzający': ['all']
 };
 
