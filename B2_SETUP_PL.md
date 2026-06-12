@@ -1,143 +1,190 @@
-# Backblaze B2 - instrukcja podpiecia
+# Backblaze B2 + Cloudflare Worker — instrukcja wdrożenia
 
-## 1. Najpierw bezpieczenstwo
+## Co już masz gotowe w kodzie
 
-Jesli pokazales `Master Application Key` na screenie, potraktuj go jako wyciek.
+- `admin/admin.js` — `FILE_WORKER_URL = "https://critmc-b2-files.marcinstella.workers.dev"`
+- Upload dowodów: `POST /upload/evidence`
+- Upload mediów sklepu: `POST /upload/shop`
+- Upload mediów strony: `POST /upload/media`
+- Pobieranie prywatnych plików: `GET /file?key=...` (przez Worker proxy)
+- Usuwanie: `DELETE /file?key=...&id=...`
+- Worker code: `cloudflare-worker/worker.js`
 
-Co zrobic:
+---
 
-1. Wejdz w `Backblaze B2`.
-2. Otworz `Application Keys`.
-3. Usun albo zrotuj stary `Master Application Key`.
-4. Nie uzywaj Master Key w tym projekcie.
+## Krok 1 — Backblaze B2
 
-## 2. Jakie buckety utworzyc
+### 1.1 Utwórz dwa buckety
 
-Polecany podzial:
+W panelu Backblaze → `Buckets` → `Create a Bucket`:
 
-- `nagrania-critmc` - bucket prywatny na dowody, nagrania, screeny i pliki do kar
-- `media-critmc` - bucket publiczny albo pozniej obslugiwany przez backend, do sklepu, nowosci i mediow
+| Bucket name          | Files are | Encryption |
+|----------------------|-----------|------------|
+| `nagrania-critmc`    | Private   | Enable     |
+| `media-critmc`       | Public    | Enable     |
 
-Ustawienia bucketu na start:
+### 1.2 Utwórz klucze aplikacji
 
-- `Files in Bucket are`: `Private` dla dowodow
-- `Files in Bucket are`: `Public` dla publicznych mediow
-- `Default Encryption`: `Enable`
-- `Object Lock`: `Disable`
+**NIE używaj Master Key.** Utwórz 2 osobne klucze:
 
-## 3. Jak utworzyc klucz poprawnie
+**Klucz 1 — dowody (prywatny bucket):**
+- Name: `critmc-evidence-rw`
+- Allow access to Bucket(s): `nagrania-critmc`
+- Type of Access: `Read and Write`
 
-Nie tworz kolejnego Master Key.
+**Klucz 2 — media publiczne:**
+- Name: `critmc-media-rw`
+- Allow access to Bucket(s): `media-critmc`
+- Type of Access: `Read and Write`
 
-Utworz zwykly klucz:
+Zapisz:
+- `keyID` (to jest B2_KEY_ID)
+- `applicationKey` (to jest B2_APPLICATION_KEY)
+- Bucket ID (kliknij na bucket → `Bucket ID`)
 
-1. `Application Keys`
-2. `Add a New Application Key`
-3. `Name of Key`: np. `critmc-panel-media`
-4. `Allow access to Bucket(s)`: wybierz tylko jeden bucket
-5. `Type of Access`: `Read and Write`
-6. `Allow List All Bucket Names`: odznacz, jesli nie musisz tego miec
-7. `File name prefix`: zostaw puste albo ustaw np. `uploads/`
-8. `Duration`: zostaw puste
+---
 
-## 4. Czego nie robic
+## Krok 2 — Cloudflare Worker
 
-Nie wklejaj tych danych do:
+### 2.1 Zainstaluj Wrangler
 
-- `admin/admin.js`
-- `firebase.js`
-- `index.html`
-- GitHub repo
+```bash
+npm install -g wrangler
+wrangler login
+```
 
-Klucze B2 musza trafic do backendu, nie do frontendu.
+### 2.2 Wdróż Worker
 
-## 5. Jak to podpiac do tego projektu
+```bash
+cd cloudflare-worker
+wrangler deploy
+```
 
-Ten projekt jest frontendowy, wiec potrzebujesz posrednika.
+Worker wdroży się na `critmc-b2-files.marcinstella.workers.dev` (lub Twoja subdomena Cloudflare).
 
-Najlepszy uklad:
+### 2.3 Ustaw sekrety (po kolei, każda komenda pyta o wartość)
 
-- `Firestore` - dane panelu, sklepu, mediow, kar, uprawnien
-- `Backblaze B2` - pliki
-- `Cloudflare Worker` - bezpieczny upload do B2
+```bash
+wrangler secret put B2_KEY_ID
+# wklej keyID z kroku 1
 
-Schemat:
+wrangler secret put B2_APPLICATION_KEY
+# wklej applicationKey z kroku 1
 
-1. Panel admina wysyla plik do Workera.
-2. Worker laczy sie z B2.
-3. Worker wrzuca plik do bucketu.
-4. Worker zwraca `fileKey` i podstawowe metadane.
-5. Panel zapisuje te dane w Firestore.
+wrangler secret put B2_BUCKET_ID_EVIDENCE
+# wklej Bucket ID bucketu nagrania-critmc
 
-## 6. Jakie sekrety ustawic w Workerze
+wrangler secret put B2_BUCKET_ID_MEDIA
+# wklej Bucket ID bucketu media-critmc
 
-W `Cloudflare Worker` dodaj sekrety:
+wrangler secret put B2_BUCKET_NAME_EVIDENCE
+# wpisz: nagrania-critmc
 
-- `B2_KEY_ID`
-- `B2_APPLICATION_KEY`
-- `B2_BUCKET_ID_EVIDENCE`
-- `B2_BUCKET_ID_MEDIA`
-- `B2_BUCKET_NAME_EVIDENCE`
-- `B2_BUCKET_NAME_MEDIA`
+wrangler secret put B2_BUCKET_NAME_MEDIA
+# wpisz: media-critmc
 
-## 7. Jakie dane zapisywac w Firestore
+wrangler secret put ALLOWED_ORIGIN
+# wpisz: https://critmc.pl (lub * podczas testów)
+```
 
-Przy zalaczniku zapisuj tylko metadane:
+### 2.4 Przetestuj Worker
 
-```json
-{
-  "type": "video",
-  "provider": "b2",
-  "bucket": "nagrania-critmc",
-  "fileKey": "evidence/2026/06/ban-gracz-001.mp4",
-  "fileName": "ban-gracz-001.mp4",
-  "mimeType": "video/mp4",
-  "size": 12345678,
-  "createdAt": "2026-06-11T20:15:00Z",
-  "createdBy": "AdminX"
+Otwórz w przeglądarce:
+```
+https://critmc-b2-files.marcinstella.workers.dev/health
+```
+
+Powinna zwrócić: `{"ok":true,"service":"critmc-b2-worker"}`
+
+---
+
+## Krok 3 — Testuj upload z panelu
+
+1. Zaloguj się do panelu admina
+2. Wejdź w `Nadaj karę` → wybierz gracza → dodaj załącznik → `Nowy plik Backblaze`
+3. Wybierz plik i wykonaj akcję
+4. Sprawdź zakładkę `Pliki` — plik powinien się pojawić
+5. Sprawdź `nagrania-critmc` w Backblaze — plik powinien być w folderze `evidence/YYYY/MM/DD/`
+
+---
+
+## Krok 4 — Media sklepu
+
+1. Panel admina → `Sklep` → `Dodaj produkt`
+2. W polu `Wgraj nowe media` wybierz obrazek lub film
+3. Kliknij `Zapisz produkt`
+4. Worker wyśle plik do `media-critmc`, zwróci publiczny URL
+5. URL zostanie automatycznie zapisany w polu `Link do obrazka`
+
+---
+
+## Krok 5 — Bezpieczeństwo Firestore
+
+W Firebase Console → Firestore → Rules ustaw:
+
+```javascript
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Kolekcja admins — TYLKO odczyt z backendu (Worker lub Cloud Function)
+    // Z przeglądarki ZAWSZE zablokowany
+    match /admins/{doc} {
+      allow read, write: if false;
+    }
+
+    // Pliki — tylko admini z uprawnieniem (przez panel)
+    match /files/{doc} {
+      allow read: if false;
+      allow write: if false;
+    }
+
+    // Reszta — odczyt publiczny (strona), zapis zablokowany
+    match /contests/{doc} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /contests/{cid}/entries/{eid} {
+      allow read: if false;
+      allow write: if true; // gracze mogą dołączyć
+    }
+    match /proposals/{doc} {
+      allow read: if true;
+      allow write: if true; // gracze mogą dodawać i głosować
+    }
+    match /server_content/{doc} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /personel/{doc} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /creators/{doc} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Reszta — zablokowana
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
 }
 ```
 
-## 8. Jak wykorzystac to na stronie
+**UWAGA:** Te reguły blokują zapis przez panel admina do kolekcji `admins`. Panel i tak działa — logowanie sprawdza hasło po stronie JS. Zmiana hasła admina przez panel będzie zablokowana dopóki nie przejdziesz na Firebase Auth lub Cloud Functions.
 
-Publiczne media z bucketu `media-critmc` mozesz potem podpinać do:
+---
 
-- `Nowosci`
-- `Media`
-- `Sklep`
-- miniatur
-- filmow promocyjnych
+## Aktualny stan
 
-Do Firestore zapisujesz wtedy np.:
-
-```json
-{
-  "title": "Nowy trailer",
-  "type": "video",
-  "mediaUrl": "adres pliku lub klucz pliku",
-  "desc": "Opis filmu",
-  "visible": true
-}
-```
-
-## 9. Co jest juz przygotowane w panelu
-
-W panelu admina sa juz przygotowane:
-
-- opcjonalne pola zalacznikow przy karach
-- nowa sekcja `Sklep`
-- nowa sekcja `Uprawnienia`
-
-Na razie przy zalacznikach zapisujemy metadane i miejsce na linki.
-Faktyczny upload plikow ruszy po dodaniu backendu do B2.
-
-## 10. Co zrobic teraz po kolei
-
-1. Uniewaznij pokazany Master Key.
-2. Zostaw bucket `nagrania-critmc` jako prywatny.
-3. Utworz drugi bucket na publiczne media, jesli chcesz wrzucac filmy i grafiki na strone.
-4. Utworz zwykly ograniczony klucz dla kazdego bucketu.
-5. Daj mi znac, a w kolejnym kroku przygotuje Ci:
-   - kod `Cloudflare Worker`
-   - endpoint uploadu
-   - podpiecie tego do panelu admina
+| Komponent | Status |
+|-----------|--------|
+| Kod Workera | ✅ Gotowy w `cloudflare-worker/worker.js` |
+| Upload dowodów (bany/muty) | ✅ Podpięty |
+| Upload mediów sklepu | ✅ Podpięty |
+| Prywatny dostęp przez proxy | ✅ Gotowy |
+| Wdrożenie Workera | ⏳ Wymaga `wrangler deploy` |
+| Sekrety B2 | ⏳ Wymagają `wrangler secret put` |
+| Reguły Firestore | ⏳ Wymagają ręcznego ustawienia |

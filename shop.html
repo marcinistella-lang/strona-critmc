@@ -1312,6 +1312,99 @@
     </footer>
 
     <script src="app.js"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
+        import { getFirestore, collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
+
+        const app = initializeApp({
+            apiKey: "AIzaSyBdwzCGhUtqGm0Ggfmrl2MC8_u10c_AuMQ",
+            authDomain: "stronacritmcpl.firebaseapp.com",
+            projectId: "stronacritmcpl",
+            storageBucket: "stronacritmcpl.firebasestorage.app",
+            messagingSenderId: "674591154096",
+            appId: "1:674591154096:web:fee55d9cf1c83dcfbe8075"
+        });
+        const db = getFirestore(app);
+        const out = document.getElementById('shop-events-dynamic');
+
+        const esc = (v) => String(v ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+
+        const priceText = (n) => {
+            if (n === null || n === undefined || n === '') return '0';
+            const num = Number(n) || 0;
+            return Number.isInteger(num) ? String(num) : num.toFixed(2).replace('.', ',');
+        };
+
+        const fallbackImage = (item) => {
+            const type = String(item.type || '').toLowerCase();
+            if (type === 'ranga') return 'images/vip.png';
+            if (type === 'zestaw') return 'images/bundle-vip.png';
+            if (type === 'klucz') return 'images/keys-medium.png';
+            return 'images/crit.png';
+        };
+
+        const renderCard = (item) => {
+            const media = item.mediaUrl || fallbackImage(item);
+            const isVideo = /\.(mp4|webm|mov)(\?|$)/i.test(media) || String(item.mediaMime || '').startsWith('video/');
+            const desc = item.desc ? `<p class="rank-desc">${esc(item.desc)}</p>` : '';
+            const items = item.itemsText ? `<div class="tags-container">${esc(item.itemsText).split(/\r?\n+/).filter(Boolean).map(line => `<span class="item-tag">${esc(line)}</span>`).join('')}</div>` : '';
+            const badge = item.active === false ? '<span class="badge badge-banned" style="position:absolute;top:1rem;right:1rem;z-index:2;">Ukryty</span>' : '';
+            return `
+                <div class="card bundle-card" style="overflow:hidden;">
+                    ${badge}
+                    <div class="image-container">
+                        ${isVideo ? `<video src="${esc(media)}" autoplay muted loop playsinline style="width:100%;height:100%;object-fit:cover;"></video>` : `<img src="${esc(media)}" alt="${esc(item.name || 'Produkt')}" style="width:100%;height:100%;object-fit:cover;">`}
+                    </div>
+                    <div class="card-info">
+                        <h3 class="rank-title">${esc(item.name || 'Produkt')}</h3>
+                        ${desc}
+                        ${items}
+                        <div class="price-section">
+                            <span class="price-label">Cena:</span>
+                            <div class="price-value">${priceText(item.price)} <span class="currency">PLN</span></div>
+                        </div>
+                        <div class="discord-block">
+                            <div class="discord-collapsed">
+                                <div class="discord-left">
+                                    <i class="fa-brands fa-discord"></i>
+                                    <div><h4>Kup na Discordzie</h4><p>Skopiuj nazwe produktu i zamowienie</p></div>
+                                </div>
+                                <i class="fa-solid fa-chevron-down arrow-icon"></i>
+                            </div>
+                            <div class="discord-expanded">
+                                <div class="steps-list">
+                                    <div class="step-item"><span class="step-number">1</span><p>Wejdź na Discord: <span class="highlight">dc.critmc.pl</span></p></div>
+                                    <div class="step-item"><span class="step-number">2</span><p>Przejdź na kanał <span class="highlight">#sklep</span> lub stwórz ticket</p></div>
+                                    <div class="step-item"><span class="step-number">3</span><p>Podaj nazwę produktu: <strong>${esc(item.name || '')}</strong></p></div>
+                                </div>
+                                <a href="https://dc.critmc.pl" target="_blank" class="discord-buy-btn"><i class="fa-brands fa-discord"></i> Przejdź do dc.critmc.pl</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+        };
+
+        async function loadShopItems() {
+            if (!out) return;
+            out.innerHTML = '<div style="padding:1rem;color:var(--text-muted);">Ładowanie produktów...</div>';
+            try {
+                const snap = await getDocs(query(collection(db, 'shop_items'), orderBy('sortOrder', 'asc')));
+                const items = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(item => item.active !== false);
+                out.innerHTML = items.length
+                    ? items.map(renderCard).join('')
+                    : '<div style="padding:1rem;color:var(--text-muted);">Brak produktów do wyświetlenia.</div>';
+            } catch (e) {
+                out.innerHTML = `<div style="padding:1rem;color:#ef4444;">Błąd połączenia z bazą danych: ${esc(e.message)}</div>`;
+            }
+        }
+
+        loadShopItems();
+    </script>
 </body>
 </html>
 

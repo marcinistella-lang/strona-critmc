@@ -15,7 +15,7 @@ const app = initializeApp({
     appId: "1:674591154096:web:fee55d9cf1c83dcfbe8075"
 });
 const db = getFirestore(app);
-const FILE_WORKER_URL = "https://critmc-b2-files.marcinstella.workers.dev";
+const FILE_WORKER_URL = "https://critmc-b2-files.marcinistella.workers.dev";
 
 // ─── Stan ─────────────────────────────────────────────────────────────
 let currentUser = null;
@@ -255,9 +255,53 @@ function formatBytes(bytes) {
 }
 
 window.openAttachmentUrl = function(encodedUrl) {
-    const url = decodeURIComponent(encodedUrl || '');
-    if (!url) return;
-    window.open(url, '_blank', 'noopener');
+    try {
+        const url = decodeURIComponent(encodedUrl || '');
+        if (!url) return;
+        // Wszystkie URLe otwieramy w nowej karcie — prywatne B2 przez Worker proxy
+        window.open(url, '_blank', 'noopener,noreferrer');
+    } catch(e) {
+        showToast('error', 'Nie udało się otworzyć pliku.');
+    }
+};
+
+window.previewShopMediaInput = function() {
+    const input = document.getElementById('shop-item-media-file');
+    const preview = document.getElementById('shop-item-media-preview');
+    if (!input || !preview) return;
+    const file = input.files?.[0];
+    if (!file) {
+        preview.style.display = 'none';
+        preview.innerHTML = '';
+        return;
+    }
+    const objectUrl = URL.createObjectURL(file);
+    const isVideo = file.type.startsWith('video/');
+    preview.style.display = 'block';
+    preview.innerHTML = isVideo
+        ? `<video src="${objectUrl}" controls style="width:100%;max-height:240px;border-radius:8px;object-fit:cover;"></video>`
+        : `<img src="${objectUrl}" alt="Podglad media" style="width:100%;max-height:240px;border-radius:8px;object-fit:cover;">`;
+};
+
+window.previewShopItemMedia = function() {
+    const url = document.getElementById('shop-item-media-url')?.value.trim();
+    const preview = document.getElementById('shop-item-media-preview');
+    if (!preview) return;
+    if (!url) {
+        preview.style.display = 'none';
+        preview.innerHTML = '';
+        showToast('error', 'Dodaj link albo plik media.');
+        return;
+    }
+    const isVideo = /\.(mp4|webm|mov)(\?|$)/i.test(url);
+    preview.style.display = 'block';
+    preview.innerHTML = isVideo
+        ? `<video src="${escapeHtml(url)}" controls style="width:100%;max-height:240px;border-radius:8px;object-fit:cover;"></video>`
+        : `<img src="${escapeHtml(url)}" alt="Podglad media" style="width:100%;max-height:240px;border-radius:8px;object-fit:cover;">`;
+};
+
+window.openShopPreview = function() {
+    window.open('../shop.html', '_blank', 'noopener');
 };
 
 window.showAttachmentText = function(encodedText) {
@@ -304,7 +348,7 @@ function renderAttachmentCell(attachment) {
 async function uploadEvidenceFile(file, meta) {
     if (!file) throw new Error('Brak pliku do wyslania');
 
-    const admin = meta?.admin || currentUser?.displayName || 'Panel';
+    const admin  = meta?.admin  || currentUser?.displayName || 'Panel';
     const player = meta?.player || '';
     const action = meta?.action || '';
     const reason = meta?.reason || '';
@@ -326,17 +370,23 @@ async function uploadEvidenceFile(file, meta) {
     }
 
     const uploaded = data.file;
+
+    // URL do otwarcia pliku — prywatne pliki przez proxy Worker
+    const fileUrl = uploaded.publicUrl
+        || `${FILE_WORKER_URL}/file?key=${encodeURIComponent(uploaded.fileKey)}`;
+
     const fileRefDoc = await addDoc(collection(db, 'files'), {
-        kind: 'evidence',
-        provider: 'b2',
-        bucket: uploaded.bucket,
-        fileKey: uploaded.fileKey,
-        b2FileId: uploaded.b2FileId,
+        kind:         'evidence',
+        provider:     'b2',
+        bucket:       uploaded.bucket,
+        fileKey:      uploaded.fileKey,
+        b2FileId:     uploaded.b2FileId,
         originalName: uploaded.fileName || file.name,
-        mimeType: uploaded.mimeType || file.type || 'application/octet-stream',
-        size: uploaded.size || file.size || 0,
-        uploadedAt: serverTimestamp(),
-        uploadedBy: admin,
+        mimeType:     uploaded.mimeType || file.type || 'application/octet-stream',
+        size:         uploaded.size || file.size || 0,
+        url:          fileUrl,
+        uploadedAt:   serverTimestamp(),
+        uploadedBy:   admin,
         player,
         action,
         reason,
@@ -344,16 +394,17 @@ async function uploadEvidenceFile(file, meta) {
     });
 
     return {
-        type: 'file',
+        type:     'file',
         provider: 'b2',
-        fileId: fileRefDoc.id,
+        fileId:   fileRefDoc.id,
         fileName: uploaded.fileName || file.name,
         mimeType: uploaded.mimeType || file.type || 'application/octet-stream',
-        size: uploaded.size || file.size || 0,
-        bucket: uploaded.bucket,
-        fileKey: uploaded.fileKey,
+        size:     uploaded.size || file.size || 0,
+        bucket:   uploaded.bucket,
+        fileKey:  uploaded.fileKey,
         b2FileId: uploaded.b2FileId,
-        status: 'ready'
+        url:      fileUrl,
+        status:   'ready'
     };
 }
 
@@ -1505,20 +1556,48 @@ window.editShopItem = function(id) {
 
 window.saveShopItem = async function() {
     if (!requirePermission('shop', 'zarządzanie sklepem')) return;
-    const id = document.getElementById('shop-item-id').value;
+    const id   = document.getElementById('shop-item-id').value;
     const name = document.getElementById('shop-item-name').value.trim();
     const type = document.getElementById('shop-item-type').value;
     if (!name) { showShopItemMsg('error', 'Podaj nazwę produktu.'); return; }
+
+    let mediaUrl = document.getElementById('shop-item-media-url').value.trim();
+
+    // Upload pliku do Backblaze jeśli wybrany
+    const fileInput = document.getElementById('shop-item-media-file');
+    const file = fileInput?.files?.[0];
+    if (file) {
+        showShopItemMsg('info', '<i class="fa-solid fa-spinner fa-spin"></i> Wysyłam plik do Backblaze...');
+        try {
+            const form = new FormData();
+            form.append('file', file);
+            form.append('folder', 'shop');
+            form.append('admin', currentUser?.displayName || 'Panel');
+            const res  = await fetch(`${FILE_WORKER_URL}/upload/shop`, { method: 'POST', body: form });
+            const data = await res.json().catch(() => null);
+            if (!res.ok || !data?.ok || !data?.file) {
+                throw new Error(data?.error || 'Błąd uploadu do Backblaze');
+            }
+            // Zapisz URL publiczny do Firestore
+            mediaUrl = data.file.publicUrl || data.file.fileKey || mediaUrl;
+            // Wyczyść input pliku
+            if (fileInput) fileInput.value = '';
+        } catch (e) {
+            showShopItemMsg('error', 'Błąd uploadu: ' + e.message);
+            return;
+        }
+    }
+
     const data = {
         type,
         name,
-        desc: document.getElementById('shop-item-desc').value.trim(),
-        price: Number(document.getElementById('shop-item-price').value || 0),
-        oldPrice: Number(document.getElementById('shop-item-old-price').value || 0) || null,
+        desc:      document.getElementById('shop-item-desc').value.trim(),
+        price:     Number(document.getElementById('shop-item-price').value || 0),
+        oldPrice:  Number(document.getElementById('shop-item-old-price').value || 0) || null,
         sortOrder: parseInt(document.getElementById('shop-item-order').value || '99', 10),
         itemsText: document.getElementById('shop-item-items').value.trim(),
-        mediaUrl: document.getElementById('shop-item-media-url').value.trim(),
-        active: document.getElementById('shop-item-active').checked,
+        mediaUrl,
+        active:    document.getElementById('shop-item-active').checked,
         updatedAt: serverTimestamp(),
         updatedBy: currentUser?.displayName || 'Panel'
     };
@@ -1529,9 +1608,13 @@ window.saveShopItem = async function() {
             data.createdAt = serverTimestamp();
             await addDoc(collection(db, 'shop_items'), data);
         }
-        showShopItemMsg('success', 'Produkt zapisany.');
+        showShopItemMsg('success', '✓ Produkt zapisany!');
         await window.loadShopPage();
-        setTimeout(() => document.getElementById('shop-item-modal').classList.remove('open'), 1000);
+        setTimeout(() => {
+            document.getElementById('shop-item-modal').classList.remove('open');
+            const prev = document.getElementById('shop-item-media-preview');
+            if (prev) { prev.style.display = 'none'; prev.innerHTML = ''; }
+        }, 1000);
     } catch (e) {
         showShopItemMsg('error', 'Błąd: ' + e.message);
     }
@@ -2089,10 +2172,6 @@ window.siteEndContest = async function() {
 window.siteDeleteContest = async function() {
     if (!requirePermission('site', 'zarządzanie stroną')) return;
     const contestId = _currentContestId();
-    if (!contestId || contestId === 'start') {
-        showSiteContestMsg('Brak konkursu do usunięcia.', '#ef4444');
-        return;
-    }
     if (!confirm(`USUNĄĆ konkurs "${contestId}"? Tej operacji nie można cofnąć!`)) return;
     try {
         const entriesSnap = await getDocs(collection(db, 'contests', contestId, 'entries'));
@@ -2100,7 +2179,6 @@ window.siteDeleteContest = async function() {
         await deleteDoc(doc(db, 'contests', contestId));
         showSiteContestMsg('Konkurs usunięty.', '#ef4444');
         showToast('success', `Usunięto konkurs "${contestId}"`);
-        // Odśwież listę i przejdź do pierwszego dostępnego
         await siteLoadContestList();
         const sel = document.getElementById('site-contest-select');
         if (sel && sel.options.length > 0) {
