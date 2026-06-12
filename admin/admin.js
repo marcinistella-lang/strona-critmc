@@ -1011,11 +1011,40 @@ async function executeAction(action, nick, uuid, reason, duration, attachment = 
         snap.forEach(async d => await deleteDoc(d.ref));
         const pSnap = await getDocs(query(collection(db, 'players'), where('nick', '==', nick)));
         pSnap.forEach(async d => await updateDoc(d.ref, { muted: false }));
-    } else if (action === 'kick' || action === 'warn' || action === 'check') {
-        // Te akcje są dziś logowane w panelu, ale nie zmieniają dokumentów Firestore.
     }
-    await logAction(action, nick, admin, reason, duration || '—', attachment ? { attachment } : {});
+    // kick, warn, check — obsługiwane przez plugin MC przez panel_commands
+
+    // ─── ZAPIS DO panel_commands — plugin MC odbiera i wykonuje na serwerze ───
+    // check nie wymaga akcji w MC
+    if (action !== 'check') {
+        let cmdRank = '';
+        let cmdMsg = '';
+        let cmdReason = reason || '—';
+        
+        if (action === 'rank') {
+            cmdRank = reason;
+            cmdReason = 'Nadanie rangi z panelu';
+        } else if (action === 'message') {
+            cmdMsg = reason;
+            cmdReason = 'Wiadomość z panelu';
+        }
+
+        await addDoc(collection(db, 'panel_commands'), {
+            action:   action,
+            player:   nick,
+            reason:   cmdReason,
+            duration: duration || 'permanent',
+            rank:     cmdRank,
+            message:  cmdMsg,
+            admin:    admin,
+            executed: false,
+            createdAt: serverTimestamp()
+        });
+    }
+
+    await logAction(action, nick, admin, cmdReason || reason, duration || '—', attachment ? { attachment } : {});
 }
+
 
 window.toggleActionAttachmentFields = function(prefix) {
     const typeEl = document.getElementById(`${prefix}-attachment-type`);

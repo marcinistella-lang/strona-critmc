@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
@@ -29,16 +29,16 @@
                     <input type="text" id="login-username" placeholder="Wpisz login..." autocomplete="username" required>
                 </div>
                 <div class="login-field">
-                    <label><i class="fa-solid fa-lock"></i> Hasło</label>
+                    <label><i class="fa-solid fa-lock"></i> HasL�o</label>
                     <div class="password-wrap">
-                        <input type="password" id="login-password" placeholder="Wpisz hasło..." autocomplete="current-password" required>
-                        <button type="button" class="pw-toggle" onclick="togglePasswordVisibility()" title="Pokaż/ukryj hasło">
+                        <input type="password" id="login-password" placeholder="Wpisz hasL�o..." autocomplete="current-password" required>
+                        <button type="button" class="pw-toggle" onclick="togglePasswordVisibility()" title="PokaLL/ukryj hasL�o">
                             <i class="fa-solid fa-eye" id="pw-toggle-icon"></i>
                         </button>
                     </div>
                 </div>
                 <div id="login-error" class="login-error" style="display:none;">
-                    <i class="fa-solid fa-circle-exclamation"></i> Błędny login lub hasło!
+                    <i class="fa-solid fa-circle-exclamation"></i> BL�ędny login lub hasL�o!
                 </div>
                 <button type="submit" class="login-btn">
                     <i class="fa-solid fa-right-to-bracket"></i> Zaloguj się
@@ -47,7 +47,7 @@
         </div>
     </div>
 
-    <!-- ===== PANEL GŁÓWNY ===== -->
+    <!-- ===== PANEL GL�A�WNY ===== -->
     <div id="admin-panel" class="admin-panel" style="display:none;">
 
         <!-- SIDEBAR -->
@@ -145,11 +145,11 @@
                 <div class="topbar-right">
                     <div class="server-status" id="server-status">
                         <span class="status-dot offline"></span>
-                        <span id="status-text">Łączenie...</span>
+                        <span id="status-text">L�ączenie...</span>
                     </div>
-                    <a href="../index.html" class="back-to-main-btn" title="Wróć do strony głównej">
+                    <a href="../index.html" class="back-to-main-btn" title="WrAlć do strony gL�Alwnej">
                         <i class="fa-solid fa-house"></i>
-                        <span>Strona główna</span>
+                        <span>Strona gL�Alwna</span>
                     </a>
                 </div>
             </div>
@@ -206,7 +206,7 @@
                             <tbody id="players-tbody">
                                 <tr>
                                     <td colspan="5" class="table-loading">
-                                        <i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...
+                                        <i class="fa-solid fa-spinner fa-spin"></i> L�adowanie...
                                     </td>
                                 </tr>
                             </tbody>
@@ -242,7 +242,7 @@
                             <thead>
                                 <tr>
                                     <th>Gracz</th>
-                                    <th>Powód</th>
+                                    <th>PowAld</th>
                                     <th>Przez kogo</th>
                                     <th>Data</th>
                                     <th>Wygasa</th>
@@ -252,7 +252,7 @@
                             <tbody id="bans-tbody">
                                 <tr>
                                     <td colspan="6" class="table-loading">
-                                        <i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...
+                                        <i class="fa-solid fa-spinner fa-spin"></i> L�adowanie...
                                     </td>
                                 </tr>
                             </tbody>
@@ -288,7 +288,7 @@
                             <thead>
                                 <tr>
                                     <th>Gracz</th>
-                                    <th>Powód</th>
+                                    <th>PowAld</th>
                                     <th>Przez kogo</th>
                                     <th>Data</th>
                                     <th>Wygasa</th>
@@ -298,7 +298,7 @@
                             <tbody id="mutes-tbody">
                                 <tr>
                                     <td colspan="6" class="table-loading">
-                                        <i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...
+                                        <i class="fa-solid fa-spinner fa-spin"></i> L�adowanie...
                                     </td>
                                 </tr>
                             </tbody>
@@ -307,11 +307,11 @@
                 </div>
             </div>
 
-            <!-- ===== STRONA: NADAJ KARĘ ===== -->
+            <!-- ===== STRONA: NADAJ KAR�? ===== -->
             <div id="page-action" class="page">
                 <div class="page-header">
                     <h1>Nadaj karę</h1>
-                    <p>Zbanuj, zmutuj, wyrzuć lub ostrzeż gracza</p>
+                    <p>Zbanuj, zmutuj, wyrzuć lub ostrzeLL gracza</p>
                 </div>
 
                 <div class="action-page-grid">
@@ -339,8 +339,10 @@
                                 <button class="action-btn mute-btn"   onclick="apSetAction('mute')">  <i class="fa-solid fa-microphone-slash"></i> Mute</button>
                                 <button class="action-btn unmute-btn" onclick="apSetAction('unmute')"><i class="fa-solid fa-microphone"></i> Unmute</button>
                                 <button class="action-btn kick-btn"   onclick="apSetAction('kick')">  <i class="fa-solid fa-door-open"></i> Kick</button>
-                                <button class="action-btn warn-btn"   onclick="apSetAction('warn')">  <i class="fa-solid fa-triangle-exclamation"></i> Ostrzeżenie</button>
-                                <button class="action-btn check-btn"  onclick="apSetAction('check')"> <i class="fa-solid fa-magnifying-glass"></i> Sprawdź</button>
+                                <button class="action-btn warn-btn"   onclick="apSetAction('warn')">  <i class="fa-solid fa-triangle-exclamation"></i> OstrzeLLenie</button>
+                                <button class="action-btn check-btn"  onclick="apSetAction('check')"> <i class="fa-solid fa-magnifying-glass"></i> SprawdLs</button>
+                                <button class="action-btn rank-btn"   onclick="apSetAction('rank')" style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);color:#f59e0b;"> <i class="fa-solid fa-star"></i> Ranga</button>
+                                <button class="action-btn message-btn" onclick="apSetAction('message')" style="background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3);color:#3b82f6;"> <i class="fa-solid fa-envelope"></i> WiadomoL�ć</button>
                             </div>
                         </div>
 
@@ -350,32 +352,32 @@
                                 <button class="dur-btn" onclick="apSetDuration('1h',this)">1h</button>
                                 <button class="dur-btn" onclick="apSetDuration('6h',this)">6h</button>
                                 <button class="dur-btn" onclick="apSetDuration('12h',this)">12h</button>
-                                <button class="dur-btn" onclick="apSetDuration('1d',this)">1 dzień</button>
+                                <button class="dur-btn" onclick="apSetDuration('1d',this)">1 dzieL�</button>
                                 <button class="dur-btn" onclick="apSetDuration('3d',this)">3 dni</button>
                                 <button class="dur-btn" onclick="apSetDuration('7d',this)">7 dni</button>
                                 <button class="dur-btn" onclick="apSetDuration('30d',this)">30 dni</button>
                                 <button class="dur-btn perm-btn" onclick="apSetDuration('permanent',this)">Permanentny</button>
                             </div>
-                            <input type="text" id="ap-duration-custom" placeholder="Lub wpisz własny: 2h, 5d..."
+                            <input type="text" id="ap-duration-custom" placeholder="Lub wpisz wL�asny: 2h, 5d..."
                                 style="width:100%;margin-top:0.5rem;padding:0.7rem 0.9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:0.88rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
                         </div>
 
                         <div class="modal-field" style="margin-bottom:1.5rem;">
-                            <label>Powód <span style="color:#999;font-weight:400;">(wymagany)</span></label>
-                            <input type="text" id="ap-reason" placeholder="Wpisz powód..."
+                            <label>PowAld <span style="color:#999;font-weight:400;">(wymagany)</span></label>
+                            <input type="text" id="ap-reason" placeholder="Wpisz powAld..."
                                 style="width:100%;padding:0.7rem 0.9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:0.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
                         </div>
 
                         <div class="modal-field" style="margin-bottom:1.5rem;">
-                            <label>Załącznik do akcji <span style="color:#999;font-weight:400;">(opcjonalny)</span></label>
+                            <label>ZaL�ącznik do akcji <span style="color:#999;font-weight:400;">(opcjonalny)</span></label>
                             <select id="ap-attachment-type" style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);margin-bottom:.6rem;" onchange="toggleActionAttachmentFields('ap')">
-                                <option value="">Brak załącznika</option>
+                                <option value="">Brak zaL�ącznika</option>
                                 <option value="link">Link</option>
                                 <option value="text">Tekst / notatka</option>
                                 <option value="file">Plik / zdjęcie / nagranie</option>
                             </select>
                             <input type="text" id="ap-attachment-link" placeholder="https://..." style="display:none;width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);margin-bottom:.6rem;">
-                            <textarea id="ap-attachment-text" rows="3" placeholder="Wpisz opis, krótką notatkę albo streszczenie dowodu..." style="display:none;width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;margin-bottom:.6rem;"></textarea>
+                            <textarea id="ap-attachment-text" rows="3" placeholder="Wpisz opis, krAltką notatkę albo streszczenie dowodu..." style="display:none;width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;margin-bottom:.6rem;"></textarea>
                             <input type="file" id="ap-attachment-file" accept="image/*,video/*,.zip,.rar,.7z,.txt,.pdf" style="display:none;width:100%;padding:.55rem .7rem;border:1.5px dashed var(--border);border-radius:var(--radius-sm);font-size:.88rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);margin-bottom:.45rem;">
                             <div style="font-size:.76rem;color:var(--text-secondary);line-height:1.5;">Plik zostanie wyslany do bazy plikow i zapisany przy akcji jako zalacznik.</div>
                         </div>
@@ -394,7 +396,7 @@
                         </div>
                         <div id="ap-recent-logs" style="max-height:420px;overflow-y:auto;">
                             <div style="text-align:center;padding:2rem;color:var(--text-secondary);font-size:0.88rem;">
-                                <i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...
+                                <i class="fa-solid fa-spinner fa-spin"></i> L�adowanie...
                             </div>
                         </div>
                     </div>
@@ -438,7 +440,7 @@
                                     <th>Akcja</th>
                                     <th>Gracz</th>
                                     <th>Admin</th>
-                                    <th>Powód</th>
+                                    <th>PowAld</th>
                                     <th>Czas trwania</th>
                                     <th>Data</th>
                                 </tr>
@@ -446,7 +448,7 @@
                             <tbody id="logs-tbody">
                                 <tr>
                                     <td colspan="6" class="table-loading">
-                                        <i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...
+                                        <i class="fa-solid fa-spinner fa-spin"></i> L�adowanie...
                                     </td>
                                 </tr>
                             </tbody>
@@ -455,49 +457,49 @@
                 </div>
             </div>
 
-            <!-- ===== STRONA: STATYSTYKI ADMINÓW ===== -->
+            <!-- ===== STRONA: STATYSTYKI ADMINA�W ===== -->
             <div id="page-stats" class="page">
                 <div class="page-header">
-                    <h1>Statystyki Adminów</h1>
-                    <p>Aktywność i efektywność administracji</p>
+                    <h1>Statystyki AdminAlw</h1>
+                    <p>AktywnoL�ć i efektywnoL�ć administracji</p>
                 </div>
 
-                <!-- Karty ogólne -->
+                <!-- Karty ogAllne -->
                 <div class="stats-overview" id="stats-overview">
                     <div class="stat-card">
                         <div class="stat-icon" style="background:rgba(239,68,68,.12);color:#ef4444;"><i class="fa-solid fa-ban"></i></div>
                         <div class="stat-info">
                             <div class="stat-value" id="stat-total-bans">—</div>
-                            <div class="stat-label">Łączne bany</div>
+                            <div class="stat-label">L�ączne bany</div>
                         </div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-icon" style="background:rgba(245,158,11,.12);color:#f59e0b;"><i class="fa-solid fa-microphone-slash"></i></div>
                         <div class="stat-info">
                             <div class="stat-value" id="stat-total-mutes">—</div>
-                            <div class="stat-label">Łączne muty</div>
+                            <div class="stat-label">L�ączne muty</div>
                         </div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-icon" style="background:rgba(99,102,241,.12);color:#6366f1;"><i class="fa-solid fa-door-open"></i></div>
                         <div class="stat-info">
                             <div class="stat-value" id="stat-total-kicks">—</div>
-                            <div class="stat-label">Łączne kicki</div>
+                            <div class="stat-label">L�ączne kicki</div>
                         </div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-icon" style="background:rgba(16,185,129,.12);color:#10b981;"><i class="fa-solid fa-shield-halved"></i></div>
                         <div class="stat-info">
                             <div class="stat-value" id="stat-total-admins">—</div>
-                            <div class="stat-label">Aktywnych adminów</div>
+                            <div class="stat-label">Aktywnych adminAlw</div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Tabela adminów -->
+                <!-- Tabela adminAlw -->
                 <div class="table-card" style="margin-top:1.5rem;">
                     <div style="padding:.9rem 1.2rem;border-bottom:1px solid var(--border);font-size:.8rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;">
-                        Ranking aktywności
+                        Ranking aktywnoL�ci
                     </div>
                     <div class="table-wrap">
                         <table class="data-table">
@@ -509,14 +511,14 @@
                                     <th>Unban</th>
                                     <th>Muty</th>
                                     <th>Kicki</th>
-                                    <th>Ostrzeżenia</th>
+                                    <th>OstrzeLLenia</th>
                                     <th>Sprawdzenia</th>
                                     <th>Razem</th>
                                     <th>Ostatnia akcja</th>
                                 </tr>
                             </thead>
                             <tbody id="stats-tbody">
-                                <tr><td colspan="10" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>
+                                <tr><td colspan="10" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> L�adowanie...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -549,7 +551,7 @@
                                 </tr>
                             </thead>
                             <tbody id="admin-accounts-tbody">
-                                <tr><td colspan="7" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>
+                                <tr><td colspan="7" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> L�adowanie...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -564,12 +566,12 @@
                 </div>
                 <div class="table-card" style="padding:1.2rem;margin-bottom:1rem;">
                     <div style="font-size:.88rem;color:var(--text-secondary);line-height:1.6;">
-                        Tutaj ustawiasz domyślne uprawnienia dla rang. Nowe konta administratorów będą mogły automatycznie korzystać z tych zestawów.
+                        Tutaj ustawiasz domyL�lne uprawnienia dla rang. Nowe konta administratorAlw będą mogL�y automatycznie korzystać z tych zestawAlw.
                     </div>
                 </div>
                 <div id="permissions-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:1rem;">
                     <div class="table-card" style="padding:1.5rem;text-align:center;color:var(--text-secondary);">
-                        <i class="fa-solid fa-spinner fa-spin"></i> Ładowanie uprawnień...
+                        <i class="fa-solid fa-spinner fa-spin"></i> L�adowanie uprawnieL�...
                     </div>
                 </div>
             </div>
@@ -653,7 +655,7 @@
                                 </tr>
                             </thead>
                             <tbody id="shop-items-tbody">
-                                <tr><td colspan="6" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>
+                                <tr><td colspan="6" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> L�adowanie...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -664,28 +666,28 @@
             <div id="page-personel" class="page">
                 <div class="page-header">
                     <h1>Personel</h1>
-                    <p>Zarządzaj ekipą serwera — wyświetlane na stronie głównej</p>
+                    <p>Zarządzaj ekipą serwera — wyL�wietlane na stronie gL�Alwnej</p>
                 </div>
 
-                <!-- Właściciel i Współwłaściciel -->
+                <!-- WL�aL�ciciel i WspAlL�wL�aL�ciciel -->
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem;">
                     <div class="table-card" style="padding:1.2rem;">
-                        <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.8rem;"><i class="fa-solid fa-crown" style="color:#fc84fb;"></i> Właściciel</div>
+                        <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.8rem;"><i class="fa-solid fa-crown" style="color:#fc84fb;"></i> WL�aL�ciciel</div>
                         <div style="display:flex;flex-direction:column;gap:.6rem;">
-                            <input type="text" id="owner-nick" placeholder="Nick MC właściciela..." style="padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                            <input type="text" id="owner-nick" placeholder="Nick MC wL�aL�ciciela..." style="padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
                             <input type="text" id="owner-yt" placeholder="URL YouTube..." style="padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
                             <input type="text" id="owner-tt" placeholder="URL TikTok..." style="padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
-                            <textarea id="owner-desc" rows="2" placeholder="Opis właściciela..." style="padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea>
+                            <textarea id="owner-desc" rows="2" placeholder="Opis wL�aL�ciciela..." style="padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea>
                             <button class="modal-submit-btn" style="padding:.6rem;" onclick="saveOwner()"><i class="fa-solid fa-floppy-disk"></i> Zapisz</button>
                         </div>
                     </div>
                     <div class="table-card" style="padding:1.2rem;">
-                        <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.8rem;"><i class="fa-solid fa-crown" style="color:#88c5ff;"></i> Współwłaściciel</div>
+                        <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.8rem;"><i class="fa-solid fa-crown" style="color:#88c5ff;"></i> WspAlL�wL�aL�ciciel</div>
                         <div style="display:flex;flex-direction:column;gap:.6rem;">
-                            <input type="text" id="cowowner-nick" placeholder="Nick MC (lub ??? jeśli ukryty)..." style="padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                            <input type="text" id="cowowner-nick" placeholder="Nick MC (lub ??? jeL�li ukryty)..." style="padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
                             <input type="text" id="cowowner-yt" placeholder="URL YouTube (opcjonalne)..." style="padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
                             <input type="text" id="cowowner-dc" placeholder="URL Discord (opcjonalne)..." style="padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
-                            <textarea id="cowowner-desc" rows="2" placeholder="Opis współwłaściciela..." style="padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea>
+                            <textarea id="cowowner-desc" rows="2" placeholder="Opis wspAlL�wL�aL�ciciela..." style="padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea>
                             <button class="modal-submit-btn" style="padding:.6rem;" onclick="saveCowowner()"><i class="fa-solid fa-floppy-disk"></i> Zapisz</button>
                         </div>
                     </div>
@@ -693,27 +695,27 @@
 
                 <!-- Personel (admini, moderatorzy, technicy) -->
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:.8rem;">
-                    <div style="font-size:.9rem;font-weight:700;color:var(--text-primary);">Członkowie personelu <span id="personel-count" style="color:var(--text-secondary);font-weight:400;font-size:.82rem;"></span></div>
+                    <div style="font-size:.9rem;font-weight:700;color:var(--text-primary);">CzL�onkowie personelu <span id="personel-count" style="color:var(--text-secondary);font-weight:400;font-size:.82rem;"></span></div>
                     <button class="modal-submit-btn" style="width:auto;padding:.55rem 1.2rem;" onclick="openPersonelModal()">
-                        <i class="fa-solid fa-plus"></i> Dodaj członka
+                        <i class="fa-solid fa-plus"></i> Dodaj czL�onka
                     </button>
                 </div>
                 <div class="table-card">
                     <div class="table-wrap">
                         <table class="data-table">
-                            <thead><tr><th>Avatar</th><th>Nick</th><th>Ranga</th><th>Opis</th><th>Socials</th><th>Kolejność</th><th>Akcje</th></tr></thead>
+                            <thead><tr><th>Avatar</th><th>Nick</th><th>Ranga</th><th>Opis</th><th>Socials</th><th>KolejnoL�ć</th><th>Akcje</th></tr></thead>
                             <tbody id="personel-tbody">
-                                <tr><td colspan="7" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>
+                                <tr><td colspan="7" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> L�adowanie...</td></tr>
                             </tbody>
                         </table>
                     </div>
                 </div>
 
-                <!-- Twórcy -->
+                <!-- TwAlrcy -->
                 <div style="display:flex;align-items:center;justify-content:space-between;margin:1.5rem 0 1rem;flex-wrap:wrap;gap:.8rem;">
-                    <div style="font-size:.9rem;font-weight:700;color:var(--text-primary);">Twórcy serwerowi <span id="creators-count" style="color:var(--text-secondary);font-weight:400;font-size:.82rem;"></span></div>
+                    <div style="font-size:.9rem;font-weight:700;color:var(--text-primary);">TwAlrcy serwerowi <span id="creators-count" style="color:var(--text-secondary);font-weight:400;font-size:.82rem;"></span></div>
                     <button class="modal-submit-btn" style="width:auto;padding:.55rem 1.2rem;background:linear-gradient(135deg,#aa00ff,#ff00ff);" onclick="openCreatorModal()">
-                        <i class="fa-solid fa-plus"></i> Dodaj twórcę
+                        <i class="fa-solid fa-plus"></i> Dodaj twAlrcę
                     </button>
                 </div>
                 <div class="table-card">
@@ -721,7 +723,7 @@
                         <table class="data-table">
                             <thead><tr><th>Avatar</th><th>Nick</th><th>Opis</th><th>Socials</th><th>Akcje</th></tr></thead>
                             <tbody id="creators-tbody">
-                                <tr><td colspan="5" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>
+                                <tr><td colspan="5" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> L�adowanie...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -735,7 +737,7 @@
                     <p>Konkurs startowy, zmiany serwerowe, propozycje graczy</p>
                 </div>
 
-                <!-- Zakładki podstrony -->
+                <!-- ZakL�adki podstrony -->
                 <div style="display:flex;gap:.5rem;margin-bottom:1.5rem;flex-wrap:wrap;">
                     <button class="site-tab-btn active" data-site-tab="contest" onclick="switchSiteTab('contest')"><i class="fa-solid fa-trophy"></i> Konkurs</button>
                     <button class="site-tab-btn" data-site-tab="changes" onclick="switchSiteTab('changes')"><i class="fa-solid fa-list-check"></i> Zmiany</button>
@@ -745,11 +747,11 @@
 
                 <!-- Konkurs -->
                 <div id="site-tab-contest" class="site-tab-panel sp-active">
-                    <!-- Wybór aktywnego konkursu -->
+                    <!-- WybAlr aktywnego konkursu -->
                     <div style="display:flex;align-items:center;gap:.8rem;margin-bottom:1.2rem;flex-wrap:wrap;">
                         <label style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;">Konkurs:</label>
                         <select id="site-contest-select" onchange="siteLoadContestInfo();siteLoadEntries();" style="flex:1;min-width:180px;padding:.55rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
-                            <option value="start">start (domyślny)</option>
+                            <option value="start">start (domyL�lny)</option>
                         </select>
                         <button class="modal-submit-btn" style="width:auto;padding:.5rem 1.1rem;font-size:.85rem;" onclick="siteNewContest()"><i class="fa-solid fa-plus"></i> Nowy konkurs</button>
                         <button class="tbl-btn" onclick="siteLoadContestList()"><i class="fa-solid fa-rotate-right"></i></button>
@@ -762,9 +764,9 @@
                             <div style="display:flex;flex-direction:column;gap:.7rem;">
                                 <div><label style="font-size:.75rem;font-weight:700;color:var(--text-secondary);display:block;margin-bottom:.3rem;">Nagroda</label>
                                     <input type="text" id="site-contest-nagroda" placeholder="np. 2x Ranga CRIT na 14 dni" style="width:100%;padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);"></div>
-                                <div><label style="font-size:.75rem;font-weight:700;color:var(--text-secondary);display:block;margin-bottom:.3rem;">Data wyników <span style="color:#f2c84a;">(pokazuje się na stronie jako godzina)</span></label>
+                                <div><label style="font-size:.75rem;font-weight:700;color:var(--text-secondary);display:block;margin-bottom:.3rem;">Data wynikAlw <span style="color:#f2c84a;">(pokazuje się na stronie jako godzina)</span></label>
                                     <input type="datetime-local" id="site-contest-date" style="width:100%;padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);"></div>
-                                <div><label style="font-size:.75rem;font-weight:700;color:var(--text-secondary);display:block;margin-bottom:.3rem;">Ilość zwycięzców</label>
+                                <div><label style="font-size:.75rem;font-weight:700;color:var(--text-secondary);display:block;margin-bottom:.3rem;">IloL�ć zwycięzcAlw</label>
                                     <input type="number" id="site-contest-winners-count" min="1" max="20" value="2" oninput="_buildWinnersInputs(parseInt(this.value)||2)" style="width:100px;padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);"></div>
                                 <button class="modal-submit-btn" style="padding:.6rem;" onclick="siteUpdateContest()"><i class="fa-solid fa-floppy-disk"></i> Zapisz ustawienia</button>
                             </div>
@@ -772,12 +774,12 @@
                         <div class="table-card" style="padding:1.2rem;">
                             <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.8rem;"><i class="fa-solid fa-flag-checkered" style="color:#00e676;"></i> Akcje konkursu</div>
                             <div style="display:flex;flex-direction:column;gap:.6rem;">
-                                <div style="font-size:.75rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.2rem;">Nicki zwycięzców</div>
+                                <div style="font-size:.75rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.2rem;">Nicki zwycięzcAlw</div>
                                 <div id="site-winners-inputs" style="display:flex;flex-direction:column;gap:.35rem;margin-bottom:.3rem;"></div>
-                                <button style="background:linear-gradient(135deg,#f2c84a,#ff8c00);color:#000;border:none;padding:.65rem;border-radius:var(--radius-sm);font-weight:900;cursor:pointer;font-family:var(--font);" onclick="siteAnnounceWinners()"><i class="fa-solid fa-trophy"></i> Ogłoś zwycięzców i zakończ</button>
-                                <button style="background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);color:#f59e0b;padding:.55rem;border-radius:var(--radius-sm);font-weight:700;cursor:pointer;font-family:var(--font);" onclick="siteEndContest()"><i class="fa-solid fa-flag-checkered"></i> Zakończ bez wyników</button>
+                                <button style="background:linear-gradient(135deg,#f2c84a,#ff8c00);color:#000;border:none;padding:.65rem;border-radius:var(--radius-sm);font-weight:900;cursor:pointer;font-family:var(--font);" onclick="siteAnnounceWinners()"><i class="fa-solid fa-trophy"></i> OgL�oL� zwycięzcAlw i zakoL�cz</button>
+                                <button style="background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);color:#f59e0b;padding:.55rem;border-radius:var(--radius-sm);font-weight:700;cursor:pointer;font-family:var(--font);" onclick="siteEndContest()"><i class="fa-solid fa-flag-checkered"></i> ZakoL�cz bez wynikAlw</button>
                                 <button style="background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.25);color:#3b82f6;padding:.55rem;border-radius:var(--radius-sm);font-weight:700;cursor:pointer;font-family:var(--font);" onclick="siteRestartContest()"><i class="fa-solid fa-rotate-right"></i> Zresetuj (nowa tura)</button>
-                                <button style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);color:#ef4444;padding:.55rem;border-radius:var(--radius-sm);font-weight:700;cursor:pointer;font-family:var(--font);" onclick="siteDeleteContest()"><i class="fa-solid fa-trash"></i> Usuń konkurs całkowicie</button>
+                                <button style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);color:#ef4444;padding:.55rem;border-radius:var(--radius-sm);font-weight:700;cursor:pointer;font-family:var(--font);" onclick="siteDeleteContest()"><i class="fa-solid fa-trash"></i> UsuL� konkurs caL�kowicie</button>
                             </div>
                             <div id="site-contest-msg" style="margin-top:.7rem;font-size:.85rem;text-align:center;min-height:1.2em;"></div>
                         </div>
@@ -785,14 +787,14 @@
                     <!-- Uczestnicy -->
                     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.8rem;">
                         <div style="font-weight:700;">Uczestnicy <span id="site-entries-count" style="color:var(--text-secondary);font-weight:400;font-size:.82rem;"></span></div>
-                        <button class="tbl-btn" onclick="siteLoadEntries()"><i class="fa-solid fa-rotate-right"></i> Odśwież</button>
+                        <button class="tbl-btn" onclick="siteLoadEntries()"><i class="fa-solid fa-rotate-right"></i> OdL�wieLL</button>
                     </div>
                     <div class="table-card">
                         <div class="table-wrap">
                             <table class="data-table">
-                                <thead><tr><th>Nick MC</th><th>Nick DC</th><th>Słowo weryfikacyjne</th><th>Dołączył</th><th>Akcje</th></tr></thead>
+                                <thead><tr><th>Nick MC</th><th>Nick DC</th><th>SL�owo weryfikacyjne</th><th>DoL�ączyL�</th><th>Akcje</th></tr></thead>
                                 <tbody id="site-entries-tbody">
-                                    <tr><td colspan="5" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>
+                                    <tr><td colspan="5" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> L�adowanie...</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -804,11 +806,11 @@
                     <div class="table-card" style="padding:1.4rem;">
                         <div style="display:flex;flex-direction:column;gap:1rem;">
                             <div>
-                                <label style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;display:block;margin-bottom:.4rem;">Tryb: Zwykłe</label>
+                                <label style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;display:block;margin-bottom:.4rem;">Tryb: ZwykL�e</label>
                                 <textarea id="site-edit-zwykle" rows="5" style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea>
                             </div>
                             <div>
-                                <label style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;display:block;margin-bottom:.4rem;">Tryb: Szczegółowe</label>
+                                <label style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;display:block;margin-bottom:.4rem;">Tryb: SzczegAlL�owe</label>
                                 <textarea id="site-edit-szczegolowe" rows="5" style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea>
                             </div>
                             <div>
@@ -829,7 +831,7 @@
                         <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:1rem;"><i class="fa-brands fa-discord" style="color:#7289da;"></i> Discord</div>
                         <div style="display:flex;gap:.6rem;margin-bottom:1.2rem;">
                             <input type="text" id="site-dc-url" placeholder="URL Discord (np. https://dc.critmc.pl)" style="flex:1;padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
-                            <input type="text" id="site-dc-sub" placeholder="Podtytuł (np. dc.critmc.pl)" style="flex:1;padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                            <input type="text" id="site-dc-sub" placeholder="PodtytuL� (np. dc.critmc.pl)" style="flex:1;padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
                         </div>
                         <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.6rem;"><i class="fa-brands fa-youtube" style="color:#ff0000;"></i> YouTube</div>
                         <div style="display:flex;gap:.6rem;margin-bottom:1.2rem;">
@@ -852,14 +854,14 @@
                 <div id="site-tab-proposals" class="site-tab-panel">
                     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.8rem;flex-wrap:wrap;gap:.6rem;">
                         <div style="font-weight:700;">Propozycje graczy</div>
-                        <button class="tbl-btn" onclick="siteLoadProposals()"><i class="fa-solid fa-rotate-right"></i> Odśwież</button>
+                        <button class="tbl-btn" onclick="siteLoadProposals()"><i class="fa-solid fa-rotate-right"></i> OdL�wieLL</button>
                     </div>
                     <div class="table-card">
                         <div class="table-wrap">
                             <table class="data-table">
-                                <thead><tr><th>Treść</th><th>TAK</th><th>NIE</th><th>Data</th><th>Akcje</th></tr></thead>
+                                <thead><tr><th>TreL�ć</th><th>TAK</th><th>NIE</th><th>Data</th><th>Akcje</th></tr></thead>
                                 <tbody id="site-proposals-tbody">
-                                    <tr><td colspan="5" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>
+                                    <tr><td colspan="5" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> L�adowanie...</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -881,7 +883,7 @@
                 <input type="hidden" id="aa-id">
 
                 <div class="modal-field">
-                    <label>Nazwa wyświetlana</label>
+                    <label>Nazwa wyL�wietlana</label>
                     <input type="text" id="aa-displayname" placeholder="np. Moderator Jan...">
                 </div>
                 <div class="modal-field">
@@ -889,8 +891,8 @@
                     <input type="text" id="aa-login" placeholder="np. jan123..." autocomplete="off">
                 </div>
                 <div class="modal-field">
-                    <label>Hasło <span style="color:#999;font-weight:400;">(zostaw puste żeby nie zmieniać)</span></label>
-                    <input type="password" id="aa-password" placeholder="Nowe hasło..." autocomplete="new-password">
+                    <label>HasL�o <span style="color:#999;font-weight:400;">(zostaw puste LLeby nie zmieniać)</span></label>
+                    <input type="password" id="aa-password" placeholder="Nowe hasL�o..." autocomplete="new-password">
                 </div>
                 <div class="modal-field">
                     <label>Opis <span style="color:#999;font-weight:400;">(widoczny na stronie przy personelu)</span></label>
@@ -910,28 +912,28 @@
                     <label>Uprawnienia</label>
                     <div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.3rem;">
                         <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;">
-                            <input type="checkbox" class="perm-checkbox" value="ban"> Nadawanie banów
+                            <input type="checkbox" class="perm-checkbox" value="ban"> Nadawanie banAlw
                         </label>
                         <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;">
-                            <input type="checkbox" class="perm-checkbox" value="unban"> Zdejmowanie banów
+                            <input type="checkbox" class="perm-checkbox" value="unban"> Zdejmowanie banAlw
                         </label>
                         <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;">
-                            <input type="checkbox" class="perm-checkbox" value="mute"> Nadawanie mutów
+                            <input type="checkbox" class="perm-checkbox" value="mute"> Nadawanie mutAlw
                         </label>
                         <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;">
-                            <input type="checkbox" class="perm-checkbox" value="unmute"> Zdejmowanie mutów
+                            <input type="checkbox" class="perm-checkbox" value="unmute"> Zdejmowanie mutAlw
                         </label>
                         <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;">
                             <input type="checkbox" class="perm-checkbox" value="kick"> Wyrzucanie graczy
                         </label>
                         <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;">
-                            <input type="checkbox" class="perm-checkbox" value="warn"> Ostrzeżenia
+                            <input type="checkbox" class="perm-checkbox" value="warn"> OstrzeLLenia
                         </label>
                         <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;">
                             <input type="checkbox" class="perm-checkbox" value="players"> Podgląd graczy
                         </label>
                         <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;">
-                            <input type="checkbox" class="perm-checkbox" value="logs"> Podgląd logów
+                            <input type="checkbox" class="perm-checkbox" value="logs"> Podgląd logAlw
                         </label>
                         <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;">
                             <input type="checkbox" class="perm-checkbox" value="evidence_view"> Podglad plikow
@@ -1004,27 +1006,30 @@
                         <button class="action-btn kick-btn" onclick="setAction('kick')"><i class="fa-solid fa-door-open"></i> Kick</button>
                         <button class="action-btn warn-btn" onclick="setAction('warn')"><i class="fa-solid fa-triangle-exclamation"></i> Ostrzeżenie</button>
                         <button class="action-btn check-btn" onclick="setAction('check')"><i class="fa-solid fa-magnifying-glass"></i> Sprawdź</button>
+                        <button class="action-btn rank-btn" onclick="setAction('rank')" style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);color:#f59e0b;"><i class="fa-solid fa-star"></i> Ranga</button>
+                        <button class="action-btn message-btn" onclick="setAction('message')" style="background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3);color:#3b82f6;"><i class="fa-solid fa-envelope"></i> Wiadomość</button>
                     </div>
                 </div>
 
                 <div class="modal-field" id="duration-field">
+
                     <label>Czas trwania</label>
                     <div class="duration-options">
                         <button class="dur-btn" onclick="setDuration('1h')">1h</button>
                         <button class="dur-btn" onclick="setDuration('6h')">6h</button>
                         <button class="dur-btn" onclick="setDuration('12h')">12h</button>
-                        <button class="dur-btn" onclick="setDuration('1d')">1 dzień</button>
+                        <button class="dur-btn" onclick="setDuration('1d')">1 dzieL�</button>
                         <button class="dur-btn" onclick="setDuration('3d')">3 dni</button>
                         <button class="dur-btn" onclick="setDuration('7d')">7 dni</button>
                         <button class="dur-btn" onclick="setDuration('30d')">30 dni</button>
                         <button class="dur-btn perm-btn" onclick="setDuration('permanent')">Permanentny</button>
                     </div>
-                    <input type="text" id="duration-custom" placeholder="Lub wpisz własny np. 2h, 5d..." style="margin-top:0.5rem;">
+                    <input type="text" id="duration-custom" placeholder="Lub wpisz wL�asny np. 2h, 5d..." style="margin-top:0.5rem;">
                 </div>
 
                 <div class="modal-field">
-                    <label>Powód <span style="color:#888;font-weight:400;">(wymagany)</span></label>
-                    <input type="text" id="action-reason" placeholder="Podaj powód...">
+                    <label>PowAld <span style="color:#888;font-weight:400;">(wymagany)</span></label>
+                    <input type="text" id="action-reason" placeholder="Podaj powAld...">
                 </div>
 
                 <div id="modal-msg" class="modal-msg" style="display:none;"></div>
@@ -1036,11 +1041,11 @@
         </div>
     </div>
 
-    <!-- ===== MODAL: SZCZEGÓŁY GRACZA ===== -->
+    <!-- ===== MODAL: SZCZEGA�L�Y GRACZA ===== -->
     <div class="modal-overlay" id="player-detail-modal" onclick="closeModal(event)">
         <div class="modal-box" style="max-width:520px;">
             <div class="modal-header">
-                <div class="modal-title">Szczegóły gracza</div>
+                <div class="modal-title">SzczegAlL�y gracza</div>
                 <button class="modal-close" onclick="closePlayerDetail()"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="modal-body" id="player-detail-body">
@@ -1051,7 +1056,7 @@
     <!-- TOAST NOTIFICATIONS -->
     <div id="toast-container" class="toast-container"></div>
 
-    <!-- Styl dla zakładek site-tab -->
+    <!-- Styl dla zakL�adek site-tab -->
     <style>
         .site-tab-btn {
             background: var(--bg);
@@ -1082,22 +1087,22 @@
         .site-tab-panel { display: none !important; }
         .site-tab-panel.sp-active { display: block !important; }
 
-        /* Płynne przejścia stron */
+        /* PL�ynne przejL�cia stron */
         .page { animation: pageIn .18s ease forwards; }
         @keyframes pageIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
 
         /* Szybszy spinner */
         .table-loading { color: var(--text-secondary) !important; }
 
-        /* Lepsze tło kart */
+        /* Lepsze tL�o kart */
         .table-card { will-change: auto; }
     </style>
 
-    <!-- ===== MODAL: CZŁONEK PERSONELU ===== -->
+    <!-- ===== MODAL: CZL�ONEK PERSONELU ===== -->
     <div class="modal-overlay" id="personel-modal" onclick="closeModal(event)">
         <div class="modal-box" style="max-width:560px;">
             <div class="modal-header">
-                <div class="modal-title" id="personel-modal-title">Dodaj członka personelu</div>
+                <div class="modal-title" id="personel-modal-title">Dodaj czL�onka personelu</div>
                 <button class="modal-close" onclick="document.getElementById('personel-modal').classList.remove('open')"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="modal-body">
@@ -1114,30 +1119,30 @@
                         <option value="Zarządzający">Zarządzający</option>
                     </select>
                 </div>
-                <div class="modal-field"><label>Opis</label><textarea id="pm-desc" rows="3" placeholder="Opis członka personelu..." style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea></div>
+                <div class="modal-field"><label>Opis</label><textarea id="pm-desc" rows="3" placeholder="Opis czL�onka personelu..." style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea></div>
                 <div class="modal-field"><label>Discord (opcjonalne)</label><input type="text" id="pm-dc" placeholder="URL lub nick Discord..."></div>
                 <div class="modal-field"><label>YouTube (opcjonalne)</label><input type="text" id="pm-yt" placeholder="URL YouTube..."></div>
                 <div class="modal-field"><label>TikTok (opcjonalne)</label><input type="text" id="pm-tt" placeholder="URL TikTok..."></div>
                 <div class="modal-field"><label>Uprawnienia (widoczne na stronie)</label><input type="text" id="pm-perms" placeholder="np. /ban, /kick, /mute, /tp..."></div>
-                <div class="modal-field"><label>Data dołączenia (opcjonalne)</label><input type="date" id="pm-since" style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);"></div>
-                <div class="modal-field"><label>Kolejność (niższy = wyżej)</label><input type="number" id="pm-order" value="99" min="0" style="width:100px;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);"></div>
+                <div class="modal-field"><label>Data doL�ączenia (opcjonalne)</label><input type="date" id="pm-since" style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);"></div>
+                <div class="modal-field"><label>KolejnoL�ć (niLLszy = wyLLej)</label><input type="number" id="pm-order" value="99" min="0" style="width:100px;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);"></div>
                 <div id="pm-msg" class="modal-msg" style="display:none;"></div>
                 <button class="modal-submit-btn" onclick="savePersonelMember()"><i class="fa-solid fa-floppy-disk"></i> Zapisz</button>
             </div>
         </div>
     </div>
 
-    <!-- ===== MODAL: TWÓRCA ===== -->
+    <!-- ===== MODAL: TWA�RCA ===== -->
     <div class="modal-overlay" id="creator-modal" onclick="closeModal(event)">
         <div class="modal-box" style="max-width:520px;">
             <div class="modal-header">
-                <div class="modal-title" id="creator-modal-title">Dodaj twórcę</div>
+                <div class="modal-title" id="creator-modal-title">Dodaj twAlrcę</div>
                 <button class="modal-close" onclick="document.getElementById('creator-modal').classList.remove('open')"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="modal-body">
                 <input type="hidden" id="cm-id">
-                <div class="modal-field"><label>Nick Minecraft *</label><input type="text" id="cm-nick" placeholder="Nick twórcy..."></div>
-                <div class="modal-field"><label>Opis</label><textarea id="cm-desc" rows="3" placeholder="Opis twórcy..." style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea></div>
+                <div class="modal-field"><label>Nick Minecraft *</label><input type="text" id="cm-nick" placeholder="Nick twAlrcy..."></div>
+                <div class="modal-field"><label>Opis</label><textarea id="cm-desc" rows="3" placeholder="Opis twAlrcy..." style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea></div>
                 <div class="modal-field"><label>YouTube (opcjonalne)</label><input type="text" id="cm-yt" placeholder="URL YouTube..."></div>
                 <div class="modal-field"><label>TikTok (opcjonalne)</label><input type="text" id="cm-tt" placeholder="URL TikTok..."></div>
                 <div class="modal-field"><label>Discord (opcjonalne)</label><input type="text" id="cm-dc" placeholder="URL lub nick Discord..."></div>
@@ -1183,17 +1188,17 @@
                         <input type="number" id="shop-item-old-price" min="0" step="0.01" placeholder="0.00">
                     </div>
                     <div class="modal-field">
-                        <label>Kolejność</label>
+                        <label>KolejnoL�ć</label>
                         <input type="number" id="shop-item-order" min="0" step="1" value="99">
                     </div>
                 </div>
                 <div class="modal-field">
-                    <label>Lista itemów / bonusów</label>
+                    <label>Lista itemAlw / bonusAlw</label>
                     <textarea id="shop-item-items" rows="4" placeholder="Jeden bonus lub item w osobnej linii..." style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea>
                 </div>
                 <div class="modal-field">
                     <label>Link do obrazka / filmu / pliku</label>
-                    <input type="text" id="shop-item-media-url" placeholder="Tutaj później podepniesz link z bazy plików B2">
+                    <input type="text" id="shop-item-media-url" placeholder="Tutaj pAlLsniej podepniesz link z bazy plikAlw B2">
                 </div>
                 <div class="modal-field">
                     <label style="display:flex;align-items:center;gap:.5rem;">
@@ -1221,7 +1226,7 @@
 
     <!-- Funkcje globalne — MUSZĄ być poza type="module" -->
     <script>
-        // Podgląd hasła
+        // Podgląd hasL�a
         function togglePasswordVisibility() {
             const input = document.getElementById('login-password');
             const icon  = document.getElementById('pw-toggle-icon');
@@ -1269,12 +1274,12 @@
             if (attempts >= MAX_BEFORE_KICK) {
                 document.body.innerHTML = `
                     <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0f0c1a;flex-direction:column;gap:1.5rem;padding:2rem;text-align:center;">
-                        <div style="font-size:3rem;">🚫</div>
-                        <div style="font-size:1.2rem;font-weight:800;color:#ef4444;">Zbyt wiele błędnych prób</div>
-                        <div style="color:#9ca3af;font-size:.9rem;">Zostałeś wylogowany ze strony po ${MAX_BEFORE_KICK} nieudanych próbach logowania.</div>
-                        <div style="color:#6b7280;font-size:.82rem;">Pozostało prób do blokady: ${MAX_BEFORE_BLOCK - attempts}</div>
+                        <div style="font-size:3rem;">dz��</div>
+                        <div style="font-size:1.2rem;font-weight:800;color:#ef4444;">Zbyt wiele bL�ędnych prAlb</div>
+                        <div style="color:#9ca3af;font-size:.9rem;">ZostaL�eL� wylogowany ze strony po ${MAX_BEFORE_KICK} nieudanych prAlbach logowania.</div>
+                        <div style="color:#6b7280;font-size:.82rem;">PozostaL�o prAlb do blokady: ${MAX_BEFORE_BLOCK - attempts}</div>
                         <button onclick="location.reload()" style="background:#ef4444;color:#fff;border:none;padding:.75rem 2rem;border-radius:8px;font-size:.95rem;font-weight:700;cursor:pointer;margin-top:.5rem;">
-                            Spróbuj ponownie
+                            SprAlbuj ponownie
                         </button>
                     </div>`;
                 return;
@@ -1284,7 +1289,7 @@
             const errEl = document.getElementById('login-error');
             if (errEl) {
                 errEl.style.display = 'flex';
-                errEl.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> Błędny login lub hasło! (${remaining} prób do wyrzutu)`;
+                errEl.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> BL�ędny login lub hasL�o! (${remaining} prAlb do wyrzutu)`;
             }
         };
 
@@ -1294,7 +1299,7 @@
                 <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0f0c1a;flex-direction:column;gap:1.5rem;padding:2rem;text-align:center;">
                     <div style="font-size:3rem;">⛔</div>
                     <div style="font-size:1.2rem;font-weight:800;color:#ef4444;">Dostęp zablokowany</div>
-                    <div style="color:#9ca3af;font-size:.9rem;">Przekroczono limit błędnych prób logowania.</div>
+                    <div style="color:#9ca3af;font-size:.9rem;">Przekroczono limit bL�ędnych prAlb logowania.</div>
                     <div style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:10px;padding:1rem 2rem;">
                         <div style="color:#ef4444;font-weight:800;font-size:1.1rem;">Blokada: ~${timeLeft}h</div>
                         <div style="color:#6b7280;font-size:.78rem;margin-top:.3rem;">Wygasa: ${new Date(until).toLocaleString('pl-PL')}</div>
@@ -1302,7 +1307,7 @@
                 </div>`;
         }
 
-        // Logowanie — tylko brute-force check + przekazanie do admin.js (moduł)
+        // Logowanie — tylko brute-force check + przekazanie do admin.js (moduL�)
         function handleLogin(e) {
             e.preventDefault();
 
@@ -1315,8 +1320,8 @@
             const login    = document.getElementById('login-username').value.trim();
             const password = document.getElementById('login-password').value;
 
-            // Przekaż do admin.js (moduł) który sprawdza Firestore
-            // admin.js wywoła recordFailedAttempt() jeśli błąd
+            // PrzekaLL do admin.js (moduL�) ktAlry sprawdza Firestore
+            // admin.js wywoL�a recordFailedAttempt() jeL�li bL�ąd
             window.dispatchEvent(new CustomEvent('adminLogin', { detail: { login, password } }));
         }
 
@@ -1342,7 +1347,7 @@
                 mutes:     'Muty',
                 action:    'Nadaj karę',
                 logs:      'Logi Akcji',
-                stats:     'Statystyki Adminów',
+                stats:     'Statystyki AdminAlw',
                 admins:    'Administratorzy',
                 permissions:'Uprawnienia',
                 personel:  'Personel',
@@ -1358,7 +1363,7 @@
             document.getElementById('sidebar').classList.toggle('open');
         }
 
-        // Zamknij modal klikając w tło
+        // Zamknij modal klikając w tL�o
         function closeModal(e) {
             if (e.target.classList.contains('modal-overlay')) {
                 e.target.classList.remove('open');
@@ -1373,10 +1378,10 @@
             document.getElementById('player-detail-modal').classList.remove('open');
         }
 
-        // Guard — przy każdym wejściu na stronę wymagane logowanie
+        // Guard — przy kaLLdym wejL�ciu na stronę wymagane logowanie
         // Brak sessionStorage = brak auto-login = zawsze loguj od nowa
         (function checkAuth() {
-            // Wyczyść ewentualną starą sesję
+            // WyczyL�ć ewentualną starą sesję
             sessionStorage.removeItem('admin_user');
             // Panel zawsze ukryty na start — CSS !important to gwarantuje
         })();
@@ -1452,7 +1457,7 @@
             window.dispatchEvent(new CustomEvent('submitModalAction'));
         };
 
-        // Otwórz modal akcji na graczu (z tabeli)
+        // OtwAlrz modal akcji na graczu (z tabeli)
         window.openActionModal = function(nick, uuid) {
             window._actionModalPlayer = { nick, uuid };
             window._selectedAction   = null;
@@ -1479,3 +1484,4 @@
     </script>
 </body>
 </html>
+

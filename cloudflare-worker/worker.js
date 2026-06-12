@@ -31,21 +31,29 @@ function jsonResponse(data, status = 200, env) {
 // ─── B2 AUTH ─────────────────────────────────────────────────────────────
 async function b2Authorize(env) {
     const creds = btoa(`${env.B2_KEY_ID}:${env.B2_APPLICATION_KEY}`);
-    const res = await fetch('https://api.backblazeb2.com/b2api/v3/b2_authorize_account', {
+    // Używamy v2 — kompatybilne ze wszystkimi typami kluczy
+    const res = await fetch('https://api.backblazeb2.com/b2api/v2/b2_authorize_account', {
         headers: { Authorization: `Basic ${creds}` }
     });
-    if (!res.ok) throw new Error('B2 auth failed: ' + res.status);
-    return res.json(); // { apiUrl, authorizationToken, downloadUrl, ... }
+    if (!res.ok) {
+        const body = await res.text().catch(() => '');
+        throw new Error(`B2 auth failed: ${res.status} — ${body.slice(0,200)}`);
+    }
+    return res.json();
+    // v2 response: { apiUrl, authorizationToken, downloadUrl, recommendedPartSize, ... }
 }
 
 async function b2GetUploadUrl(apiUrl, authToken, bucketId) {
-    const res = await fetch(`${apiUrl}/b2api/v3/b2_get_upload_url`, {
+    const res = await fetch(`${apiUrl}/b2api/v2/b2_get_upload_url`, {
         method: 'POST',
         headers: { Authorization: authToken, 'Content-Type': 'application/json' },
         body: JSON.stringify({ bucketId })
     });
-    if (!res.ok) throw new Error('B2 get_upload_url failed: ' + res.status);
-    return res.json(); // { uploadUrl, authorizationToken }
+    if (!res.ok) {
+        const body = await res.text().catch(() => '');
+        throw new Error(`B2 get_upload_url failed: ${res.status} — ${body.slice(0,200)}`);
+    }
+    return res.json();
 }
 
 async function b2UploadFile(uploadUrl, uploadAuth, fileName, fileData, mimeType, fileInfo = {}) {
@@ -70,7 +78,7 @@ async function b2UploadFile(uploadUrl, uploadAuth, fileName, fileData, mimeType,
         const err = await res.json().catch(() => ({}));
         throw new Error(err.message || 'B2 upload failed: ' + res.status);
     }
-    return res.json(); // { fileId, fileName, contentLength, ... }
+    return res.json();
 }
 
 async function sha1Hex(buffer) {
@@ -191,7 +199,9 @@ async function handleUpload(request, env, opts) {
 
     try {
         const auth       = await b2Authorize(env);
-        const uploadInfo = await b2GetUploadUrl(auth.apiInfo.storageApi.apiUrl, auth.authorizationToken, opts.bucketId);
+        // v2: auth.apiUrl i auth.downloadUrl bezpośrednio
+        const apiUrl     = auth.apiUrl;
+        const uploadInfo = await b2GetUploadUrl(apiUrl, auth.authorizationToken, opts.bucketId);
         const uploaded   = await b2UploadFile(
             uploadInfo.uploadUrl,
             uploadInfo.authorizationToken,
@@ -232,8 +242,8 @@ async function handleDownload(_request, env, url) {
 
     try {
         const auth = await b2Authorize(env);
-        // Wygeneruj link tymczasowy (1 godzina)
-        const res = await fetch(`${auth.apiInfo.storageApi.apiUrl}/b2api/v3/b2_get_download_authorization`, {
+        // v2 API
+        const res = await fetch(`${auth.apiUrl}/b2api/v2/b2_get_download_authorization`, {
             method: 'POST',
             headers: { Authorization: auth.authorizationToken, 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -242,9 +252,11 @@ async function handleDownload(_request, env, url) {
                 validDurationInSeconds: 3600
             })
         });
-        if (!res.ok) throw new Error('B2 download_auth failed');
-        const authData = await res.json();
-
+        if (!res.ok) {
+            const body = await res.text().catch(() => '');
+            throw new Error('B2 download_auth failed: ' + body.slice(0,200));
+        }
+        const authData    = await res.json();
         const downloadUrl = `${auth.downloadUrl}/file/${env.B2_BUCKET_NAME_EVIDENCE}/${encodeURIComponent(fileKey)}?Authorization=${authData.authorizationToken}`;
         return Response.redirect(downloadUrl, 302);
 
@@ -261,14 +273,15 @@ async function handleDelete(_request, env, url) {
 
     try {
         const auth = await b2Authorize(env);
-        const res  = await fetch(`${auth.apiInfo.storageApi.apiUrl}/b2api/v3/b2_delete_file_version`, {
+        // v2 API
+        const res  = await fetch(`${auth.apiUrl}/b2api/v2/b2_delete_file_version`, {
             method: 'POST',
             headers: { Authorization: auth.authorizationToken, 'Content-Type': 'application/json' },
             body: JSON.stringify({ fileId: b2FileId, fileName: decodeURIComponent(fileKey) })
         });
         if (!res.ok) {
             const err = await res.json().catch(() => ({}));
-            throw new Error(err.message || 'B2 delete failed');
+            throw new Error(err.message || 'B2 delete failed: ' + res.status);
         }
         return jsonResponse({ ok: true }, 200, env);
     } catch (e) {
