@@ -1,0 +1,2456 @@
+﻿import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
+import {
+    getFirestore, collection, getDocs, doc, getDoc,
+    setDoc, updateDoc, deleteDoc, addDoc, onSnapshot,
+    query, orderBy, where, serverTimestamp, Timestamp
+} from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
+
+// â”€â”€â”€ Firebase â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+const app = initializeApp({
+    apiKey: "AIzaSyBdwzCGhUtqGm0Ggfmrl2MC8_u10c_AuMQ",
+    authDomain: "stronąacritmcpl.firebaseapp.com",
+    projectId: "stronąacritmcpl",
+    storageBucket: "stronąacritmcpl.firebasestorage.app",
+    messagingSenderId: "674591154096",
+    appId: "1:674591154096:web:fee55d9cf1c83dcfbe8075"
+});
+const db = getFirestore(app);
+const FILE_WORKER_URL = "https://critmc-b2-files.marcinistella.workers.dev";
+
+// â”€â”€â”€ Stan â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+let currentUser = null;
+let allPlayers = [], allBans = [], allMutes = [], allLogs = [];
+let allFiles = [];
+
+// â”€â”€â”€ DomyĹ›lne konta (fallback gdy Firestore puste) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+const DEFAULT_ACCOUNTS = [
+    { login: 'test', password: 'test', displayName: 'Test Admin', role: 'ZarzÄ…dzajÄ…cy', permissions: ['all'] }
+];
+
+// â”€â”€â”€ Uprawnienia per ranga â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+const ROLE_PERMISSIONS = {
+    'ChatMod':      ['mute', 'warn', 'check'],
+    'Pomocnik':     ['mute', 'warn', 'check', 'players'],
+    'Moderator':    ['ban', 'mute', 'kick', 'warn', 'check', 'players', 'logs', 'evidence_view'],
+    'Admin':        ['ban', 'unban', 'mute', 'unmute', 'kick', 'warn', 'check', 'players', 'logs', 'notes', 'site', 'shop', 'media_manage', 'evidence_view', 'evidence_delete'],
+    'ZarzÄ…dzajÄ…cy': ['all']
+};
+
+const ROLE_ORDER = ['ChatMod', 'Pomocnik', 'Moderator', 'Admin', 'ZarzÄ…dzajÄ…cy'];
+const PERMISSIONS_PL = {
+    players: { label: 'PodglÄ…d graczy', desc: 'MoĹĽe przeglÄ…daÄ‡ listÄ™ graczy i ich status.' },
+    ban: { label: 'Nadawanie banĂłw', desc: 'MoĹĽe nadawaÄ‡ bany na graczy.' },
+    unban: { label: 'Zdejmowanie banĂłw', desc: 'MoĹĽe odbanowywaÄ‡ graczy.' },
+    mute: { label: 'Nadawanie mutĂłw', desc: 'MoĹĽe nadawaÄ‡ muty.' },
+    unmute: { label: 'Zdejmowanie mutĂłw', desc: 'MoĹĽe zdejmowaÄ‡ muty.' },
+    kick: { label: 'Wyrzucanie graczy', desc: 'MoĹĽe wyrzucaÄ‡ graczy z serwera.' },
+    warn: { label: 'OstrzeĹĽenia', desc: 'MoĹĽe nadawaÄ‡ ostrzeĹĽenia administracyjne.' },
+    check: { label: 'Sprawdźzanie graczy', desc: 'MoĹĽe wykonywaÄ‡ akcjęe kontrolne i sprawdzenia.' },
+    logs: { label: 'PodglÄ…d logĂłw', desc: 'MoĹĽe przeglÄ…daÄ‡ historiÄ™ akcjęi administracji.' },
+    notes: { label: 'Notatki administracyjne', desc: 'MoĹĽe dodawaÄ‡ notatkęi do graczy.' },
+    site: { label: 'ZarzÄ…dzanie stronąÄ…', desc: 'MoĹĽe edytowaÄ‡ konkursy, media i treĹ›ci stronąy.' },
+    shop: { label: 'ZarzÄ…dzanie sklepem', desc: 'MoĹĽe edytowaÄ‡ produkty, zestawy i ceny sklepu.' },
+    media_manage: { label: 'ZarzÄ…dzanie mediami', desc: 'MoĹĽe dodawaÄ‡ multimedia do stronąy i aktualnoĹ›ci.' },
+    evidence_view: { label: 'PodglÄ…d zaĹ‚Ä…cznikĂłw', desc: 'MoĹĽe otwieraÄ‡ dowody, linki i zaĹ‚Ä…czniki do kar.' },
+    evidence_delete: { label: 'Usuńwanie zaĹ‚Ä…cznikĂłw', desc: 'MoĹĽe usuwaÄ‡ zaĹ‚Ä…czniki z bazy plikĂłw.' },
+    permissions_manage: { label: 'ZarzÄ…dzanie uprawnieńniami', desc: 'MoĹĽe edytowaÄ‡ domyĹ›lne uprawnieńnia rang.' },
+    admins_manage: { label: 'ZarzÄ…dzanie administratorami', desc: 'MoĹĽe dodawaÄ‡ i edytowaÄ‡ konta administratorĂłw.' },
+    all: { label: 'PeĹ‚ny dostÄ™p', desc: 'Ma peĹ‚ny dostÄ™p do caĹ‚ego panelu.' }
+};
+
+function hasPermission(perm) {
+    if (!currentUser) return false;
+    const perms = currentUser.permissions || [];
+    return perms.includes('all') || perms.includes(perm);
+}
+
+function requirePermission(perm, label) {
+    if (hasPermission(perm)) return true;
+    showToast('error', `Brak uprawnieńnia: ${label || perm}`);
+    return false;
+}
+
+function permissionsForRole(role) {
+    return [...(ROLE_PERMISSIONS[role] || [])];
+}
+
+function setAdminPermissionsSelection(perms = []) {
+    document.querySelectorAll('.perm-checkbox').forEach(cb =ś {
+        cb.checked = perms.includes(cb.value);
+    });
+}
+
+function ensureAdminPermissions(perms = []) {
+    const unique = [...new Set(perms.filter(Boolean))];
+    if (unique.includes('all')) return ['all'];
+    return unique;
+}
+
+function permissionLabel(key) {
+    return PERMISSIONS_PL[key]ł.label || key;
+}
+
+async function loadRolePermissionsFromStore() {
+    try {
+        const snap = await getDoc(doc(db, 'panel_settings', 'role_permissions'));
+        if (!snap.exists()) return;
+        const roles = snap.data()ł.roles || {};
+        Object.entries(roles).forEach(([role, perms]) =ś {
+            if (Array.isArray(perms)) {
+                ROLE_PERMISSIONS[role] = ensureAdminPermissions(perms);
+            }
+        });
+    } catch (e) {
+        console.warn('loadRolePermissionsFromStore:', e.message);
+    }
+}
+
+// â”€â”€â”€ NasĹ‚uch na login z inline scriptu â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+window.checkAlts = function(isApPage = false) {
+    const nick = isApPage
+        ł document.getElementById('ap-nick')ł.value.trim()
+        : (window._actionModalPlayerł.nick || window._actionModalPlayerł.id);
+    if (!nick) { showToast('error', 'Podaj nick gracza!'); return; }
+
+    const p = allPlayers.find(pl =ś (pl.nick||pl.id).toLowerCase() === nick.toLowerCase());
+
+    // UsuńĹ„ poprzedni popup jeĹ›li byćĹ‚
+    document.getElementById('alts-popup-overlay')ł.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'alts-popup-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);z-index:1500;display:flex;align-items:center;justify-content:center;padding:1rem;';
+    overlay.onclick = (e) =ś { if (e.target === overlay) overlay.remove(); };
+
+    const ip = pł.ip;
+    let alts = [];
+    if (ip && ip !== 'unknown') {
+        alts = allPlayers.filter(pl =ś pl.ip === ip && (pl.nick||pl.id).toLowerCase() !== nick.toLowerCase());
+    }
+
+    const ipBadge = ip ł `<span style="font-size:.75rem;background:rgba(59,130,246,.1);color:#3b82f6;border:1px solid rgba(59,130,246,.25);padding:.2rem .55rem;border-radius:999px;font-weight:700;font-family:monospace;"ś
+        <i class="fa-solid fa-network-wired"ś</iś ${ip}</spanś` : `<span style="font-size:.75rem;color:#9ca3af;"śbrak IP w bazie</spanś`;
+
+    const altsHtml = alts.length === 0
+        ł `<div style="text-align:center;padding:1.5rem;color:var(--text-secondary);font-size:.9rem;"ś<i class="fa-solid fa-circle-check" style="color:#10b981;font-size:1.4rem;display:block;margin-bottom:.5rem;"ś</iśBrak powiÄ…zanych kont</divś`
+        : alts.map(pl =ś `<div class="alt-account"ś
+            <img class="player-head" src="https://mc-heads.net/avatar/${encodeURIComponent(pl.nick||pl.id)}/32" alt="${pl.nick||pl.id}" onerror="this.src='https://mc-heads.net/avatar/Steve/32'"ś
+            <spanś${escapeHtml(pl.nick||pl.id)}</spanś
+            <span style="margin-left:auto;font-size:.75rem;color:var(--text-secondary);"ś${pl.online ? '<span style="color:#10b981;"ś<i class="fa-solid fa-circle fa-xs"ś</iś Online</spanś' : 'Offline'}</spanś
+        </divś`).join('');
+
+    overlay.innerHTML = `<div class="alts-popup"ś
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;"ś
+            <h3ś<i class="fa-solid fa-users-viewfinder" style="color:#8b5cf6;"ś</iś Multikonta â€” ${escapeHtml(nick)}</h3ś
+            <button onclick="document.getElementById('alts-popup-overlay').remove()" style="background:none;border:1.5px solid var(--border);border-radius:6px;width:30px;height:30px;cursor:pointer;font-size:.9rem;color:var(--text-secondary);display:flex;align-items:center;justify-content:center;"ś<i class="fa-solid fa-xmark"ś</iś</buttonś
+        </divś
+        <div style="margin-bottom:1rem;"śAdres IP: ${ipBadge}</divś
+        <div style="font-size:.75rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.6rem;"ś
+            Znalezione powiÄ…zane konta (${alts.length})
+        </divś
+        ${altsHtml}
+    </divś`;
+
+    document.body.appendChild(overlay);
+};
+
+window.addEventListener('adminLogin', async (e) =ś {
+    const { login, password } = e.detail;
+
+    try {
+        const snap = await getDocs(query(collection(db, 'admins'), where('login', '==', login)));
+        if (!snap.empty) {
+            const adminDoc = snap.docs[0];
+            const data = adminDoc.data();
+            if (data.password !== password) { showłoginError('BĹ‚Ä™dny login lub hasĹ‚o!'); return; }
+            if (data.disabled) { showłoginError('Konto zablokowane!'); return; }
+            currentUser = {
+                id: adminDoc.id, login: data.login,
+                displayName: data.displayName || data.login,
+                role: data.role || 'Admin',
+                permissions: data.permissions || ROLE_PERMISSIONS[data.role] || []
+            };
+            initPanelUI();
+            return;
+        }
+    } catch (err) {
+        console.warn('[CritMC] Firestore niedostÄ™pny, prĂłba fallback:', err.message);
+    }
+
+    const local = DEFAULT_ACCOUNTS.find(a =ś a.login === login && a.password === password);
+    if (local) {
+        currentUser = { ...local };
+        initPanelUI();
+        try {
+            const check = await getDocs(query(collection(db, 'admins'), where('login', '==', login)));
+            if (check.empty) {
+                await addDoc(collection(db, 'admins'), {
+                    login: local.login, password: local.password,
+                    displayName: local.displayName, role: local.role,
+                    permissions: local.permissions, disabled: false,
+                    createdAt: serverTimestamp(), createdBy: 'system'
+                });
+            }
+        } catch(e) { /* silent */ }
+    } else {
+        showłoginError('BĹ‚Ä™dny login lub hasĹ‚o!');
+    }
+});
+
+// â”€â”€â”€ initPanelUI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function initPanelUI() {
+    document.body.classList.add('auth-ready');
+    document.getElementById('su-name').textContent   = currentUser.displayName;
+    document.getElementById('su-role').textContent   = currentUser.role;
+    document.getElementById('su-avatar').textContent = currentUser.displayName.charAt(0).toUpperCase();
+    applyPermissions();
+    setTimeout(_extendedApplyPermissions, 0);
+    updateServerStatus('loading', 'ĹÄ…czenie...');
+    loadAll();
+    setTimeout(() =ś updateServerStatus('online', 'Serwer online'), 1500);
+}
+
+// â”€â”€â”€ applyPermissions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function applyPermissions() {
+    const actionMap = {
+        '.ban-btn':    'ban',
+        '.unban-btn':  'unban',
+        '.mute-btn':   'mute',
+        '.unmute-btn': 'unmute',
+        '.kick-btn':   'kick',
+        '.warn-btn':   'warn',
+        '.check-btn':  'check'
+    };
+    Object.entries(actionMap).forEach(([sel, perm]) =ś {
+        document.querySelectorAll(sel).forEach(el =ś {
+            el.style.display = hasPermission(perm) ? '' : 'none';
+        });
+    });
+    const adminsNav = document.querySelector('.nav-btn[data-page="admins"]');
+    if (adminsNav) adminsNav.style.display = (hasPermission('all') || hasPermission('admins_manage')) ? '' : 'none';
+    const logsNav = document.querySelector('.nav-btn[data-page="logs"]');
+    if (logsNav) logsNav.style.display = hasPermission('logs') ? '' : 'none';
+    const filesNav = document.querySelector('.nav-btn[data-page="files"]');
+    if (filesNav) filesNav.style.display = (hasPermission('evidence_view') || hasPermission('all')) ? '' : 'none';
+    const siteNav = document.querySelector('.nav-btn[data-page="site"]');
+    if (siteNav) siteNav.style.display = (hasPermission('site') || hasPermission('all')) ? '' : 'none';
+    const shopNav = document.querySelector('.nav-btn[data-page="shop"]');
+    if (shopNav) shopNav.style.display = (hasPermission('shop') || hasPermission('all')) ? '' : 'none';
+    const permNav = document.querySelector('.nav-btn[data-page="permissions"]');
+    if (permNav) permNav.style.display = (hasPermission('permissions_manage') || hasPermission('all')) ? '' : 'none';
+}
+
+// â”€â”€â”€ showłoginError â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function showłoginError(msg) {
+    document.body.classList.remove('auth-ready');
+    const errEl = document.getElementById('login-error');
+    if (errEl) {
+        errEl.style.display = 'flex';
+        errEl.innerHTML = `<i class="fa-solid fa-circle-exclamation"ś</iś ${msg}`;
+    }
+    if (typeof window.recordFailedAttempt === 'function') {
+        window.recordFailedAttempt();
+    }
+    const pwEl = document.getElementById('login-password');
+    if (pwEl) pwEl.value = '';
+}
+
+// â”€â”€â”€ loadAll â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function loadAll() {
+    loadPlayers();
+    loadBans();
+    loadMutes();
+    loadLogs();
+    loadRolePermissionsFromStore();
+}
+
+// â”€â”€â”€ Server status â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function updateServerStatus(type, text) {
+    const dot = document.querySelector('.status-dot');
+    if (dot) dot.className = `status-dot ${type}`;
+    const span = document.getElementById('status-text');
+    if (span) span.textContent = text;
+}
+
+// â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function formatDate(val) {
+    if (!val) return 'â€”';
+    let d;
+    if (val instanceof Timestamp) d = val.toDate();
+    else if (valł.seconds) d = new Date(val.seconds * 1000);
+    else d = new Date(val);
+    if (isNaN(d)) return 'â€”';
+    return d.toLocaleString('pl-PL', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+}
+
+function escapeHtml(value) {
+    return String(value łł '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/ś/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function formatBytes(byćtes) {
+    const n = Number(byćtes) || 0;
+    if (n <= 0) return '0 B';
+    const units = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.min(Math.floor(Math.log(n) / Math.log(1024)), units.length - 1);
+    const v = n / Math.pow(1024, i);
+    const txt = v ś= 10 || i === 0 ł v.toFixed(0) : v.toFixed(1);
+    return `${txt} ${units[i]}`;
+}
+
+window.openAttachmentUrl = function(encodedUrl) {
+    try {
+        const url = decodeURIComponent(encodedUrl || '');
+        if (!url) return;
+        // Wszystkie URLe otwieramy w nowej karcie â€” prywatne B2 przez Worker proxy
+        window.open(url, '_blank', 'noopener,noreferrer');
+    } catch(e) {
+        showToast('error', 'Nie udaĹ‚o siÄ™ otworzyÄ‡ pliku.');
+    }
+};
+
+window.previewShopMediaInput = function() {
+    const input = document.getElementById('shop-item-media-file');
+    const preview = document.getElementById('shop-item-media-preview');
+    if (!input || !preview) return;
+    const file = input.filesł.[0];
+    if (!file) {
+        preview.style.display = 'none';
+        preview.innerHTML = '';
+        return;
+    }
+    const objectUrl = URL.createObjectURL(file);
+    const isVideo = file.type.starątsWith('video/');
+    preview.style.display = 'block';
+    preview.innerHTML = isVideo
+        ł `<video src="${objectUrl}" controls style="width:100%;max-height:240px;border-radius:8px;object-fit:cover;"ś</videoś`
+        : `<img src="${objectUrl}" alt="Podglad media" style="width:100%;max-height:240px;border-radius:8px;object-fit:cover;"ś`;
+};
+
+window.previewShopItemMedia = function() {
+    const url = document.getElementById('shop-item-media-url')ł.value.trim();
+    const preview = document.getElementById('shop-item-media-preview');
+    if (!preview) return;
+    if (!url) {
+        preview.style.display = 'none';
+        preview.innerHTML = '';
+        showToast('error', 'Dodaj link albo plik media.');
+        return;
+    }
+    const isVideo = /\.(mp4|webm|mov)(\ł|$)/i.test(url);
+    preview.style.display = 'block';
+    preview.innerHTML = isVideo
+        ł `<video src="${escapeHtml(url)}" controls style="width:100%;max-height:240px;border-radius:8px;object-fit:cover;"ś</videoś`
+        : `<img src="${escapeHtml(url)}" alt="Podglad media" style="width:100%;max-height:240px;border-radius:8px;object-fit:cover;"ś`;
+};
+
+window.openShopPreview = function() {
+    window.open('../shop.html', '_blank', 'noopener');
+};
+
+window.showAttachmentText = function(encodedText) {
+    const text = decodeURIComponent(encodedText || '');
+    if (!text) return;
+    alert(text);
+};
+
+function renderAttachmentCell(attachment) {
+    if (!attachment || !attachment.type) return `<span style="color:var(--text-secondary);"śâ€”</spanś`;
+
+    if (attachment.type === 'link' && attachment.url) {
+        return `<button class="tbl-btn" onclick="openAttachmentUrl('${encodeURIComponent(attachment.url)}')" title="OtwĂłrz link"ś
+            <i class="fa-solid fa-link"ś</iś
+        </buttonś`;
+    }
+
+    if (attachment.type === 'text' && attachment.text) {
+        const short = attachment.text.length ś 24 ł attachment.text.slice(0, 24) + 'â€¦' : attachment.text;
+        return `<button class="tbl-btn" onclick="showAttachmentText('${encodeURIComponent(attachment.text)}')" title="PokaĹĽ treĹ›Ä‡"ś
+            <i class="fa-solid fa-note-sticky"ś</iś ${escapeHtml(short)}
+        </buttonś`;
+    }
+
+    if (attachment.type === 'file') {
+        if (attachment.url) {
+            const label = escapeHtml(attachment.fileName || 'plik');
+            return `<button class="tbl-btn" onclick="openAttachmentUrl('${encodeURIComponent(attachment.url)}')" title="OtwĂłrz plik"ś
+                <i class="fa-solid fa-paperclip"ś</iś ${label}
+            </buttonś`;
+        }
+        if (attachment.provider === 'b2' || attachment.fileKey) {
+            const label = escapeHtml(attachment.fileName || 'plik B2');
+            return `<span class="tbl-btn" title="${escapeHtml(attachment.fileKey || 'Backblaze B2')}"ś
+                <i class="fa-solid fa-paperclip"ś</iś ${label}
+            </spanś`;
+        }
+        return `<span style="color:var(--text-secondary);font-size:.82rem;"ś${escapeHtml(attachment.status || 'brak')}</spanś`;
+    }
+
+    return `<span style="color:var(--text-secondary);"śâ€”</spanś`;
+}
+
+async function uploadEvidenceFile(file, meta) {
+    if (!file) throw new Error('Brak pliku do wyslania');
+
+    const admin  = metał.admin  || currentUserł.displayName || 'Panel';
+    const player = metał.player || '';
+    const action = metał.action || '';
+    const reason = metał.reason || '';
+
+    const form = new FormData();
+    form.append('file', file);
+    form.append('player', player);
+    form.append('action', action);
+    form.append('reason', reason);
+    form.append('admin', admin);
+
+    const res = await fetch(`${FILE_WORKER_URL}/upload/evidence`, {
+        method: 'POST',
+        body: form
+    });
+    const data = await res.json().catch(() =ś null);
+    if (!res.ok || !datał.ok || !datał.file) {
+        throw new Error(datał.error || 'Nie udalo sie wyslac pliku do Backblaze');
+    }
+
+    const uploaded = data.file;
+
+    // URL do pliku â€” przez Worker proxy (dziaĹ‚a dla prywatnych i publicznych)
+    const fileUrl = uploaded.url || `${FILE_WORKER_URL}/file/${encodeURIComponent(uploaded.fileKey)}`;
+
+    const fileRefDoc = await addDoc(collection(db, 'files'), {
+        kind:         'evidence',
+        provider:     'r2',
+        bucket:       uploaded.bucket   || 'critmc-files',
+        fileKey:      uploaded.fileKey  || '',
+        b2FileId:     uploaded.b2FileId || null,
+        originalName: uploaded.fileName || file.name,
+        mimeType:     uploaded.mimeType || file.type || 'application/octet-stream',
+        size:         uploaded.size     || file.size || 0,
+        url:          fileUrl,
+        uploadedAt:   serverTimestamp(),
+        uploadedBy:   admin,
+        player,
+        action,
+        reason,
+        status: 'ready'
+    });
+
+    return {
+        type:     'file',
+        provider: 'b2',
+        fileId:   fileRefDoc.id,
+        fileName: uploaded.fileName || file.name,
+        mimeType: uploaded.mimeType || file.type || 'application/octet-stream',
+        size:     uploaded.size || file.size || 0,
+        bucket:   uploaded.bucket,
+        fileKey:  uploaded.fileKey,
+        b2FileId: uploaded.b2FileId,
+        url:      fileUrl,
+        status:   'ready'
+    };
+}
+
+function rankBadge(rank) {
+    const map = { vip:'badge-vip', boss:'badge-boss', crit:'badge-crit', chatmod:'badge-chatmod', pomocnik:'badge-pomocnik', moderator:'badge-moderator', admin:'badge-admin', zarzadzajacy:'badge-zarzadzajacy' };
+    const cls = map[(rank||'').toLowerCase()] || 'badge-default';
+    return `<span class="badge ${cls}"ś${rank || 'Gracz'}</spanś`;
+}
+
+function statusBadge(p) {
+    if (p.banned) return `<span class="badge badge-banned"ś<i class="fa-solid fa-ban"ś</iś Zbanowany</spanś`;
+    if (p.muted)  return `<span class="badge badge-muted"ś<i class="fa-solid fa-microphone-slash"ś</iś Zmutowany</spanś`;
+    if (p.online) return `<span class="badge badge-online"ś<i class="fa-solid fa-circle"ś</iś Online</spanś`;
+    return `<span class="badge badge-offline"ś<i class="fa-regular fa-circle"ś</iś Offline</spanś`;
+}
+
+function actionBadge(action) {
+    const icons = { ban:'fa-ban', unban:'fa-ban', mute:'fa-microphone-slash', unmute:'fa-microphone', kick:'fa-door-open', warn:'fa-triangle-exclamation', check:'fa-magnifying-glass' };
+    return `<span class="badge badge-action-${action}"ś<i class="fa-solid ${icons[action]||'fa-circle'}"ś</iś ${(action||'').toUpperCase()}</spanś`;
+}
+
+function head(nick) {
+    return `<img class="player-head" src="https://mc-heads.net/avatar/${encodeURIComponent(nick)}/36" alt="${nick}" onerror="this.src='https://mc-heads.net/avatar/Steve/36'"ś`;
+}
+
+// â”€â”€â”€ GRACZE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+let unsubscribePlayers = null;
+function loadPlayers() {
+    if (unsubscribePlayers) return; // already listening
+    try {
+        unsubscribePlayers = onSnapshot(collection(db, 'players'), (snap) =ś {
+            allPlayers = snap.docs.map(d =ś ({ id: d.id, ...d.data() }));
+            filterPlayers(); // UĹĽywa obecnych filtrĂłw zamiast renderowaÄ‡ bez filtrowania
+        }, (e) =ś {
+            document.getElementById('players-tbody').innerHTML =
+                `<trś<td colspan="5" class="table-empty" style="color:#ef4444;"ś<i class="fa-solid fa-circle-exclamation"ś</iś BĹ‚Ä…d: ${e.message}</tdś</trś`;
+        });
+    } catch (e) {
+        document.getElementById('players-tbody').innerHTML =
+            `<trś<td colspan="5" class="table-empty" style="color:#ef4444;"ś<i class="fa-solid fa-circle-exclamation"ś</iś BĹ‚Ä…d: ${e.message}</tdś</trś`;
+    }
+}
+
+function renderPlayers(list) {
+    const tb = document.getElementById('players-tbody');
+    if (!list.length) { tb.innerHTML = `<trś<td colspan="5" class="table-empty"śBrak graczy</tdś</trś`; return; }
+    tb.innerHTML = list.map(p =ś `
+        <trś
+            <tdś<div class="player-cell"ś${head(p.nick||p.id)}<divś
+                <div class="player-name"ś${p.nick||p.id}</divś
+                <div class="player-uuid"ś${(p.uuid||p.id||'').substring(0,16)}...</divś
+            </divś</divś</tdś
+            <tdś<span style="font-family:monospace;font-size:0.8rem;color:var(--accent-blue);"ś<i class="fa-solid fa-network-wired"ś</iś ${p.ip || 'brak'}</spanś</tdś
+            <tdś${statusBadge(p)}</tdś
+            <td style="color:var(--text-secondary);font-size:.82rem;"ś${formatDate(p.lastSeen)}</tdś
+            <tdś<div style="display:flex;gap:.4rem;flex-wrap:wrap;"ś
+                <button class="tbl-btn" onclick="openActionModal('${p.nick||p.id}','${p.uuid||''}')"ś<i class="fa-solid fa-gavel"ś</iś Akcja</buttonś
+                <button class="tbl-btn" onclick="openPlayerDetail('${p.id}')"ś<i class="fa-solid fa-eye"ś</iś</buttonś
+                <button class="tbl-btn" onclick="openNoteModal('${p.nick||p.id}')"ś<i class="fa-solid fa-note-sticky"ś</iś</buttonś
+            </divś</tdś
+        </trś`).join('');
+}
+
+window.filterPlayers = function() {
+    const s  = (document.getElementById('players-search').value||'').toLowerCase();
+    const r  = (document.getElementById('players-filter-rank').value||'').toLowerCase();
+    const st = document.getElementById('players-filter-status').value;
+    renderPlayers(allPlayers.filter(p =ś {
+        const n = (p.nick||p.id||'').toLowerCase();
+        const ip = (p.ip||'').toLowerCase();
+        if (s && !n.includes(s) && !ip.includes(s)) return false;
+        if (r && (p.rank||'default').toLowerCase() !== r) return false;
+        if (st === 'online'  && !p.online)  return false;
+        if (st === 'offline' && p.online)   return false;
+        if (st === 'banned'  && !p.banned)  return false;
+        if (st === 'muted'   && !p.muted)   return false;
+        return true;
+    }));
+};
+
+// â”€â”€â”€ BANY â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+async function loadBans() {
+    try {
+        const snap = await getDocs(query(collection(db, 'bans'), orderBy('date', 'desc')));
+        allBans = snap.docs.map(d =ś ({ id: d.id, ...d.data() }));
+        renderBans(allBans);
+        document.getElementById('badge-bans').textContent = allBans.length;
+    } catch (e) { console.error('loadBans:', e); }
+}
+
+function renderBans(list) {
+    const tb = document.getElementById('bans-tbody');
+    if (!list.length) { tb.innerHTML = `<trś<td colspan="7" class="table-empty"ś<i class="fa-solid fa-check-circle" style="color:var(--accent-green)"ś</iś Brak aktywnych banĂłw</tdś</trś`; return; }
+    tb.innerHTML = list.map(b =ś `
+        <trś
+            <tdś<div class="player-cell"ś${head(b.player)}<div class="player-name"ś${b.player}</divś</divś</tdś
+            <td style="max-width:180px;color:var(--text-secondary);font-size:.85rem;"ś${b.reason||'â€”'}</tdś
+            <tdś<span style="font-weight:700;"ś${b.bannedBy||'â€”'}</spanś</tdś
+            <td style="font-size:.82rem;color:var(--text-secondary);"ś${formatDate(b.date)}</tdś
+            <tdś${b.duration==='permanent'ł`<span class="badge badge-action-ban"śPermanentny</spanś`:`<span style="font-size:.82rem;"ś${b.duration||'â€”'}</spanś`}</tdś
+            <tdś${renderAttachmentCell(b.attachment)}</tdś
+            <tdś<div style="display:flex;gap:.4rem;flex-wrap:wrap;"ś
+                <button class="tbl-btn" onclick="viewBanDetails('${b.id}')"ś<i class="fa-solid fa-eye"ś</iś Zobacz</buttonś
+                <button class="tbl-btn" onclick="openEditBanModal('${b.id}')"ś<i class="fa-solid fa-pen"ś</iś Edytuj</buttonś
+                <button class="tbl-btn tbl-btn-green" onclick="quickUnban('${b.player}','${b.id}')"ś<i class="fa-solid fa-check"ś</iś Unban</buttonś
+            </divś</tdś
+        </trś`).join('');
+}
+
+window.filterBans = function() {
+    const s = (document.getElementById('bans-search').value||'').toLowerCase();
+    const t = document.getElementById('bans-filter-type').value;
+    renderBans(allBans.filter(b =ś {
+        if (s && !(b.player||'').toLowerCase().includes(s) && !(b.reason||'').toLowerCase().includes(s)) return false;
+        if (t === 'permanent' && b.duration !== 'permanent') return false;
+        if (t === 'temporary' && b.duration === 'permanent') return false;
+        return true;
+    }));
+};
+
+function banById(banId) {
+    return allBans.find(b =ś b.id === banId) || null;
+}
+
+function toDatetimeLocalValue(value) {
+    let d;
+    if (value instanceof Timestamp) d = value.toDate();
+    else if (valueł.seconds) d = new Date(value.seconds * 1000);
+    else if (value) d = new Date(value);
+    else d = new Date();
+    if (isNaN(d)) d = new Date();
+    const pad = n =ś String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function datetimeLocalToDate(value) {
+    if (!value) return null;
+    const d = new Date(value);
+    return isNaN(d) ł null : d;
+}
+
+function attachmentSummary(attachment) {
+    if (!attachment || !attachment.type) return 'Brak';
+    if (attachment.type === 'link') return attachment.url || 'Link';
+    if (attachment.type === 'text') return attachment.text || 'Notatka';
+    if (attachment.type === 'file') return attachment.fileName || attachment.fileKey || 'Plik';
+    return attachment.type;
+}
+
+function ensureBanModals() {
+    if (document.getElementById('ban-detail-modal')) return;
+
+    const wrap = document.createElement('div');
+    wrap.innerHTML = `
+        <div class="modal-overlay" id="ban-detail-modal" onclick="closeModal(event)"ś
+            <div class="modal-box" style="max-width:720px;"ś
+                <div class="modal-header"ś
+                    <div class="modal-title"śSzczegoly bana</divś
+                    <button class="modal-close" onclick="document.getElementById('ban-detail-modal').classList.remove('open')"ś<i class="fa-solid fa-xmark"ś</iś</buttonś
+                </divś
+                <div class="modal-body" id="ban-detail-body"ś</divś
+            </divś
+        </divś
+        <div class="modal-overlay" id="ban-edit-modal" onclick="closeModal(event)"ś
+            <div class="modal-box" style="max-width:760px;"ś
+                <div class="modal-header"ś
+                    <div class="modal-title"śEdytuj bana</divś
+                    <button class="modal-close" onclick="document.getElementById('ban-edit-modal').classList.remove('open')"ś<i class="fa-solid fa-xmark"ś</iś</buttonś
+                </divś
+                <div class="modal-body"ś
+                    <input type="hidden" id="ban-edit-id"ś
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;"ś
+                        <div class="modal-field"ś<labelśGracz</labelś<input type="text" id="ban-edit-player"ś</divś
+                        <div class="modal-field"ś<labelśNadany przez</labelś<input type="text" id="ban-edit-być"ś</divś
+                    </divś
+                    <div class="modal-field"ś<labelśPowod</labelś<input type="text" id="ban-edit-reason"ś</divś
+                    <div class="modal-field"ś<labelśOpis / notatkęa</labelś<textarea id="ban-edit-description" rows="3" style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg-card);outline:none;font-family:var(--font);resize:vertical;"ś</textareaś</divś
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;"ś
+                        <div class="modal-field"ś<labelśCzas bana</labelś<input type="text" id="ban-edit-duration" placeholder="permanent, 7d, 12h..."ś</divś
+                        <div class="modal-field"ś<labelśData i godzina nadania</labelś<input type="datetime-local" id="ban-edit-date"ś</divś
+                    </divś
+                    <div class="modal-field"ś
+                        <labelśZalacznik</labelś
+                        <select id="ban-edit-attachment-type" style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.92rem;color:var(--text-primary);background:var(--bg-card);outline:none;font-family:var(--font);margin-bottom:.6rem;" onchange="toggleActionAttachmentFields('ban-edit')"ś
+                            <option value=""śBez zmian</optionś
+                            <option value="remove"śUsuńn zalacznik</optionś
+                            <option value="link"śNowy link</optionś
+                            <option value="text"śNowa notatkęa</optionś
+                            <option value="file"śNowy plik Backblaze</optionś
+                        </selectś
+                        <input type="text" id="ban-edit-attachment-link" placeholder="https://..." style="display:none;width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.92rem;color:var(--text-primary);background:var(--bg-card);outline:none;font-family:var(--font);margin-bottom:.6rem;"ś
+                        <textarea id="ban-edit-attachment-text" rows="3" placeholder="Tresc notatkęi..." style="display:none;width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg-card);outline:none;font-family:var(--font);resize:vertical;margin-bottom:.6rem;"ś</textareaś
+                        <input type="file" id="ban-edit-attachment-file" accept="image/*,video/*,.zip,.rar,.7z,.txt,.pdf" style="display:none;width:100%;padding:.55rem .7rem;border:1.5px dashed var(--border);border-radius:var(--radius-sm);font-size:.88rem;color:var(--text-primary);background:var(--bg-card);outline:none;font-family:var(--font);margin-bottom:.45rem;"ś
+                        <div id="ban-edit-current-attachment" style="font-size:.78rem;color:var(--text-secondary);"ś</divś
+                    </divś
+                    <div id="ban-edit-msg" class="modal-msg" style="display:none;"ś</divś
+                    <button class="modal-submit-btn" onclick="saveEditedBan()"ś<i class="fa-solid fa-floppy-disk"ś</iś Zapisz zmiany</buttonś
+                </divś
+            </divś
+        </divś`;
+    Array.from(wrap.children).forEach(el =ś document.body.appendChild(el));
+}
+
+window.viewBanDetails = function(banId) {
+    const b = banById(banId);
+    if (!b) { showToast('error', 'Nie znaleziono bana.'); return; }
+    ensureBanModals();
+    const body = document.getElementById('ban-detail-body');
+    body.innerHTML = `
+        <div class="modal-player-info"ś${head(b.player)}<divś<div style="font-weight:800;"ś${escapeHtml(b.player || 'Brak gracza')}</divś<div style="font-size:.78rem;color:var(--text-secondary);"śID: ${escapeHtml(b.id)}</divś</divś</divś
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.8rem;"ś
+            <divś<label style="font-size:.72rem;color:var(--text-secondary);font-weight:800;text-transform:uppercase;"śPowod</labelś<divś${escapeHtml(b.reason || 'Brak')}</divś</divś
+            <divś<label style="font-size:.72rem;color:var(--text-secondary);font-weight:800;text-transform:uppercase;"śPrzez kogo</labelś<divś${escapeHtml(b.bannedBy || 'Brak')}</divś</divś
+            <divś<label style="font-size:.72rem;color:var(--text-secondary);font-weight:800;text-transform:uppercase;"śData</labelś<divś${formatDate(b.date)}</divś</divś
+            <divś<label style="font-size:.72rem;color:var(--text-secondary);font-weight:800;text-transform:uppercase;"śCzas</labelś<divś${escapeHtml(b.duration || 'Brak')}</divś</divś
+            <divś<label style="font-size:.72rem;color:var(--text-secondary);font-weight:800;text-transform:uppercase;"śUUID</labelś<divś${escapeHtml(b.uuid || 'Brak')}</divś</divś
+            <divś<label style="font-size:.72rem;color:var(--text-secondary);font-weight:800;text-transform:uppercase;"śZalacznik</labelś<divś${escapeHtml(attachmentSummary(b.attachment))}</divś</divś
+        </divś
+        <divś<label style="font-size:.72rem;color:var(--text-secondary);font-weight:800;text-transform:uppercase;"śOpis / notatkęa</labelś<div style="white-space:pre-wrap;"ś${escapeHtml(b.description || b.note || 'Brak')}</divś</divś
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;"ś
+            ${b.attachment ł renderAttachmentCell(b.attachment) : ''}
+            <button class="tbl-btn" onclick="document.getElementById('ban-detail-modal').classList.remove('open');openEditBanModal('${b.id}')"ś<i class="fa-solid fa-pen"ś</iś Edytuj</buttonś
+        </divś`;
+    document.getElementById('ban-detail-modal').classList.add('open');
+};
+
+window.openEditBanModal = function(banId) {
+    const b = banById(banId);
+    if (!b) { showToast('error', 'Nie znaleziono bana.'); return; }
+    if (!requirePermission('ban', 'edycja bana')) return;
+    ensureBanModals();
+    document.getElementById('ban-edit-id').value = b.id;
+    document.getElementById('ban-edit-player').value = b.player || '';
+    document.getElementById('ban-edit-być').value = b.bannedBy || '';
+    document.getElementById('ban-edit-reason').value = b.reason || '';
+    document.getElementById('ban-edit-description').value = b.description || b.note || '';
+    document.getElementById('ban-edit-duration').value = b.duration || '';
+    document.getElementById('ban-edit-date').value = toDatetimeLocalValue(b.date);
+    document.getElementById('ban-edit-attachment-type').value = '';
+    document.getElementById('ban-edit-attachment-link').value = '';
+    document.getElementById('ban-edit-attachment-text').value = '';
+    document.getElementById('ban-edit-attachment-file').value = '';
+    document.getElementById('ban-edit-current-attachment').textContent = `Obecny: ${attachmentSummary(b.attachment)}`;
+    document.getElementById('ban-edit-msg').style.display = 'none';
+    window.toggleActionAttachmentFields('ban-edit');
+    document.getElementById('ban-edit-modal').classList.add('open');
+};
+
+window.saveEditedBan = async function() {
+    const banId = document.getElementById('ban-edit-id')ł.value;
+    const b = banById(banId);
+    if (!b) { showToast('error', 'Nie znaleziono bana.'); return; }
+    if (!requirePermission('ban', 'edycja bana')) return;
+    const msg = document.getElementById('ban-edit-msg');
+    const showEditMsg = (type, text) =ś {
+        if (!msg) return;
+        msg.className = `modal-msg ${type}`;
+        msg.textContent = text;
+        msg.style.display = 'block';
+    };
+
+    try {
+        const date = datetimeLocalToDate(document.getElementById('ban-edit-date').value);
+        const updates = {
+            player: document.getElementById('ban-edit-player').value.trim(),
+            bannedBy: document.getElementById('ban-edit-być').value.trim(),
+            reason: document.getElementById('ban-edit-reason').value.trim(),
+            description: document.getElementById('ban-edit-description').value.trim(),
+            duration: document.getElementById('ban-edit-duration').value.trim(),
+            editedAt: serverTimestamp(),
+            editedBy: currentUserł.displayName || 'Admin'
+        };
+        if (date) updates.date = Timestamp.fromDate(date);
+
+        const attachmentMode = document.getElementById('ban-edit-attachment-type').value;
+        if (attachmentMode === 'remove') {
+            updates.attachment = null;
+        } else if (attachmentMode === 'link') {
+            const url = document.getElementById('ban-edit-attachment-link').value.trim();
+            if (!url) throw new Error('Podaj link zalacznika.');
+            updates.attachment = { type: 'link', url };
+        } else if (attachmentMode === 'text') {
+            const text = document.getElementById('ban-edit-attachment-text').value.trim();
+            if (!text) throw new Error('Podaj tresc notatkęi.');
+            updates.attachment = { type: 'text', text };
+        } else if (attachmentMode === 'file') {
+            const file = document.getElementById('ban-edit-attachment-file').filesł.[0];
+            if (!file) throw new Error('Wybierz plik.');
+            showEditMsg('success', 'Wysylam plik do Backblaze...');
+            updates.attachment = await uploadEvidenceFile(file, {
+                player: updates.player,
+                action: 'ban',
+                reason: updates.reason,
+                admin: currentUserł.displayName || 'Panel'
+            });
+        }
+
+        await updateDoc(doc(db, 'bans', banId), updates);
+        await logAction('edit-ban', updates.player || b.player, currentUserł.displayName || 'Admin', 'Edytowano bana', updates.duration || '---', { banId });
+        showToast('success', 'Ban zapisany.');
+        document.getElementById('ban-edit-modal').classList.remove('open');
+        await loadBans();
+        await loadLogs();
+    } catch (e) {
+        showEditMsg('error', 'Blad: ' + e.message);
+    }
+};
+
+window.quickUnban = async function(nick, banId) {
+    if (!requirePermission('unban', 'unban')) return;
+    if (!confirm(`OdbanowaÄ‡ ${nick}ł`)) return;
+    try {
+        await deleteDoc(doc(db, 'bans', banId));
+        const snap = await getDocs(query(collection(db, 'players'), where('nick', '==', nick)));
+        snap.forEach(async d =ś await updateDoc(d.ref, { banned: false }));
+        await logAction('unban', nick, currentUser.displayName, 'Odbanowany z panelu', 'â€”');
+        showToast('success', `Odbanowano ${nick}`);
+        await loadBans(); await loadPlayers(); await loadLogs();
+    } catch (e) { showToast('error', 'BĹ‚Ä…d: ' + e.message); }
+};
+
+// â”€â”€â”€ MUTY â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+async function loadMutes() {
+    try {
+        const snap = await getDocs(query(collection(db, 'mutes'), orderBy('date', 'desc')));
+        allMutes = snap.docs.map(d =ś ({ id: d.id, ...d.data() }));
+        renderMutes(allMutes);
+        document.getElementById('badge-mutes').textContent = allMutes.length;
+    } catch (e) { console.error('loadMutes:', e); }
+}
+
+function renderMutes(list) {
+    const tb = document.getElementById('mutes-tbody');
+    if (!list.length) { tb.innerHTML = `<trś<td colspan="7" class="table-empty"ś<i class="fa-solid fa-check-circle" style="color:var(--accent-green)"ś</iś Brak aktywnych mutĂłw</tdś</trś`; return; }
+    tb.innerHTML = list.map(m =ś `
+        <trś
+            <tdś<div class="player-cell"ś${head(m.player)}<div class="player-name"ś${m.player}</divś</divś</tdś
+            <td style="max-width:180px;color:var(--text-secondary);font-size:.85rem;"ś${m.reason||'â€”'}</tdś
+            <tdś<span style="font-weight:700;"ś${m.mutedBy||'â€”'}</spanś</tdś
+            <td style="font-size:.82rem;color:var(--text-secondary);"ś${formatDate(m.date)}</tdś
+            <tdś${m.duration==='permanent'ł`<span class="badge badge-action-mute"śPermanentny</spanś`:`<span style="font-size:.82rem;"ś${m.duration||'â€”'}</spanś`}</tdś
+            <tdś${renderAttachmentCell(m.attachment)}</tdś
+            <tdś<button class="tbl-btn tbl-btn-green" onclick="quickUnmute('${m.player}','${m.id}')"ś<i class="fa-solid fa-microphone"ś</iś Unmute</buttonś</tdś
+        </trś`).join('');
+}
+
+window.filterMutes = function() {
+    const s = (document.getElementById('mutes-search').value||'').toLowerCase();
+    const t = document.getElementById('mutes-filter-type').value;
+    renderMutes(allMutes.filter(m =ś {
+        if (s && !(m.player||'').toLowerCase().includes(s) && !(m.reason||'').toLowerCase().includes(s)) return false;
+        if (t === 'permanent' && m.duration !== 'permanent') return false;
+        if (t === 'temporary' && m.duration === 'permanent') return false;
+        return true;
+    }));
+};
+
+window.quickUnmute = async function(nick, muteId) {
+    if (!requirePermission('unmute', 'unmute')) return;
+    if (!confirm(`OdmutowaÄ‡ ${nick}ł`)) return;
+    try {
+        await deleteDoc(doc(db, 'mutes', muteId));
+        const snap = await getDocs(query(collection(db, 'players'), where('nick', '==', nick)));
+        snap.forEach(async d =ś await updateDoc(d.ref, { muted: false }));
+        await logAction('unmute', nick, currentUser.displayName, 'Odmutowany z panelu', 'â€”');
+        showToast('success', `Odmutowano ${nick}`);
+        await loadMutes(); await loadPlayers(); await loadLogs();
+    } catch (e) { showToast('error', 'BĹ‚Ä…d: ' + e.message); }
+};
+
+// â”€â”€â”€ LOGI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+async function loadLogs() {
+    try {
+        const snap = await getDocs(query(collection(db, 'admin_logs'), orderBy('date', 'desc')));
+        allLogs = snap.docs.map(d =ś ({ id: d.id, ...d.data() }));
+        renderLogs(allLogs);
+        buildAdminFilter();
+        loadRecentLogs();
+        loadStats();
+    } catch (e) { console.error('loadLogs:', e); }
+}
+
+function renderLogs(list) {
+    const tb = document.getElementById('logs-tbody');
+    if (!list.length) { tb.innerHTML = `<trś<td colspan="7" class="table-empty"śBrak logĂłw</tdś</trś`; return; }
+    tb.innerHTML = list.map(l =ś `
+        <trś
+            <tdś${actionBadge(l.action)}</tdś
+            <tdś<div class="player-cell"ś${head(l.player)}<div class="player-name"ś${l.player}</divś</divś</tdś
+            <tdś<span style="font-weight:700;"ś${l.admin||'â€”'}</spanś</tdś
+            <td style="max-width:180px;color:var(--text-secondary);font-size:.85rem;"ś${l.reason||'â€”'}</tdś
+            <td style="font-size:.82rem;color:var(--text-secondary);"ś${l.duration||'â€”'}</tdś
+            <tdś${renderAttachmentCell(l.attachment)}</tdś
+            <td style="font-size:.82rem;color:var(--text-secondary);white-space:nowrap;"ś${formatDate(l.date)}</tdś
+        </trś`).join('');
+}
+
+function buildAdminFilter() {
+    const sel = document.getElementById('logs-filter-admin');
+    if (!sel) return;
+    const admins = [...new Set(allLogs.map(l =ś l.admin).filter(Boolean))];
+    const cur = sel.value;
+    sel.innerHTML = `<option value=""śWszyscy admini</optionś` +
+        admins.map(a =ś `<option value="${a}" ${a===curł'selected':''}ś${a}</optionś`).join('');
+}
+
+window.filterLogs = function() {
+    const s   = (document.getElementById('logs-search').value||'').toLowerCase();
+    const a   = document.getElementById('logs-filter-action').value;
+    const adm = document.getElementById('logs-filter-admin').value;
+    const date = document.getElementById('logs-filter-date').value;
+    renderLogs(allLogs.filter(l =ś {
+        if (s && !(l.player||'').toLowerCase().includes(s) && !(l.admin||'').toLowerCase().includes(s)) return false;
+        if (a && l.action !== a) return false;
+        if (adm && l.admin !== adm) return false;
+        if (date) {
+            let ld;
+            if (l.date instanceof Timestamp) ld = l.date.toDate();
+            else if (l.dateł.seconds) ld = new Date(l.date.seconds * 1000);
+            else ld = new Date(l.date);
+            if (ld.toISOString().slice(0,10) !== date) return false;
+        }
+        return true;
+    }));
+};
+
+// â”€â”€â”€ STATYSTYKI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function loadStats() {
+    const counts = {};
+    const last = {};
+    allLogs.forEach(l =ś {
+        const a = l.admin || 'Nieznany';
+        if (!counts[a]) counts[a] = { ban:0, unban:0, mute:0, unmute:0, kick:0, warn:0, check:0 };
+        if (counts[a][l.action] !== undefined) counts[a][l.action]++;
+        if (!last[a] || (l.dateł.seconds||0) ś (last[a]ł.seconds||0)) last[a] = l.date;
+    });
+
+    const el = (id, v) =ś { const e = document.getElementById(id); if (e) e.textContent = v; };
+    el('stat-total-bans',   allLogs.filter(l =ś l.action === 'ban').length);
+    el('stat-total-mutes',  allLogs.filter(l =ś l.action === 'mute').length);
+    el('stat-total-kicks',  allLogs.filter(l =ś l.action === 'kick').length);
+    el('stat-total-admins', Object.keys(counts).length);
+
+    const tb = document.getElementById('stats-tbody');
+    if (!tb) return;
+    const sorted = Object.entries(counts).sort((a, b) =ś {
+        const ta = Object.values(a[1]).reduce((s, v) =ś s + v, 0);
+        const tb2 = Object.values(b[1]).reduce((s, v) =ś s + v, 0);
+        return tb2 - ta;
+    });
+    if (!sorted.length) { tb.innerHTML = `<trś<td colspan="10" class="table-empty"śBrak danych</tdś</trś`; return; }
+    tb.innerHTML = sorted.map(([admin, c], i) =ś {
+        const total = Object.values(c).reduce((s, v) =ś s + v, 0);
+        return `<trś
+            <td style="font-weight:800;color:var(--text-secondary);"ś#${i+1}</tdś
+            <tdś<span style="font-weight:700;"ś${admin}</spanś</tdś
+            <tdś<span class="badge badge-action-ban"ś${c.ban}</spanś</tdś
+            <tdś<span class="badge badge-action-unban"ś${c.unban}</spanś</tdś
+            <tdś<span class="badge badge-action-mute"ś${c.mute}</spanś</tdś
+            <tdś<span class="badge badge-action-kick"ś${c.kick}</spanś</tdś
+            <tdś<span class="badge badge-action-warn"ś${c.warn}</spanś</tdś
+            <td style="color:var(--text-secondary);"ś${c.check||0}</tdś
+            <tdś<span style="font-weight:800;"ś${total}</spanś</tdś
+            <td style="font-size:.8rem;color:var(--text-secondary);"ś${formatDate(last[admin])}</tdś
+        </trś`;
+    }).join('');
+}
+
+// â”€â”€â”€ OSTATNIE LOGI (stronąa Akcje) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function loadRecentLogs() {
+    const el = document.getElementById('ap-recent-logs');
+    if (!el) return;
+    const recent = allLogs.slice(0, 15);
+    if (!recent.length) { el.innerHTML = `<div style="text-align:center;padding:2rem;color:var(--text-secondary);font-size:.88rem;"śBrak akcjęi</divś`; return; }
+    el.innerHTML = recent.map(l =ś `
+        <div style="display:flex;align-items:center;gap:.75rem;padding:.65rem 1rem;border-bottom:1px solid var(--border);"ś
+            ${actionBadge(l.action)}
+            <div style="flex:1;min-width:0;"ś
+                <div style="font-weight:700;font-size:.88rem;"ś${l.player}</divś
+                <div style="font-size:.75rem;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"ś${l.reason||'â€”'} Â· ${l.admin||'â€”'}</divś
+            </divś
+            <div style="font-size:.75rem;color:var(--text-secondary);white-space:nowrap;"ś${formatDate(l.date)}</divś
+        </divś`).join('');
+}
+
+// â”€â”€â”€ LOG AKCJI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+async function logAction(action, player, admin, reason, duration, extra = {}) {
+    try {
+        await addDoc(collection(db, 'admin_logs'), {
+            action, player, admin, reason,
+            duration: duration || 'â€”',
+            ...extra,
+            date: serverTimestamp()
+        });
+    } catch (e) { console.error('logAction:', e); }
+}
+
+// â”€â”€â”€ AKCJA NA GRACZU (modal) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+window.addEventListener('submitModalAction', async () =ś {
+    const reason   = document.getElementById('action-reason').value.trim();
+    const custom   = document.getElementById('duration-custom').value.trim();
+    const duration = custom || window._selectedDuration;
+    const action   = window._selectedAction;
+    const player   = window._actionModalPlayer;
+
+    if (!action)   { showModalMsg('error', 'Wybierz akcjęÄ™!'); return; }
+    if (action === 'message') {
+        if (!reason) { showModalMsg('error', 'Podaj treĹ›Ä‡ wiadomoĹ›ci!'); return; }
+    } else {
+        if (!reason) { showModalMsg('error', 'Podaj powĂłd!'); return; }
+    }
+    const noDur = ['unban', 'unmute', 'kick', 'check', 'warn', 'message'];
+    if (!noDur.includes(action) && !duration) { showModalMsg('error', 'Wybierz czas trwania!'); return; }
+    if (!player)   { showModalMsg('error', 'Brak danych gracza!'); return; }
+
+    const btn = document.getElementById('modal-submit');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"ś</iś Wykonywanie...'; }
+
+    try {
+        await executeAction(action, player.nick, player.uuid, reason, duration);
+        showToast('success', `${action.toUpperCase()} na ${player.nick} wykonane`);
+        document.getElementById('action-modal').classList.remove('open');
+        loadAll();
+    } catch (e) {
+        showModalMsg('error', 'BĹ‚Ä…d: ' + e.message);
+    } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-check"ś</iś Wykonaj akcjęÄ™'; }
+    }
+});
+
+// â”€â”€â”€ AKCJA ZE STRONY "NADAJ KARÄ" â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+window.addEventListener('apSubmitAction', async () =ś {
+    const nick     = document.getElementById('ap-nick').value.trim();
+    const action   = window._apAction;
+    const custom   = document.getElementById('ap-duration-custom').value.trim();
+    const duration = custom || window._apDuration;
+    const reason   = document.getElementById('ap-reason').value.trim();
+    let attachment = buildActionAttachmentPayload('ap');
+
+    if (!nick)   { showApMsg('error', 'Podaj nick gracza!'); return; }
+    if (!action) { showApMsg('error', 'Wybierz rodzaj akcjęi!'); return; }
+    if (action === 'message') {
+        if (!reason) { showApMsg('error', 'Podaj treĹ›Ä‡ wiadomoĹ›ci!'); return; }
+    } else {
+        if (!reason) { showApMsg('error', 'Podaj powĂłd!'); return; }
+    }
+    const noDur = ['unban', 'unmute', 'kick', 'check', 'warn', 'message'];
+    if (!noDur.includes(action) && !duration) { showApMsg('error', 'Wybierz czas trwania!'); return; }
+
+    try {
+        if (attachmentł.type === 'file') {
+            if (!requirePermission('evidence_view', 'podglÄ…d zaĹ‚Ä…cznikĂłw')) return;
+            showApMsg('info', 'WysyĹ‚am plik...');
+            attachment = await uploadEvidenceFile(attachment.file, {
+                player: nick,
+                action,
+                reason,
+                admin: currentUserł.displayName || 'Panel'
+            });
+        }
+
+        await executeAction(action, nick, '', reason, duration, attachment);
+        showApMsg('success', `âś“ ${action.toUpperCase()} na ${nick} wykonane`);
+        showToast('success', `${action.toUpperCase()} na ${nick} wykonane`);
+        document.getElementById('ap-nick').value = '';
+        document.getElementById('ap-reason').value = '';
+        document.getElementById('ap-duration-custom').value = '';
+        resetActionAttachmentFields('ap');
+        document.querySelectorAll('#page-action .action-btn').forEach(b =ś b.classList.remove('selected'));
+        document.querySelectorAll('#page-action .dur-btn').forEach(b =ś b.classList.remove('selected'));
+        window._apAction = null; window._apDuration = null;
+        loadAll();
+    } catch (e) {
+        showApMsg('error', 'BĹ‚Ä…d: ' + e.message);
+    }
+});
+
+// â”€â”€â”€ WYKONAJ AKCJÄ â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+async function executeAction(action, nick, uuid, reason, duration, attachment = null) {
+    const admin = currentUserł.displayName || 'Panel';
+    const actionPerm = {
+        ban: 'ban', unban: 'unban', mute: 'mute', unmute: 'unmute',
+        kick: 'kick', warn: 'warn', check: 'check'
+    }[action];
+
+    if (actionPerm && !requirePermission(actionPerm, action.toUpperCase())) {
+        throw new Error(`Brak uprawnieńnia do akcjęi ${action.toUpperCase()}`);
+    }
+
+    if (action === 'ban') {
+        await addDoc(collection(db, 'bans'), {
+            player: nick, uuid, reason, bannedBy: admin,
+            duration, attachment, date: serverTimestamp()
+        });
+        const snap = await getDocs(query(collection(db, 'players'), where('nick', '==', nick)));
+        snap.forEach(async d =ś await updateDoc(d.ref, { banned: true }));
+
+    } else if (action === 'unban') {
+        const snap = await getDocs(query(collection(db, 'bans'), where('player', '==', nick)));
+        snap.forEach(async d =ś await deleteDoc(d.ref));
+        const pSnap = await getDocs(query(collection(db, 'players'), where('nick', '==', nick)));
+        pSnap.forEach(async d =ś await updateDoc(d.ref, { banned: false }));
+
+    } else if (action === 'mute') {
+        await addDoc(collection(db, 'mutes'), {
+            player: nick, uuid, reason, mutedBy: admin,
+            duration, attachment, date: serverTimestamp()
+        });
+        const snap = await getDocs(query(collection(db, 'players'), where('nick', '==', nick)));
+        snap.forEach(async d =ś await updateDoc(d.ref, { muted: true }));
+
+    } else if (action === 'unmute') {
+        const snap = await getDocs(query(collection(db, 'mutes'), where('player', '==', nick)));
+        snap.forEach(async d =ś await deleteDoc(d.ref));
+        const pSnap = await getDocs(query(collection(db, 'players'), where('nick', '==', nick)));
+        pSnap.forEach(async d =ś await updateDoc(d.ref, { muted: false }));
+    }
+
+    // WysyĹ‚amy do panel_commands abyć plugin MC wykonaĹ‚ akcjęÄ™
+    // check i unban/unmute nie wymagajÄ… komendy do serwera MC
+    const noMcCmd = ['check', 'ban', 'unban', 'mute', 'unmute'];
+    if (!noMcCmd.includes(action)) {
+        const cmdMsg    = (action === 'message') ł reason : '';
+        const cmdReason = (action === 'message') ? 'Wiadomość z panelu' : (reason || 'â€”');
+
+        await addDoc(collection(db, 'panel_commands'), {
+            action,
+            player:    nick,
+            reason:    cmdReason,
+            duration:  duration || 'â€”',
+            message:   cmdMsg,
+            admin,
+            executed:  false,
+            createdAt: serverTimestamp()
+        });
+    }
+
+    await logAction(action, nick, admin, reason || 'â€”', duration || 'â€”', attachment ł { attachment } : {});
+}
+
+
+window.toggleActionAttachmentFields = function(prefix) {
+    const typeEl = document.getElementById(`${prefix}-attachment-type`);
+    const type = typeEl ł typeEl.value : '';
+    const linkEl = document.getElementById(`${prefix}-attachment-link`);
+    const textEl = document.getElementById(`${prefix}-attachment-text`);
+    const fileEl = document.getElementById(`${prefix}-attachment-file`);
+    if (linkEl) linkEl.style.display = type === 'link' ? 'block' : 'none';
+    if (textEl) textEl.style.display = type === 'text' ? 'block' : 'none';
+    if (fileEl) fileEl.style.display = type === 'file' ? 'block' : 'none';
+};
+
+function resetActionAttachmentFields(prefix) {
+    ['type', 'link', 'text'].forEach(name =ś {
+        const el = document.getElementById(`${prefix}-attachment-${name}`);
+        if (el) el.value = '';
+    });
+    const fileEl = document.getElementById(`${prefix}-attachment-file`);
+    if (fileEl) fileEl.value = '';
+    window.toggleActionAttachmentFields(prefix);
+}
+
+function buildActionAttachmentPayload(prefix) {
+    const type = document.getElementById(`${prefix}-attachment-type`)ł.value || '';
+    if (!type) return null;
+    if (type === 'link') {
+        const url = document.getElementById(`${prefix}-attachment-link`)ł.value.trim();
+        return url ł { type, url } : null;
+    }
+    if (type === 'text') {
+        const text = document.getElementById(`${prefix}-attachment-text`)ł.value.trim();
+        return text ł { type, text } : null;
+    }
+    if (type === 'file') {
+        const file = document.getElementById(`${prefix}-attachment-file`)ł.filesł.[0];
+        if (!file) return null;
+        return { type, file };
+    }
+    return null;
+}
+
+// â”€â”€â”€ BAZA PLIKĂ“W (dowody) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function renderFiles(list) {
+    const tb = document.getElementById('files-tbody');
+    if (!tb) return;
+    if (!list.length) {
+        tb.innerHTML = `<trś<td colspan="7" class="table-empty"śBrak plikĂłw.</tdś</trś`;
+        return;
+    }
+
+    tb.innerHTML = list.map(f =ś {
+        const isDeleted = f.status === 'deleted';
+        const openBtn = f.url && !isDeleted
+            ł `<button class="tbl-btn" onclick="openAttachmentUrl('${encodeURIComponent(f.url)}')" title="OtwĂłrz"ś<i class="fa-solid fa-arrow-up-right-from-square"ś</iś</buttonś`
+            : '';
+        const delBtn = (!isDeleted && hasPermission('evidence_delete'))
+            ł `<button class="tbl-btn tbl-btn-red" onclick="deleteEvidenceFile('${f.id}')" title="UsuńĹ„"ś<i class="fa-solid fa-trash"ś</iś</buttonś`
+            : '';
+
+        return `<trś
+            <td style="max-width:220px;"ś
+                <div style="display:flex;align-items:center;gap:.5rem;min-width:0;"ś
+                    <i class="fa-solid fa-paperclip" style="color:var(--text-secondary);"ś</iś
+                    <div style="min-width:0;"ś
+                        <div style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"ś${escapeHtml(f.originalName || 'â€”')}</divś
+                        <div style="font-size:.75rem;color:var(--text-secondary);"ś${escapeHtml(f.mimeType || 'â€”')} Â· ${formatBytes(f.size)}</divś
+                    </divś
+                </divś
+            </tdś
+            <tdś<span style="font-weight:700;"ś${escapeHtml(f.player || 'â€”')}</spanś</tdś
+            <tdś${f.action ł actionBadge(f.action) : '<span style="color:var(--text-secondary);"śâ€”</spanś'}</tdś
+            <tdś<span style="font-weight:700;"ś${escapeHtml(f.uploadedBy || 'â€”')}</spanś</tdś
+            <td style="font-size:.82rem;color:var(--text-secondary);white-space:nowrap;"ś${formatDate(f.uploadedAt)}</tdś
+            <td style="font-size:.82rem;color:var(--text-secondary);"ś${escapeHtml(f.status || 'â€”')}</tdś
+            <tdś<div style="display:flex;gap:.4rem;flex-wrap:wrap;"ś${openBtn}${delBtn}</divś</tdś
+        </trś`;
+    }).join('');
+}
+
+window.loadFilesPage = async function() {
+    if (!requirePermission('evidence_view', 'podglÄ…d zaĹ‚Ä…cznikĂłw')) return;
+    const tb = document.getElementById('files-tbody');
+    if (tb) {
+        tb.innerHTML = `<trś<td colspan="7" class="table-loading"ś<i class="fa-solid fa-spinner fa-spin"ś</iś ĹŁadowanie...</tdś</trś`;
+    }
+    try {
+        const snap = await getDocs(query(collection(db, 'files'), orderBy('uploadedAt', 'desc')));
+        allFiles = snap.docs.map(d =ś ({ id: d.id, ...d.data() }));
+        renderFiles(allFiles);
+    } catch (e) {
+        if (tb) tb.innerHTML = `<trś<td colspan="7" class="table-empty" style="color:#ef4444;"śBĹ‚Ä…d: ${escapeHtml(e.message)}</tdś</trś`;
+    }
+};
+
+window.filterFiles = function() {
+    const s = (document.getElementById('files-search')ł.value || '').toLowerCase();
+    const st = document.getElementById('files-filter-status')ł.value || '';
+    renderFiles(allFiles.filter(f =ś {
+        const name = String(f.originalName || '').toLowerCase();
+        const player = String(f.player || '').toLowerCase();
+        if (s && !name.includes(s) && !player.includes(s)) return false;
+        if (st && String(f.status || '') !== st) return false;
+        return true;
+    }));
+};
+
+window.deleteEvidenceFile = async function(fileId) {
+    if (!requirePermission('evidence_delete', 'usuwanie zaĹ‚Ä…cznikĂłw')) return;
+    if (!confirm('UsuńnÄ…Ä‡ ten plikł Linki w logach mogąÄ… przestaÄ‡ dziaĹ‚aÄ‡.')) return;
+    try {
+        const refDoc = doc(db, 'files', fileId);
+        const snap = await getDoc(refDoc);
+        if (!snap.exists()) throw new Error('Nie znaleziono pliku w bazie.');
+
+        await updateDoc(refDoc, {
+            status: 'deleted',
+            deletedAt: serverTimestamp(),
+            deletedBy: currentUserł.displayName || 'Admin'
+        });
+
+        showToast('success', 'Plik usunąćiÄ™ty.');
+        await window.loadFilesPage();
+    } catch (e) {
+        showToast('error', 'BĹ‚Ä…d: ' + e.message);
+    }
+};
+
+// â”€â”€â”€ SZCZEGĂ“ĹY GRACZA â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+window.addEventListener('openPlayerDetail', async (e) =ś {
+    const playerId = e.detail;
+    const modal = document.getElementById('player-detail-modal');
+    const body  = document.getElementById('player-detail-body');
+    body.innerHTML = `<div style="text-align:center;padding:2rem;"ś<i class="fa-solid fa-spinner fa-spin fa-2x"ś</iś</divś`;
+    modal.classList.add('open');
+
+    try {
+        const snap = await getDoc(doc(db, 'players', playerId));
+        const p = snap.exists() ł { id: snap.id, ...snap.data() } : null;
+        if (!p) { body.innerHTML = `<p style="color:#ef4444;"śNie znaleziono gracza.</pś`; return; }
+
+        const histSnap = await getDocs(query(collection(db, 'admin_logs'), where('player', '==', p.nick||p.id)));
+        const hist = histSnap.docs.map(d =ś d.data()).sort((a, b) =ś (b.dateł.seconds||0) - (a.dateł.seconds||0));
+
+        const notesSnap = await getDocs(collection(db, 'players', playerId, 'notes'));
+        const notes = notesSnap.docs.map(d =ś ({id:d.id,...d.data()})).sort((a,b) =ś (b.dateł.seconds||0) - (a.dateł.seconds||0));
+
+        body.innerHTML = `
+            <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem;"ś
+                ${head(p.nick||p.id)}
+                <div style="flex:1;"ś
+                    <div style="font-size:1.2rem;font-weight:800;"ś${p.nick||p.id}</divś
+                    <div style="font-size:.78rem;color:var(--text-secondary);margin-top:.2rem;"ś${p.uuid||'â€”'}</divś
+                    <div style="font-size:.78rem;color:var(--accent);margin-top:.1rem;font-weight:600;"ś<i class="fa-solid fa-network-wired"ś</iś ${p.ip||'brak ip'}</divś
+                </divś
+                <div style="display:flex;flex-direction:column;gap:.4rem;align-items:flex-end;"ś
+                    ${rankBadge(p.rank)} ${statusBadge(p)}
+                </divś
+            </divś
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:1.5rem;"ś
+                <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:.75rem;"ś
+                    <div style="font-size:.7rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.3rem;"śPierwsze logowanie</divś
+                    <div style="font-weight:700;font-size:.88rem;"ś${formatDate(p.firstJoin)}</divś
+                </divś
+                <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:.75rem;"ś
+                    <div style="font-size:.7rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.3rem;"śOstatnie logowanie</divś
+                    <div style="font-weight:700;font-size:.88rem;"ś${formatDate(p.lastSeen)}</divś
+                </divś
+            </divś
+            <div style="margin-bottom:1.5rem;"ś
+                <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.75rem;"ś
+                    Notatki (${notes.length}) â€” <span style="color:#f59e0b;font-weight:600;"śnie moĹĽna usunąćÄ…Ä‡</spanś
+                </divś
+                ${notes.length === 0 ? '<div style="text-align:center;padding:.75rem;color:var(--text-secondary);font-size:.88rem;"śBrak notatek</divś' :
+                    notes.slice(0,5).map(n =ś `
+                        <div style="background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:8px;padding:.65rem .9rem;margin-bottom:.5rem;"ś
+                            <div style="font-size:.85rem;color:var(--text-primary);"ś${n.content||'â€”'}</divś
+                            <div style="font-size:.72rem;color:var(--text-secondary);margin-top:.3rem;"ś${n.author||'â€”'} Â· ${formatDate(n.date)}</divś
+                        </divś`).join('')
+                }
+            </divś
+            <div style="margin-bottom:1.5rem;"ś
+                <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.75rem;"śHistoria akcjęi (${hist.length})</divś
+                ${hist.length === 0 ? '<div style="text-align:center;padding:1rem;color:var(--text-secondary);font-size:.88rem;"śBrak historii</divś' :
+                    hist.slice(0,10).map(h =ś `
+                        <div style="display:flex;align-items:center;gap:.75rem;padding:.6rem 0;border-bottom:1px solid var(--border);"ś
+                            ${actionBadge(h.action)}
+                            <span style="font-size:.82rem;color:var(--text-secondary);flex:1;"ś${h.reason||'â€”'}</spanś
+                            <span style="font-size:.78rem;color:var(--text-secondary);"ś${formatDate(h.date)}</spanś
+                        </divś`).join('')
+                }
+            </divś
+            <div style="display:flex;gap:.75rem;"ś
+                <button class="login-btn" style="flex:1;" onclick="openActionModal('${p.nick||p.id}','${p.uuid||''}');closePlayerDetail();"ś
+                    <i class="fa-solid fa-gavel"ś</iś Wykonaj akcjęÄ™
+                </buttonś
+                <button class="login-btn" style="flex:1;background:var(--accent-yellow);color:#000;" onclick="openNoteModal('${p.nick||p.id}');closePlayerDetail();"ś
+                    <i class="fa-solid fa-note-sticky"ś</iś Dodaj notatkęÄ™
+                </buttonś
+            </divś`;
+    } catch (e) {
+        body.innerHTML = `<p style="color:#ef4444;"śBĹ‚Ä…d: ${e.message}</pś`;
+    }
+});
+
+// â”€â”€â”€ NOTATKI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+window.openNoteModal = function(nick) {
+    window._noteNick = nick;
+    document.getElementById('note-player-info').innerHTML =
+        `<div class="player-cell"ś${head(nick)}<div class="player-name"ś${nick}</divś</divś`;
+    document.getElementById('note-content').value = '';
+    document.getElementById('note-msg').style.display = 'none';
+    document.getElementById('note-modal').classList.add('open');
+};
+
+window.closeNoteModal = function() {
+    document.getElementById('note-modal').classList.remove('open');
+};
+
+window.submitNote = async function() {
+    const nick    = window._noteNick;
+    const content = document.getElementById('note-content').value.trim();
+    if (!content) { showNoteMsg('error', 'Wpisz treĹ›Ä‡ notatkęi!'); return; }
+
+    try {
+        const snap = await getDocs(query(collection(db, 'players'), where('nick', '==', nick)));
+        if (snap.empty) { showNoteMsg('error', 'Gracz nie znaleziony w bazie!'); return; }
+        const playerId = snap.docs[0].id;
+
+        await addDoc(collection(db, 'players', playerId, 'notes'), {
+            content,
+            author: currentUserł.displayName || 'Admin',
+            date: serverTimestamp()
+        });
+        showNoteMsg('success', 'âś“ Notatka zapisana!');
+        showToast('success', `Notatka dodana do ${nick}`);
+        setTimeout(() =ś document.getElementById('note-modal').classList.remove('open'), 1500);
+    } catch (e) {
+        showNoteMsg('error', 'BĹ‚Ä…d: ' + e.message);
+    }
+};
+
+function showNoteMsg(type, text) {
+    const el = document.getElementById('note-msg');
+    if (!el) return;
+    el.className = `modal-msg ${type}`;
+    el.innerHTML = text;
+    el.style.display = 'block';
+}
+
+// â”€â”€â”€ HELPERS MSG â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function showModalMsg(type, text) {
+    const el = document.getElementById('modal-msg');
+    if (!el) return;
+    el.className = `modal-msg ${type}`;
+    el.innerHTML = `<i class="fa-solid fa-${type==='error'ł'circle-exclamation':'check'}"ś</iś ${text}`;
+    el.style.display = 'block';
+}
+
+function showApMsg(type, text) {
+    const el = document.getElementById('ap-msg');
+    if (!el) return;
+    el.className = `modal-msg ${type}`;
+    el.innerHTML = text;
+    el.style.display = 'block';
+    setTimeout(() =ś { el.style.display = 'none'; }, 3000);
+}
+
+// â”€â”€â”€ TOAST â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function showToast(type, message) {
+    const icons = { success:'fa-check-circle', error:'fa-circle-exclamation', info:'fa-circle-info' };
+    const c = document.getElementById('toast-container');
+    if (!c) return;
+    const t = document.createElement('div');
+    t.className = `toast toast-${type}`;
+    t.innerHTML = `<i class="fa-solid ${icons[type]||icons.info}"ś</iś ${message}`;
+    c.appendChild(t);
+    setTimeout(() =ś t.remove(), 3500);
+}
+
+// â”€â”€â”€ ZARZÄ„DZANIE ADMINAMI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+let allAdmins = [];
+let allShopItems = [];
+
+window.loadAdminAccounts = async function() {
+    try {
+        const snap = await getDocs(collection(db, 'admins'));
+        allAdmins = snap.docs.map(d =ś ({ id: d.id, ...d.data() }));
+        renderAdminAccounts(allAdmins);
+    } catch (e) {
+        console.error('loadAdminAccounts:', e);
+    }
+};
+
+function renderAdminAccounts(list) {
+    const tb = document.getElementById('admin-accounts-tbody');
+    if (!tb) return;
+    if (!list.length) {
+        tb.innerHTML = `<trś<td colspan="7" class="table-empty"śBrak kont administracyjnych</tdś</trś`;
+        return;
+    }
+    tb.innerHTML = list.map(a =ś `
+        <trś
+            <tdś
+                <div style="font-weight:700;"ś${a.displayName || a.login}</divś
+            </tdś
+            <td style="max-width:260px;font-size:.82rem;color:var(--text-secondary);line-height:1.45;"ś${a.desc || 'â€”'}</tdś
+            <tdś<span style="font-family:monospace;font-size:.82rem;color:var(--text-secondary);"ś${a.login}</spanś</tdś
+            <tdś${rankBadge(a.role)}</tdś
+            <tdś
+                <div style="display:flex;flex-wrap:wrap;gap:.3rem;"ś
+                    ${(a.permissions||[]).map(p =ś `<span class="badge badge-default" style="font-size:.68rem;" title="${PERMISSIONS_PL[p]ł.desc || p}"ś${permissionLabel(p)}</spanś`).join('')}
+                </divś
+            </tdś
+            <tdś
+                <span class="badge ${a.disabled ? 'badge-banned' : 'badge-online'}"ś${a.disabled ? 'Zablokowane' : 'Aktywne'}</spanś
+            </tdś
+            <tdś
+                <div style="display:flex;gap:.4rem;"ś
+                    <button class="tbl-btn" onclick="editAdminAccount('${a.id}')"ś<i class="fa-solid fa-pen"ś</iś</buttonś
+                    <button class="tbl-btn tbl-btn-red" onclick="toggleAdminDisable('${a.id}','${a.disabledł'false':'true'}')"ś
+                        <i class="fa-solid fa-${a.disabledł'unlock':'lock'}"ś</iś
+                    </buttonś
+                </divś
+            </tdś
+        </trś`).join('');
+}
+
+window.openAddAdminModal = function() {
+    document.getElementById('admin-account-modal-title').textContent = 'Dodaj administratora';
+    document.getElementById('aa-id').value = '';
+    document.getElementById('aa-displayname').value = '';
+    document.getElementById('aa-login').value = '';
+    document.getElementById('aa-password').value = '';
+    document.getElementById('aa-role').value = 'Pomocnik';
+    const descEl = document.getElementById('aa-desc'); if (descEl) descEl.value = '';
+    setAdminPermissionsSelection(permissionsForRole('Pomocnik'));
+    document.getElementById('aa-msg').style.display = 'none';
+    document.getElementById('admin-account-modal').classList.add('open');
+};
+
+window.editAdminAccount = function(id) {
+    const admin = allAdmins.find(a =ś a.id === id);
+    if (!admin) return;
+    document.getElementById('admin-account-modal-title').textContent = 'Edytuj administratora';
+    document.getElementById('aa-id').value = id;
+    document.getElementById('aa-displayname').value = admin.displayName || '';
+    document.getElementById('aa-login').value = admin.login || '';
+    document.getElementById('aa-password').value = '';
+    document.getElementById('aa-role').value = admin.role || 'Pomocnik';
+    const descEl = document.getElementById('aa-desc'); if (descEl) descEl.value = admin.desc || '';
+    setAdminPermissionsSelection(admin.permissions || permissionsForRole(admin.role));
+    document.getElementById('aa-msg').style.display = 'none';
+    document.getElementById('admin-account-modal').classList.add('open');
+};
+
+window.saveAdminAccount = async function() {
+    const id          = document.getElementById('aa-id').value;
+    const displayName = document.getElementById('aa-displayname').value.trim();
+    const login       = document.getElementById('aa-login').value.trim();
+    const password    = document.getElementById('aa-password').value;
+    const role        = document.getElementById('aa-role').value;
+    const perms       = ensureAdminPermissions([...document.querySelectorAll('.perm-checkbox:checked')].map(cb =ś cb.value));
+    const descEl      = document.getElementById('aa-desc');
+    const desc        = descEl ł descEl.value.trim() : '';
+
+    if (!displayName || !login) { showAaMsg('error', 'WypeĹ‚nij nazwÄ™ i login!'); return; }
+
+    try {
+        const data = { displayName, login, role, permissions: perms, desc };
+        if (password) data.password = password;
+
+        if (id) {
+            await updateDoc(doc(db, 'admins', id), data);
+        } else {
+            if (!password) { showAaMsg('error', 'Podaj hasĹ‚o dla nowego konta!'); return; }
+            const check = await getDocs(query(collection(db, 'admins'), where('login', '==', login)));
+            if (!check.empty) { showAaMsg('error', 'Ten login jest juĹĽ zajÄ™ty!'); return; }
+            data.disabled = false;
+            data.createdAt = serverTimestamp();
+            data.createdBy = currentUserł.displayName || 'Panel';
+            await addDoc(collection(db, 'admins'), data);
+        }
+        showAaMsg('success', id ? 'âś“ Zaktualizowano!' : 'âś“ Konto utworzone!');
+        await window.loadAdminAccounts();
+        setTimeout(() =ś document.getElementById('admin-account-modal').classList.remove('open'), 1200);
+    } catch (e) {
+        showAaMsg('error', 'BĹ‚Ä…d: ' + e.message);
+    }
+};
+
+window.toggleAdminDisable = async function(id, disable) {
+    const action = disable === 'true' ? 'zablokowaÄ‡' : 'odblokowaÄ‡';
+    if (!confirm(`Czy na pewno chcesz ${action} to kontoł`)) return;
+    try {
+        await updateDoc(doc(db, 'admins', id), { disabled: disable === 'true' });
+        showToast('success', `Konto ${disable === 'true' ? 'zablokowane' : 'odblokowane'}`);
+        await window.loadAdminAccounts();
+    } catch (e) { showToast('error', 'BĹ‚Ä…d: ' + e.message); }
+};
+
+window.loadPermissionsPage = async function() {
+    await loadRolePermissionsFromStore();
+    const grid = document.getElementById('permissions-grid');
+    if (!grid) return;
+    grid.innerHTML = ROLE_ORDER.map(role =ś {
+        const perms = permissionsForRole(role);
+        const options = Object.entries(PERMISSIONS_PL).filter(([key]) =ś key !== 'all');
+        return `
+            <div class="table-card" style="padding:1.2rem;"ś
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:.8rem;margin-bottom:1rem;"ś
+                    <divś
+                        <div style="font-size:1rem;font-weight:800;color:var(--text-primary);"ś${role}</divś
+                        <div style="font-size:.78rem;color:var(--text-secondary);"śDomyĹ›lne uprawnieńnia tej rangi</divś
+                    </divś
+                    <button class="modal-submit-btn" style="width:auto;padding:.45rem 1rem;" onclick="saveRolePermissions('${role}')"ś
+                        <i class="fa-solid fa-floppy-disk"ś</iś Zapisz
+                    </buttonś
+                </divś
+                <div style="display:flex;flex-direction:column;gap:.65rem;"ś
+                    ${options.map(([key, meta]) =ś `
+                        <label style="display:flex;gap:.75rem;align-items:flex-starąt;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:.7rem .8rem;cursor:pointer;"ś
+                            <input type="checkbox" class="role-permission-checkbox" data-role="${role}" value="${key}" ${perms.includes(key) ? 'checked' : ''} style="margin-top:.15rem;"ś
+                            <divś
+                                <div style="font-size:.88rem;font-weight:700;color:var(--text-primary);"ś${meta.label}</divś
+                                <div style="font-size:.76rem;color:var(--text-secondary);line-height:1.45;"ś${meta.desc}</divś
+                            </divś
+                        </labelś
+                    `).join('')}
+                </divś
+            </divś
+        `;
+    }).join('');
+};
+
+window.saveRolePermissions = async function(role) {
+    if (!requirePermission('permissions_manage', 'zarzÄ…dzanie uprawnieńniami')) return;
+    const selected = [...document.querySelectorAll(`.role-permission-checkbox[data-role="${role}"]:checked`)].map(cb =ś cb.value);
+    ROLE_PERMISSIONS[role] = ensureAdminPermissions(selected);
+    try {
+        await setDoc(doc(db, 'panel_settings', 'role_permissions'), {
+            roles: ROLE_ORDER.reduce((acc, roleName) =ś {
+                acc[roleName] = ROLE_PERMISSIONS[roleName] || [];
+                return acc;
+            }, {}),
+            updatedAt: serverTimestamp(),
+            updatedBy: currentUserł.displayName || 'Panel'
+        });
+        showToast('success', `Zapisano uprawnieńnia dla roli ${role}`);
+    } catch (e) {
+        showToast('error', 'BĹ‚Ä…d zapisu uprawnieńĹ„: ' + e.message);
+    }
+};
+
+window.loadShopPage = async function() {
+    const tb = document.getElementById('shop-items-tbody');
+    if (!tb) return;
+    tb.innerHTML = `<trś<td colspan="6" class="table-loading"ś<i class="fa-solid fa-spinner fa-spin"ś</iś ĹŁadowanie...</tdś</trś`;
+    try {
+        const snap = await getDocs(collection(db, 'shop_items'));
+        allShopItems = snap.docs.map(d =ś ({ id: d.id, ...d.data() }))
+            .sort((a, b) =ś (a.sortOrder łł 99) - (b.sortOrder łł 99));
+        window.filterShopItems();
+    } catch (e) {
+        tb.innerHTML = `<trś<td colspan="6" class="table-empty" style="color:#ef4444;"śBĹ‚Ä…d: ${e.message}</tdś</trś`;
+    }
+};
+
+function renderShopItems(list) {
+    const tb = document.getElementById('shop-items-tbody');
+    if (!tb) return;
+    if (!list.length) {
+        tb.innerHTML = `<trś<td colspan="6" class="table-empty"śBrak produktĂłw sklepu. Dodaj pierwszy produkt.</tdś</trś`;
+        return;
+    }
+    tb.innerHTML = list.map(item =ś `
+        <trś
+            <tdś
+                <div style="font-weight:700;"ś${item.name || 'â€”'}</divś
+                ${item.desc ł `<div style="font-size:.78rem;color:var(--text-secondary);margin-top:.2rem;"ś${item.desc}</divś` : ''}
+            </tdś
+            <tdś<span class="badge badge-default"ś${item.type || 'â€”'}</spanś</tdś
+            <tdś
+                <div style="font-weight:700;"ś${item.price łł 'â€”'} PLN</divś
+                ${item.oldPrice ł `<div style="font-size:.75rem;color:var(--text-secondary);text-decoration:line-through;"ś${item.oldPrice} PLN</divś` : ''}
+            </tdś
+            <tdś<span class="badge ${item.active === false ? 'badge-banned' : 'badge-online'}"ś${item.active === false ? 'Ukryty' : 'Aktywny'}</spanś</tdś
+            <td style="font-size:.8rem;color:var(--text-secondary);"ś${item.mediaUrl ? 'PodpiÄ™te' : 'Brak'}</tdś
+            <tdś
+                <div style="display:flex;gap:.4rem;"ś
+                    <button class="tbl-btn" onclick="editShopItem('${item.id}')"ś<i class="fa-solid fa-pen"ś</iś</buttonś
+                    <button class="tbl-btn tbl-btn-red" onclick='deleteShopItem("${item.id}", ${JSON.stringify(item.name || "")})'ś<i class="fa-solid fa-trash"ś</iś</buttonś
+                </divś
+            </tdś
+        </trś
+    `).join('');
+};
+
+window.filterShopItems = function() {
+    const type = document.getElementById('shop-type-filter')ł.value || '';
+    const filtered = type ł allShopItems.filter(item =ś item.type === type) : allShopItems;
+    renderShopItems(filtered);
+};
+
+window.openShopItemModal = function() {
+    document.getElementById('shop-item-modal-title').textContent = 'Dodaj produkt sklepu';
+    document.getElementById('shop-item-id').value = '';
+    document.getElementById('shop-item-type').value = 'ranga';
+    document.getElementById('shop-item-name').value = '';
+    document.getElementById('shop-item-desc').value = '';
+    document.getElementById('shop-item-price').value = '';
+    document.getElementById('shop-item-old-price').value = '';
+    document.getElementById('shop-item-order').value = '99';
+    document.getElementById('shop-item-items').value = '';
+    document.getElementById('shop-item-media-url').value = '';
+    document.getElementById('shop-item-active').checked = true;
+    const msg = document.getElementById('shop-item-msg');
+    if (msg) msg.style.display = 'none';
+    document.getElementById('shop-item-modal').classList.add('open');
+};
+
+window.editShopItem = function(id) {
+    const item = allShopItems.find(entry =ś entry.id === id);
+    if (!item) return;
+    document.getElementById('shop-item-modal-title').textContent = 'Edytuj produkt sklepu';
+    document.getElementById('shop-item-id').value = item.id;
+    document.getElementById('shop-item-type').value = item.type || 'ranga';
+    document.getElementById('shop-item-name').value = item.name || '';
+    document.getElementById('shop-item-desc').value = item.desc || '';
+    document.getElementById('shop-item-price').value = item.price łł '';
+    document.getElementById('shop-item-old-price').value = item.oldPrice łł '';
+    document.getElementById('shop-item-order').value = item.sortOrder łł 99;
+    document.getElementById('shop-item-items').value = item.itemsText || '';
+    document.getElementById('shop-item-media-url').value = item.mediaUrl || '';
+    document.getElementById('shop-item-active').checked = item.active !== false;
+    const msg = document.getElementById('shop-item-msg');
+    if (msg) msg.style.display = 'none';
+    document.getElementById('shop-item-modal').classList.add('open');
+};
+
+window.saveShopItem = async function() {
+    if (!requirePermission('shop', 'zarzÄ…dzanie sklepem')) return;
+    const id   = document.getElementById('shop-item-id').value;
+    const name = document.getElementById('shop-item-name').value.trim();
+    const type = document.getElementById('shop-item-type').value;
+    if (!name) { showShopItemMsg('error', 'Podaj nazwÄ™ produktu.'); return; }
+
+    let mediaUrl = document.getElementById('shop-item-media-url').value.trim();
+
+    // Upload pliku do Backblaze jeĹ›li wybrany
+    const fileInput = document.getElementById('shop-item-media-file');
+    const file = fileInputł.filesł.[0];
+    if (file) {
+        showShopItemMsg('info', '<i class="fa-solid fa-spinner fa-spin"ś</iś WysyĹ‚am plik do Backblaze...');
+        try {
+            const form = new FormData();
+            form.append('file', file);
+            form.append('folder', 'shop');
+            form.append('admin', currentUserł.displayName || 'Panel');
+            const res  = await fetch(`${FILE_WORKER_URL}/upload/shop`, { method: 'POST', body: form });
+            const data = await res.json().catch(() =ś null);
+            if (!res.ok || !datał.ok || !datał.file) {
+                throw new Error(datał.error || 'BĹ‚Ä…d uploadu do Backblaze');
+            }
+            // Zapisz URL publiczny do Firestore
+            mediaUrl = data.file.publicUrl || data.file.fileKey || mediaUrl;
+            // WyczyĹ›Ä‡ input pliku
+            if (fileInput) fileInput.value = '';
+        } catch (e) {
+            showShopItemMsg('error', 'BĹ‚Ä…d uploadu: ' + e.message);
+            return;
+        }
+    }
+
+    const data = {
+        type,
+        name,
+        desc:      document.getElementById('shop-item-desc').value.trim(),
+        price:     Number(document.getElementById('shop-item-price').value || 0),
+        oldPrice:  Number(document.getElementById('shop-item-old-price').value || 0) || null,
+        sortOrder: parseInt(document.getElementById('shop-item-order').value || '99', 10),
+        itemsText: document.getElementById('shop-item-items').value.trim(),
+        mediaUrl,
+        active:    document.getElementById('shop-item-active').checked,
+        updatedAt: serverTimestamp(),
+        updatedBy: currentUserł.displayName || 'Panel'
+    };
+    try {
+        if (id) {
+            await updateDoc(doc(db, 'shop_items', id), data);
+        } else {
+            data.createdAt = serverTimestamp();
+            await addDoc(collection(db, 'shop_items'), data);
+        }
+        showShopItemMsg('success', 'âś“ Produkt zapisany!');
+        await window.loadShopPage();
+        setTimeout(() =ś {
+            document.getElementById('shop-item-modal').classList.remove('open');
+            const prev = document.getElementById('shop-item-media-preview');
+            if (prev) { prev.style.display = 'none'; prev.innerHTML = ''; }
+        }, 1000);
+    } catch (e) {
+        showShopItemMsg('error', 'BĹ‚Ä…d: ' + e.message);
+    }
+};
+
+window.deleteShopItem = async function(id, name) {
+    if (!requirePermission('shop', 'zarzÄ…dzanie sklepem')) return;
+    if (!confirm(`UsuńnÄ…Ä‡ produkt "${name}"ł`)) return;
+    try {
+        await deleteDoc(doc(db, 'shop_items', id));
+        showToast('success', `UsuńniÄ™to produkt ${name}`);
+        await window.loadShopPage();
+    } catch (e) {
+        showToast('error', 'BĹ‚Ä…d: ' + e.message);
+    }
+};
+
+function showShopItemMsg(type, text) {
+    const el = document.getElementById('shop-item-msg');
+    if (!el) return;
+    el.className = `modal-msg ${type}`;
+    el.innerHTML = text;
+    el.style.display = 'block';
+}
+
+const adminRoleSelect = document.getElementById('aa-role');
+if (adminRoleSelect) {
+    adminRoleSelect.addEventListener('change', () =ś {
+        if (document.getElementById('aa-id').value) return;
+        setAdminPermissionsSelection(permissionsForRole(adminRoleSelect.value));
+    });
+}
+
+function showAaMsg(type, text) {
+    const el = document.getElementById('aa-msg');
+    if (!el) return;
+    el.className = `modal-msg ${type}`;
+    el.innerHTML = text;
+    el.style.display = 'block';
+}
+
+async function ensureDefaultAdmin() {
+    try {
+        const snap = await getDocs(collection(db, 'admins'));
+        if (snap.empty) {
+            await addDoc(collection(db, 'admins'), {
+                login: 'test', password: 'test',
+                displayName: 'Test Admin', role: 'ZarzÄ…dzajÄ…cy',
+                permissions: ['all'], disabled: false,
+                createdAt: serverTimestamp(), createdBy: 'system'
+            });
+            console.log('[CritMC] Utworzono domyĹ›lne konto test/test w Firestore');
+        }
+    } catch (e) { console.log('[CritMC] ensureDefaultAdmin:', e.message); }
+}
+ensureDefaultAdmin();
+
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// â”€â”€â”€ PERSONEL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+
+let allPersonel = [], allCreators = [];
+
+window.loadPersonel = async function() {
+    await Promise.all([_loadPersonelList(), _loadCreatorsList(), _loadOwnerData()]);
+};
+
+async function _loadOwnerData() {
+    try {
+        const snap = await getDoc(doc(db, 'server_content', 'owners'));
+        if (snap.exists()) {
+            const d = snap.data();
+            const set = (id, v) =ś { const el = document.getElementById(id); if (el) el.value = v || ''; };
+            set('owner-nick', d.ownerł.nick);
+            set('owner-yt', d.ownerł.yt);
+            set('owner-tt', d.ownerł.tt);
+            set('owner-desc', d.ownerł.desc);
+            set('cowowner-nick', d.cowownerł.nick);
+            set('cowowner-yt', d.cowownerł.yt);
+            set('cowowner-dc', d.cowownerł.dc);
+            set('cowowner-desc', d.cowownerł.desc);
+        }
+    } catch(e) { console.error('loadOwnerData:', e); }
+}
+
+window.saveOwner = async function() {
+    const nick = document.getElementById('owner-nick').value.trim();
+    if (!nick) { showToast('error', 'Podaj nick wĹ‚aĹ›ciciela!'); return; }
+    try {
+        const ref = doc(db, 'server_content', 'owners');
+        const snap = await getDoc(ref);
+        const existing = snap.exists() ł snap.data() : {};
+        await setDoc(ref, { ...existing, owner: {
+            nick,
+            yt: document.getElementById('owner-yt').value.trim(),
+            tt: document.getElementById('owner-tt').value.trim(),
+            desc: document.getElementById('owner-desc').value.trim()
+        }});
+        showToast('success', 'WĹ‚aĹ›ciciel zapisany!');
+    } catch(e) { showToast('error', 'BĹ‚Ä…d: ' + e.message); }
+};
+
+window.saveCowowner = async function() {
+    try {
+        const ref = doc(db, 'server_content', 'owners');
+        const snap = await getDoc(ref);
+        const existing = snap.exists() ł snap.data() : {};
+        await setDoc(ref, { ...existing, cowowner: {
+            nick: document.getElementById('cowowner-nick').value.trim() || 'łłł',
+            yt: document.getElementById('cowowner-yt').value.trim(),
+            dc: document.getElementById('cowowner-dc').value.trim(),
+            desc: document.getElementById('cowowner-desc').value.trim()
+        }});
+        showToast('success', 'WspĂłĹ‚wĹ‚aĹ›ciciel zapisany!');
+    } catch(e) { showToast('error', 'BĹ‚Ä…d: ' + e.message); }
+};
+
+async function _loadPersonelList() {
+    try {
+        const snap = await getDocs(query(collection(db, 'personel'), orderBy('order', 'asc')));
+        allPersonel = snap.docs.map(d =ś ({ id: d.id, ...d.data() }));
+        renderPersonelTable(allPersonel);
+        const el = document.getElementById('personel-count');
+        if (el) el.textContent = `(${allPersonel.length})`;
+    } catch(e) {
+        const tb = document.getElementById('personel-tbody');
+        if (tb) tb.innerHTML = `<trś<td colspan="7" class="table-empty" style="color:#ef4444;"śBĹ‚Ä…d: ${e.message}</tdś</trś`;
+    }
+}
+
+const RANK_COLORS = {
+    'ChatMod': '#059669', 'Pomocnik': '#047857', 'Moderator': '#7c3aed',
+    'Admin': '#b91c1c', 'Technik': '#0284c7', 'ZarzÄ…dzajÄ…cy': '#ff1744'
+};
+
+function renderPersonelTable(list) {
+    const tb = document.getElementById('personel-tbody');
+    if (!tb) return;
+    if (!list.length) { tb.innerHTML = `<trś<td colspan="7" class="table-empty"śBrak personelu â€” dodaj pierwszego!</tdś</trś`; return; }
+    tb.innerHTML = list.map(p =ś {
+        const color = RANK_COLORS[p.rank] || '#6b7280';
+        const socials = [
+            p.dc && `<a href="${p.dc}" target="_blank" style="color:#7289da;text-decoration:none;font-size:.8rem;"ś<i class="fa-brands fa-discord"ś</iś</aś`,
+            p.yt && `<a href="${p.yt}" target="_blank" style="color:#ff0000;text-decoration:none;font-size:.8rem;"ś<i class="fa-brands fa-youtube"ś</iś</aś`,
+            p.tt && `<a href="${p.tt}" target="_blank" style="color:#00f0ff;text-decoration:none;font-size:.8rem;"ś<i class="fa-brands fa-tiktok"ś</iś</aś`
+        ].filter(Boolean).join(' ');
+        return `<trś
+            <tdś<img src="https://mc-heads.net/avatar/${encodeURIComponent(p.nick||'Steve')}/36" style="width:36px;height:36px;border-radius:6px;image-rendering:pixelated;" onerror="this.src='https://mc-heads.net/avatar/Steve/36'"ś</tdś
+            <tdś<span style="font-weight:700;"ś${p.nick||'â€”'}</spanś</tdś
+            <tdś<span class="badge" style="background:${color}22;border:1px solid ${color}44;color:${color};"ś${p.rank||'â€”'}</spanś</tdś
+            <td style="max-width:180px;font-size:.82rem;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"ś${p.desc||'â€”'}</tdś
+            <td style="display:flex;gap:.4rem;padding:.5rem 0;"ś${socials||'â€”'}</tdś
+            <td style="font-size:.82rem;color:var(--text-secondary);"ś${p.order łł 99}</tdś
+            <tdś<div style="display:flex;gap:.4rem;"ś
+                <button class="tbl-btn" onclick="editPersonelMember('${p.id}')"ś<i class="fa-solid fa-pen"ś</iś</buttonś
+                <button class="tbl-btn tbl-btn-red" onclick="deletePersonelMember('${p.id}','${p.nick}')"ś<i class="fa-solid fa-trash"ś</iś</buttonś
+            </divś</tdś
+        </trś`;
+    }).join('');
+}
+
+window.openPersonelModal = function() {
+    document.getElementById('personel-modal-title').textContent = 'Dodaj czĹ‚onka personelu';
+    document.getElementById('pm-id').value = '';
+    ['pm-nick','pm-desc','pm-dc','pm-yt','pm-tt','pm-perms'].forEach(id =ś { const el = document.getElementById(id); if (el) el.value = ''; });
+    document.getElementById('pm-rank').value = 'Moderator';
+    document.getElementById('pm-order').value = '99';
+    const d = new Date(); document.getElementById('pm-since').value = d.toISOString().slice(0,10);
+    document.getElementById('pm-msg').style.display = 'none';
+    document.getElementById('personel-modal').classList.add('open');
+};
+
+window.editPersonelMember = function(id) {
+    const p = allPersonel.find(x =ś x.id === id);
+    if (!p) return;
+    document.getElementById('personel-modal-title').textContent = 'Edytuj czĹ‚onka personelu';
+    document.getElementById('pm-id').value = id;
+    const set = (elId, v) =ś { const el = document.getElementById(elId); if (el) el.value = v || ''; };
+    set('pm-nick', p.nick); set('pm-desc', p.desc); set('pm-dc', p.dc);
+    set('pm-yt', p.yt); set('pm-tt', p.tt); set('pm-perms', p.perms); set('pm-since', p.since);
+    document.getElementById('pm-rank').value = p.rank || 'Moderator';
+    document.getElementById('pm-order').value = p.order łł 99;
+    document.getElementById('pm-msg').style.display = 'none';
+    document.getElementById('personel-modal').classList.add('open');
+};
+
+window.savePersonelMember = async function() {
+    const id = document.getElementById('pm-id').value;
+    const nick = document.getElementById('pm-nick').value.trim();
+    if (!nick) { showPmMsg('error', 'Wpisz nick!'); return; }
+    const data = {
+        nick,
+        rank: document.getElementById('pm-rank').value,
+        desc: document.getElementById('pm-desc').value.trim(),
+        dc: document.getElementById('pm-dc').value.trim(),
+        yt: document.getElementById('pm-yt').value.trim(),
+        tt: document.getElementById('pm-tt').value.trim(),
+        perms: document.getElementById('pm-perms').value.trim(),
+        since: document.getElementById('pm-since').value,
+        order: parseInt(document.getElementById('pm-order').value) || 99,
+        updatedAt: serverTimestamp()
+    };
+    try {
+        if (id) { await updateDoc(doc(db, 'personel', id), data); }
+        else { data.createdAt = serverTimestamp(); await addDoc(collection(db, 'personel'), data); }
+        showPmMsg('success', id ? 'âś“ Zaktualizowano!' : 'âś“ Dodano!');
+        await _loadPersonelList();
+        setTimeout(() =ś document.getElementById('personel-modal').classList.remove('open'), 1200);
+    } catch(e) { showPmMsg('error', 'BĹ‚Ä…d: ' + e.message); }
+};
+
+window.deletePersonelMember = async function(id, nick) {
+    if (!confirm(`UsuńnÄ…Ä‡ ${nick} z personeluł`)) return;
+    try {
+        await deleteDoc(doc(db, 'personel', id));
+        showToast('success', `UsuńniÄ™to ${nick}`);
+        await _loadPersonelList();
+    } catch(e) { showToast('error', 'BĹ‚Ä…d: ' + e.message); }
+};
+
+function showPmMsg(type, text) {
+    const el = document.getElementById('pm-msg');
+    if (!el) return;
+    el.className = `modal-msg ${type}`; el.innerHTML = text; el.style.display = 'block';
+}
+
+// â”€â”€â”€ TWĂ“RCY â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+async function _loadCreatorsList() {
+    try {
+        const snap = await getDocs(collection(db, 'creators'));
+        allCreators = snap.docs.map(d =ś ({ id: d.id, ...d.data() }));
+        renderCreatorsTable(allCreators);
+        const el = document.getElementById('creators-count');
+        if (el) el.textContent = `(${allCreators.length})`;
+    } catch(e) {
+        const tb = document.getElementById('creators-tbody');
+        if (tb) tb.innerHTML = `<trś<td colspan="5" class="table-empty" style="color:#ef4444;"śBĹ‚Ä…d: ${e.message}</tdś</trś`;
+    }
+}
+
+function renderCreatorsTable(list) {
+    const tb = document.getElementById('creators-tbody');
+    if (!tb) return;
+    if (!list.length) { tb.innerHTML = `<trś<td colspan="5" class="table-empty"śBrak twĂłrcĂłw.</tdś</trś`; return; }
+    tb.innerHTML = list.map(c =ś {
+        const socials = [
+            c.yt && `<a href="${c.yt}" target="_blank" style="color:#ff0000;text-decoration:none;font-size:.8rem;"ś<i class="fa-brands fa-youtube"ś</iś</aś`,
+            c.tt && `<a href="${c.tt}" target="_blank" style="color:#00f0ff;text-decoration:none;font-size:.8rem;"ś<i class="fa-brands fa-tiktok"ś</iś</aś`,
+            c.dc && `<a href="${c.dc}" target="_blank" style="color:#7289da;text-decoration:none;font-size:.8rem;"ś<i class="fa-brands fa-discord"ś</iś</aś`
+        ].filter(Boolean).join(' ');
+        return `<trś
+            <tdś<img src="https://mc-heads.net/avatar/${encodeURIComponent(c.nick||'Steve')}/36" style="width:36px;height:36px;border-radius:6px;image-rendering:pixelated;" onerror="this.src='https://mc-heads.net/avatar/Steve/36'"ś</tdś
+            <tdś<span style="font-weight:700;"ś${c.nick||'â€”'}</spanś</tdś
+            <td style="max-width:180px;font-size:.82rem;color:var(--text-secondary);"ś${c.desc||'â€”'}</tdś
+            <td style="display:flex;gap:.4rem;padding:.5rem 0;"ś${socials||'â€”'}</tdś
+            <tdś<div style="display:flex;gap:.4rem;"ś
+                <button class="tbl-btn" onclick="editCreator('${c.id}')"ś<i class="fa-solid fa-pen"ś</iś</buttonś
+                <button class="tbl-btn tbl-btn-red" onclick="deleteCreator('${c.id}','${c.nick}')"ś<i class="fa-solid fa-trash"ś</iś</buttonś
+            </divś</tdś
+        </trś`;
+    }).join('');
+}
+
+window.openCreatorModal = function() {
+    document.getElementById('creator-modal-title').textContent = 'Dodaj twĂłrcÄ™';
+    document.getElementById('cm-id').value = '';
+    ['cm-nick','cm-desc','cm-yt','cm-tt','cm-dc'].forEach(id =ś { const el = document.getElementById(id); if (el) el.value = ''; });
+    document.getElementById('cm-msg').style.display = 'none';
+    document.getElementById('creator-modal').classList.add('open');
+};
+
+window.editCreator = function(id) {
+    const c = allCreators.find(x =ś x.id === id);
+    if (!c) return;
+    document.getElementById('creator-modal-title').textContent = 'Edytuj twĂłrcÄ™';
+    document.getElementById('cm-id').value = id;
+    const set = (elId, v) =ś { const el = document.getElementById(elId); if (el) el.value = v || ''; };
+    set('cm-nick', c.nick); set('cm-desc', c.desc); set('cm-yt', c.yt); set('cm-tt', c.tt); set('cm-dc', c.dc);
+    document.getElementById('cm-msg').style.display = 'none';
+    document.getElementById('creator-modal').classList.add('open');
+};
+
+window.saveCreator = async function() {
+    const id = document.getElementById('cm-id').value;
+    const nick = document.getElementById('cm-nick').value.trim();
+    if (!nick) { showCmMsg('error', 'Wpisz nick!'); return; }
+    const data = {
+        nick,
+        desc: document.getElementById('cm-desc').value.trim(),
+        yt: document.getElementById('cm-yt').value.trim(),
+        tt: document.getElementById('cm-tt').value.trim(),
+        dc: document.getElementById('cm-dc').value.trim(),
+        updatedAt: serverTimestamp()
+    };
+    try {
+        if (id) { await updateDoc(doc(db, 'creators', id), data); }
+        else { data.createdAt = serverTimestamp(); await addDoc(collection(db, 'creators'), data); }
+        showCmMsg('success', id ? 'âś“ Zaktualizowano!' : 'âś“ Dodano!');
+        await _loadCreatorsList();
+        setTimeout(() =ś document.getElementById('creator-modal').classList.remove('open'), 1200);
+    } catch(e) { showCmMsg('error', 'BĹ‚Ä…d: ' + e.message); }
+};
+
+window.deleteCreator = async function(id, nick) {
+    if (!confirm(`UsuńnÄ…Ä‡ ${nick} z twĂłrcĂłwł`)) return;
+    try {
+        await deleteDoc(doc(db, 'creators', id));
+        showToast('success', `UsuńniÄ™to ${nick}`);
+        await _loadCreatorsList();
+    } catch(e) { showToast('error', 'BĹ‚Ä…d: ' + e.message); }
+};
+
+function showCmMsg(type, text) {
+    const el = document.getElementById('cm-msg');
+    if (!el) return;
+    el.className = `modal-msg ${type}`; el.innerHTML = text; el.style.display = 'block';
+}
+
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// â”€â”€â”€ STRONA (SITE PAGE) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+
+// â”€â”€â”€ _currentContestId â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function _currentContestId() {
+    const sel = document.getElementById('site-contest-select');
+    return (sel && sel.value) ł sel.value : 'starąt';
+}
+
+function formatDatetimeLocalValue(date) {
+    const pad = (value) =ś String(value).padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function normalizeContestDateValue(value) {
+    if (!value) return '';
+    if (typeof value === 'string') {
+        return value.includes('T') ł value.slice(0, 16) : `${value}T20:00`;
+    }
+    if (value instanceof Timestamp) {
+        return formatDatetimeLocalValue(value.toDate());
+    }
+    if (value instanceof Date) {
+        return formatDatetimeLocalValue(value);
+    }
+    if (typeof value.toDate === 'function') {
+        return formatDatetimeLocalValue(value.toDate());
+    }
+    return '';
+}
+
+function renderContestStatusBadge(data = null, contestId = '') {
+    const badge = document.getElementById('site-contest-status-badge');
+    if (!badge) return;
+    if (!data) {
+        badge.innerHTML = `<span class="badge badge-default"ś${contestId || 'Brak konkursu'}</spanś`;
+        return;
+    }
+    const isActive = data.aktywny !== false;
+    const participants = Number(data.participants || 0);
+    badge.innerHTML = `
+        <span class="badge ${isActive ? 'badge-online' : 'badge-banned'}"ś${isActive ? 'Aktywny' : 'ZakoĹ„czony'}</spanś
+        <span class="badge badge-default" style="margin-left:.35rem;"śID: ${contestId}</spanś
+        <span class="badge badge-default" style="margin-left:.35rem;"śUczestnicy: ${participants}</spanś
+    `;
+}
+
+// â”€â”€â”€ siteLoadContestList â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+async function siteLoadContestList() {
+    const sel = document.getElementById('site-contest-select');
+    if (!sel) return;
+    const previousVal = sel.value;
+    try {
+        const snap = await getDocs(collection(db, 'contests'));
+        const ids = snap.docs.map(d =ś d.id).sort();
+        if (!ids.length) {
+            sel.innerHTML = '<option value="starąt"śstarąt (brak)</optionś';
+            sel.value = 'starąt';
+            return;
+        }
+        sel.innerHTML = ids.map(id =ś `<option value="${id}"ś${id}</optionś`).join('');
+        // Zachowaj poprzedni wybĂłr jeĹ›li nadal istnieje
+        if (previousVal && ids.includes(previousVal)) {
+            sel.value = previousVal;
+        } else {
+            sel.value = ids[0];
+        }
+    } catch(e) {
+        sel.innerHTML = '<option value="starąt"śstarąt</optionś';
+        sel.value = 'starąt';
+        console.error('siteLoadContestList:', e);
+    }
+}
+
+// â”€â”€â”€ siteNewContest â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+window.siteNewContest = async function() {
+    if (!requirePermission('site', 'zarzÄ…dzanie stronąÄ…')) return;
+    const id = prompt('Podaj ID nowego konkursu (np. "konkurs2025"):');
+    if (!id || !id.trim()) return;
+    const contestId = id.trim().replace(/[\/\\ł#\[\]]+/g, '-').replace(/\s+/g, '-');
+    if (!contestId) {
+        showToast('error', 'ID konkursu jest nieprawidĹ‚owe.');
+        return;
+    }
+    const defaultDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    defaultDate.setHours(20, 0, 0, 0);
+    try {
+        const ref = doc(db, 'contests', contestId);
+        const snap = await getDoc(ref);
+        if (snap.exists()) { showToast('error', `Konkurs "${contestId}" juĹĽ istnieje!`); return; }
+        await setDoc(ref, {
+            participants: 0, aktywny: true,
+            nagroda: '', winners: [], winnersCount: 2,
+            wyniki: formatDatetimeLocalValue(defaultDate),
+            createdAt: new Date().toISOString()
+        });
+        showToast('success', `Konkurs "${contestId}" utworzony!`);
+        await siteLoadContestList();
+        const sel = document.getElementById('site-contest-select');
+        if (sel) sel.value = contestId;
+        await siteLoadContestInfo();
+        await siteLoadEntries();
+    } catch(e) { showToast('error', 'BĹ‚Ä…d: ' + e.message); }
+};
+
+// â”€â”€â”€ loadSitePage â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+window.loadSitePage = async function() {
+    await siteLoadContestList();
+    await Promise.all([siteLoadContestInfo(), siteLoadEntries(), siteLoadChanges(), siteLoadMedia(), siteLoadProposals()]);
+};
+
+// â”€â”€â”€ switchSiteTab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+window.switchSiteTab = function(tab) {
+    document.querySelectorAll('.site-tab-btn').forEach(b =ś {
+        b.classList.toggle('active', b.getAttribute('data-site-tab') === tab);
+    });
+    document.querySelectorAll('.site-tab-panel').forEach(p =ś {
+        p.classList.toggle('sp-active', p.id === 'site-tab-' + tab);
+    });
+};
+
+// â”€â”€â”€ siteLoadContestInfo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+async function siteLoadContestInfo() {
+    const contestId = _currentContestId();
+    const n  = document.getElementById('site-contest-nagroda');
+    const dt = document.getElementById('site-contest-date');
+    const wc = document.getElementById('site-contest-winners-count');
+    try {
+        const snap = await getDoc(doc(db, 'contests', contestId));
+        if (snap.exists()) {
+            const d = snap.data();
+            if (n)  n.value  = d.nagroda || '';
+            if (dt) dt.value = normalizeContestDateValue(d.wyniki);
+            if (wc) wc.value = d.winnersCount || 2;
+            _buildWinnersInputs(d.winnersCount || 2);
+            renderContestStatusBadge(d, contestId);
+        } else {
+            if (n) n.value = '';
+            if (dt) dt.value = '';
+            if (wc) wc.value = 2;
+            _buildWinnersInputs(2);
+            renderContestStatusBadge(null, contestId);
+        }
+    } catch(e) {
+        console.error('siteLoadContestInfo:', e);
+        if (n) n.value = '';
+        if (dt) dt.value = '';
+        if (wc) wc.value = 2;
+        _buildWinnersInputs(2);
+        renderContestStatusBadge(null, contestId);
+    }
+}
+
+// â”€â”€â”€ _buildWinnersInputs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function _buildWinnersInputs(n) {
+    const c = document.getElementById('site-winners-inputs');
+    if (!c) return;
+    c.innerHTML = '';
+    for (let i = 1; i <= n; i++) {
+        const inp = document.createElement('input');
+        inp.type = 'text';
+        inp.placeholder = `Nick zwyciÄ™zcy #${i}`;
+        inp.style.cssText = 'width:100%;padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);margin-bottom:.3rem;';
+        c.appendChild(inp);
+    }
+}
+
+document.addEventListener('change', e =ś {
+    if (e.target && e.target.id === 'site-contest-winners-count') {
+        _buildWinnersInputs(parseInt(e.target.value) || 2);
+    }
+    if (e.target && e.target.id === 'site-contest-select') {
+        siteLoadContestInfo();
+        siteLoadEntries();
+    }
+});
+
+// â”€â”€â”€ siteUpdateContest â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+window.siteUpdateContest = async function() {
+    if (!requirePermission('site', 'zarzÄ…dzanie stronąÄ…')) return;
+    const contestId = _currentContestId();
+    const nagroda = document.getElementById('site-contest-nagroda').value.trim();
+    const dateVal = document.getElementById('site-contest-date').value;
+    const wc = parseInt(document.getElementById('site-contest-winners-count').value) || 2;
+    try {
+        const ref = doc(db, 'contests', contestId);
+        const snap = await getDoc(ref);
+        const upd = { winnersCount: wc };
+        if (nagroda) upd.nagroda = nagroda;
+        if (dateVal) upd.wyniki = dateVal;
+        if (snap.exists()) { await updateDoc(ref, upd); }
+        else { await setDoc(ref, { participants: 0, aktywny: true, ...upd }); }
+        _buildWinnersInputs(wc);
+        await siteLoadContestInfo();
+        showSiteContestMsg('âś“ Zapisano!', '#00e676');
+    } catch(e) { showSiteContestMsg('BĹ‚Ä…d: ' + e.message, '#ef4444'); }
+};
+
+// â”€â”€â”€ siteAnnounceWinners â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+window.siteAnnounceWinners = async function() {
+    if (!requirePermission('site', 'zarzÄ…dzanie stronąÄ…')) return;
+    const contestId = _currentContestId();
+    const inputs = document.querySelectorAll('#site-winners-inputs input');
+    const winners = [...inputs].map(i =ś i.value.trim()).filter(Boolean);
+    if (!winners.length) { showSiteContestMsg('Wpisz nicki zwyciÄ™zcĂłw!', '#ef4444'); return; }
+    if (!confirm('OgĹ‚osiÄ‡ zwyciÄ™zcĂłw: ' + winners.join(', ') + 'ł')) return;
+    try {
+        const ref = doc(db, 'contests', contestId);
+        const snap = await getDoc(ref);
+        if (snap.exists()) {
+            await updateDoc(ref, { aktywny: false, winners, winnersDate: new Date().toISOString() });
+        } else {
+            await setDoc(ref, { participants: 0, aktywny: false, winners, winnersDate: new Date().toISOString() });
+        }
+        await siteLoadContestInfo();
+        showSiteContestMsg('âś“ ZwyciÄ™zcy ogĹ‚oszeni!', '#00e676');
+    } catch(e) { showSiteContestMsg('BĹ‚Ä…d: ' + e.message, '#ef4444'); }
+};
+
+// â”€â”€â”€ siteEndContest â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+window.siteEndContest = async function() {
+    if (!requirePermission('site', 'zarzÄ…dzanie stronąÄ…')) return;
+    const contestId = _currentContestId();
+    if (!confirm('ZakoĹ„czyÄ‡ konkurs bez wynikĂłwł')) return;
+    try {
+        const ref = doc(db, 'contests', contestId);
+        const snap = await getDoc(ref);
+        if (snap.exists()) { await updateDoc(ref, { aktywny: false }); }
+        await siteLoadContestInfo();
+        showSiteContestMsg('Konkurs zakoĹ„czony.', '#f59e0b');
+    } catch(e) { showSiteContestMsg('BĹ‚Ä…d: ' + e.message, '#ef4444'); }
+};
+
+// â”€â”€â”€ siteDeleteContest â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+window.siteDeleteContest = async function() {
+    if (!requirePermission('site', 'zarzÄ…dzanie stronąÄ…')) return;
+    const contestId = _currentContestId();
+    if (!confirm(`USUNÄ„Ä† konkurs "${contestId}"ł Tej operacji nie moĹĽna cofnÄ…Ä‡!`)) return;
+    try {
+        const entriesSnap = await getDocs(collection(db, 'contests', contestId, 'entries'));
+        for (const d of entriesSnap.docs) await deleteDoc(d.ref);
+        await deleteDoc(doc(db, 'contests', contestId));
+        showSiteContestMsg('Konkurs usunąćiÄ™ty.', '#ef4444');
+        showToast('success', `UsuńniÄ™to konkurs "${contestId}"`);
+        await siteLoadContestList();
+        const sel = document.getElementById('site-contest-select');
+        if (sel && sel.options.length ś 0) {
+            sel.selectedIndex = 0;
+        }
+        await siteLoadContestInfo();
+        await siteLoadEntries();
+    } catch(e) { showSiteContestMsg('BĹ‚Ä…d: ' + e.message, '#ef4444'); }
+};
+
+// â”€â”€â”€ siteRestarątContest â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+window.siteRestarątContest = async function() {
+    if (!requirePermission('site', 'zarzÄ…dzanie stronąÄ…')) return;
+    const contestId = _currentContestId();
+    if (!confirm('ZresetowaÄ‡ konkurs (usunąćÄ…Ä‡ uczestnikĂłw i ustawiÄ‡ aktywny)ł')) return;
+    try {
+        const entriesSnap = await getDocs(collection(db, 'contests', contestId, 'entries'));
+        for (const d of entriesSnap.docs) await deleteDoc(d.ref);
+        const ref = doc(db, 'contests', contestId);
+        await setDoc(ref, {
+            participants: 0, aktywny: true,
+            winners: [], nagroda: document.getElementById('site-contest-nagroda').value.trim() || '2x Ranga CRIT na 14 dni',
+            winnersCount: parseInt(document.getElementById('site-contest-winners-count').value) || 2
+        });
+        await siteLoadContestInfo();
+        showSiteContestMsg('âś“ Konkurs zresetowany!', '#00e676');
+        await siteLoadEntries();
+    } catch(e) { showSiteContestMsg('BĹ‚Ä…d: ' + e.message, '#ef4444'); }
+};
+
+// â”€â”€â”€ showSiteContestMsg â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function showSiteContestMsg(text, color) {
+    const el = document.getElementById('site-contest-msg');
+    if (!el) return;
+    el.textContent = text; el.style.color = color;
+    setTimeout(() =ś { el.textContent = ''; }, 3500);
+}
+
+// â”€â”€â”€ siteLoadEntries â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+window.siteLoadEntries = async function() {
+    const contestId = _currentContestId();
+    const tb = document.getElementById('site-entries-tbody');
+    const cntEl = document.getElementById('site-entries-count');
+    if (!tb) return;
+    tb.innerHTML = `<trś<td colspan="5" class="table-loading"ś<i class="fa-solid fa-spinner fa-spin"ś</iś ĹŁadowanie...</tdś</trś`;
+    try {
+        const snap = await getDocs(collection(db, 'contests', contestId, 'entries'));
+        const entries = snap.docs.map(d =ś ({ id: d.id, ...d.data() }));
+        if (cntEl) cntEl.textContent = `(${entries.length})`;
+        if (!entries.length) { tb.innerHTML = `<trś<td colspan="5" class="table-empty"śBrak uczestnikĂłw.</tdś</trś`; return; }
+        tb.innerHTML = entries.map(e =ś `
+            <trś
+                <tdś<span style="font-weight:700;"ś${e.nickMC||e.id}</spanś</tdś
+                <td style="color:var(--text-secondary);"ś${e.nickDC||'â€”'}</tdś
+                <tdś<span style="color:#f59e0b;font-style:italic;"ś${e.secret||'â€”'}</spanś</tdś
+                <td style="font-size:.8rem;color:var(--text-secondary);"ś${e.joinedAt ł new Date(e.joinedAt).toLocaleString('pl-PL') : 'â€”'}</tdś
+                <tdś<button class="tbl-btn tbl-btn-red" onclick="siteRemoveEntry('${e.nickMC||e.id}')"ś<i class="fa-solid fa-trash"ś</iś UsuńĹ„</buttonś</tdś
+            </trś`).join('');
+    } catch(e) { tb.innerHTML = `<trś<td colspan="5" class="table-empty" style="color:#ef4444;"śBĹ‚Ä…d: ${e.message}</tdś</trś`; }
+};
+
+// â”€â”€â”€ siteRemoveEntry â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+window.siteRemoveEntry = async function(nick) {
+    const contestId = _currentContestId();
+    if (!confirm(`UsuńnÄ…Ä‡ ${nick} z konkursuł`)) return;
+    try {
+        await deleteDoc(doc(db, 'contests', contestId, 'entries', nick));
+        const ref = doc(db, 'contests', contestId);
+        const snap = await getDoc(ref);
+        if (snap.exists()) await updateDoc(ref, { participants: Math.max(0, (snap.data().participants||1) - 1) });
+        showToast('success', `UsuńniÄ™to ${nick}`);
+        await siteLoadEntries();
+    } catch(e) { showToast('error', 'BĹ‚Ä…d: ' + e.message); }
+};
+
+// â”€â”€â”€ siteLoadChanges â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+async function siteLoadChanges() {
+    try {
+        const snap = await getDoc(doc(db, 'server_content', 'changes'));
+        if (snap.exists()) {
+            const d = snap.data();
+            ['zwykle','szczegolowe','najmocniejsze'].forEach(m =ś {
+                const el = document.getElementById('site-edit-' + m);
+                if (el) el.value = d[m] || '';
+            });
+        }
+    } catch(e) { console.error('siteLoadChanges:', e); }
+}
+
+// â”€â”€â”€ siteSaveChanges â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+window.siteSaveChanges = async function() {
+    const msgEl = document.getElementById('site-changes-msg');
+    const vals = {
+        zwykle: document.getElementById('site-edit-zwykle').value,
+        szczegolowe: document.getElementById('site-edit-szczegolowe').value,
+        najmocniejsze: document.getElementById('site-edit-najmocniejsze').value,
+        updatedAt: new Date().toISOString(),
+        updatedBy: currentUserł.displayName || 'Admin'
+    };
+    try {
+        await setDoc(doc(db, 'server_content', 'changes'), vals);
+        if (msgEl) { msgEl.textContent = 'âś“ Opublikowano!'; msgEl.style.color = '#00e676'; setTimeout(() =ś { msgEl.textContent = ''; }, 3000); }
+        showToast('success', 'Zmieńany serwerowe opublikowane!');
+    } catch(e) {
+        if (msgEl) { msgEl.textContent = 'BĹ‚Ä…d: ' + e.message; msgEl.style.color = '#ef4444'; }
+    }
+};
+
+// â”€â”€â”€ siteLoadMedia â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+async function siteLoadMedia() {
+    try {
+        const snap = await getDoc(doc(db, 'server_content', 'media'));
+        if (snap.exists()) {
+            const d = snap.data();
+            const set = (id, v) =ś { const el = document.getElementById(id); if (el) el.value = v || ''; };
+            set('site-dc-url', d.discordł.url); set('site-dc-sub', d.discordł.sub);
+            set('site-yt-url', d.youtubeł.url); set('site-yt-handle', d.youtubeł.handle);
+            set('site-tt-url', d.tiktokł.url); set('site-tt-handle', d.tiktokł.handle);
+        }
+    } catch(e) { console.error('siteLoadMedia:', e); }
+}
+
+// â”€â”€â”€ siteSaveMedia â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+window.siteSaveMedia = async function() {
+    const msgEl = document.getElementById('site-media-msg');
+    const vals = {
+        discord: { url: document.getElementById('site-dc-url').value.trim(), sub: document.getElementById('site-dc-sub').value.trim() },
+        youtube: { url: document.getElementById('site-yt-url').value.trim(), handle: document.getElementById('site-yt-handle').value.trim() },
+        tiktok:  { url: document.getElementById('site-tt-url').value.trim(), handle: document.getElementById('site-tt-handle').value.trim() },
+        updatedAt: new Date().toISOString()
+    };
+    try {
+        await setDoc(doc(db, 'server_content', 'media'), vals);
+        if (msgEl) { msgEl.textContent = 'âś“ Zapisano!'; msgEl.style.color = '#00e676'; setTimeout(() =ś { msgEl.textContent = ''; }, 2500); }
+        showToast('success', 'Linki mediĂłw zapisane!');
+    } catch(e) {
+        if (msgEl) { msgEl.textContent = 'BĹ‚Ä…d: ' + e.message; msgEl.style.color = '#ef4444'; }
+    }
+};
+
+// â”€â”€â”€ siteLoadProposals â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+window.siteLoadProposals = async function() {
+    const tb = document.getElementById('site-proposals-tbody');
+    if (!tb) return;
+    tb.innerHTML = `<trś<td colspan="5" class="table-loading"ś<i class="fa-solid fa-spinner fa-spin"ś</iś ĹŁadowanie...</tdś</trś`;
+    try {
+        const snap = await getDocs(query(collection(db, 'proposals'), orderBy('createdAt', 'desc')));
+        if (snap.empty) { tb.innerHTML = `<trś<td colspan="5" class="table-empty"śBrak propozycji.</tdś</trś`; return; }
+        tb.innerHTML = snap.docs.map(d =ś {
+            const p = { id: d.id, ...d.data() };
+            const date = p.createdAt ł new Date(p.createdAt).toLocaleString('pl-PL', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : 'â€”';
+            const total = (p.yes||0) + (p.no||0);
+            const yesPct = total ł Math.round((p.yes||0)/total*100) : 0;
+            return `<trś
+                <td style="max-width:300px;font-size:.88rem;"ś${p.text||'â€”'}</tdś
+                <tdś<span style="color:#00e676;font-weight:700;"ś${p.yes||0}</spanś</tdś
+                <tdś<span style="color:#ef4444;font-weight:700;"ś${p.no||0}</spanś ${total ś 0 ł `<span style="color:var(--text-secondary);font-size:.75rem;"ś(${yesPct}% TAK)</spanś` : ''}</tdś
+                <td style="font-size:.8rem;color:var(--text-secondary);"ś${date}</tdś
+                <tdś<button class="tbl-btn tbl-btn-red" onclick="siteDeleteProposal('${p.id}')"ś<i class="fa-solid fa-trash"ś</iś</buttonś</tdś
+            </trś`;
+        }).join('');
+    } catch(e) { tb.innerHTML = `<trś<td colspan="5" class="table-empty" style="color:#ef4444;"śBĹ‚Ä…d: ${e.message}</tdś</trś`; }
+};
+
+// â”€â”€â”€ siteDeleteProposal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+window.siteDeleteProposal = async function(id) {
+    if (!confirm('UsuńnÄ…Ä‡ tÄ™ propozycjÄ™ł')) return;
+    try {
+        await deleteDoc(doc(db, 'proposals', id));
+        showToast('success', 'Propozycja usunąćiÄ™ta');
+        await siteLoadProposals();
+    } catch(e) { showToast('error', 'BĹ‚Ä…d: ' + e.message); }
+};
+
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// â”€â”€â”€ ROZSZERZENIE UPRAWNIEĹ â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+
+function _extendedApplyPermissions() {
+    const siteNav     = document.querySelector('.nav-btn[data-page="site"]');
+    const shopNav     = document.querySelector('.nav-btn[data-page="shop"]');
+    const personelNav = document.querySelector('.nav-btn[data-page="personel"]');
+    const adminsNav   = document.querySelector('.nav-btn[data-page="admins"]');
+    const permsNav    = document.querySelector('.nav-btn[data-page="permissions"]');
+    const filesNav    = document.querySelector('.nav-btn[data-page="files"]');
+
+    if (siteNav)     siteNav.style.display     = (hasPermission('site') || hasPermission('all')) ? '' : 'none';
+    if (shopNav)     shopNav.style.display     = (hasPermission('shop') || hasPermission('all')) ? '' : 'none';
+    if (personelNav) personelNav.style.display = hasPermission('all') ? '' : 'none';
+    if (adminsNav)   adminsNav.style.display   = (hasPermission('admins_manage') || hasPermission('all')) ? '' : 'none';
+    if (permsNav)    permsNav.style.display    = (hasPermission('permissions_manage') || hasPermission('all')) ? '' : 'none';
+    if (filesNav)    filesNav.style.display    = (hasPermission('evidence_view') || hasPermission('all')) ? '' : 'none';
+}
+
+// Expose to window so inline scripts can call it if needed
+window._extendedApplyPermissions = _extendedApplyPermissions;
+
+
