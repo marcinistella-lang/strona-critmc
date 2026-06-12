@@ -371,9 +371,8 @@ async function uploadEvidenceFile(file, meta) {
 
     const uploaded = data.file;
 
-    // URL do otwarcia pliku — prywatne pliki przez proxy Worker
-    const fileUrl = uploaded.publicUrl
-        || `${FILE_WORKER_URL}/file?key=${encodeURIComponent(uploaded.fileKey)}`;
+    // URL do pliku — przez Worker proxy (działa dla prywatnych i publicznych)
+    const fileUrl = uploaded.url || `${FILE_WORKER_URL}/file/${encodeURIComponent(uploaded.fileKey)}`;
 
     const fileRefDoc = await addDoc(collection(db, 'files'), {
         kind:         'evidence',

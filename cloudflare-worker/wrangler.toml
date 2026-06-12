@@ -2,15 +2,10 @@ name = "critmc-b2-files"
 main = "worker.js"
 compatibility_date = "2024-01-01"
 
-[vars]
-# Zmień na swoją domenę po wdrożeniu:
-# ALLOWED_ORIGIN = "https://critmc.pl"
+# R2 bucket — podpięty jako env.BUCKET
+[[r2_buckets]]
+binding    = "BUCKET"
+bucket_name = "critmc-files"
 
-# Sekrety wdróż komendami:
-# wrangler secret put B2_KEY_ID
-# wrangler secret put B2_APPLICATION_KEY
-# wrangler secret put B2_BUCKET_ID_EVIDENCE
-# wrangler secret put B2_BUCKET_ID_MEDIA
-# wrangler secret put B2_BUCKET_NAME_EVIDENCE
-# wrangler secret put B2_BUCKET_NAME_MEDIA
-# wrangler secret put ALLOWED_ORIGIN
+# Sekrety — ustaw przez: wrangler secret put ALLOWED_ORIGIN
+# ALLOWED_ORIGIN = "https://critmc.pl" lub "*" podczas testów
