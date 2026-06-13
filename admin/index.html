@@ -94,10 +94,10 @@
                     <span>Personel</span>
                 </button>
 
-                <div class="nav-section-label" style="margin-top:1.5rem;">Stronąa</div>
+                <div class="nav-section-label" style="margin-top:1.5rem;">Stroną</div>
                 <button class="nav-btn" data-page="site" onclick="switchPage('site');loadSitePage();">
                     <i class="fa-solid fa-globe"></i>
-                    <span>Stronąa</span>
+                    <span>Stroną</span>
                 </button>
                 <button class="nav-btn" data-page="shop" onclick="switchPage('shop');loadShopPage();">
                     <i class="fa-solid fa-shop"></i>
@@ -119,6 +119,10 @@
                 </button>
 
                 <div class="nav-section-label" style="margin-top:1.5rem;">System</div>
+                <button class="nav-btn" data-page="servers" onclick="switchPage('servers');loadServersPage();">
+                    <i class="fa-solid fa-server"></i>
+                    <span>Serwery</span>
+                </button>
                 <button class="nav-btn" data-page="info" onclick="switchPage('info');loadInfoPage();">
                     <i class="fa-solid fa-circle-info"></i>
                     <span>Informacje</span>
@@ -149,13 +153,21 @@
                 </button>
                 <div class="topbar-title" id="topbar-title">Gracze</div>
                 <div class="topbar-right">
+                    <!-- Selektor serwera -->
+                    <div class="server-selector" title="Wybierz aktywny serwer">
+                        <span class="server-dot" id="server-sel-dot"></span>
+                        <select id="server-select" onchange="switchServer(this.value)" style="max-width:130px;">
+                            <option value="default">🌐 Serwer główny</option>
+                        </select>
+                        <i class="fa-solid fa-chevron-down" style="font-size:.65rem;color:var(--text-secondary);"></i>
+                    </div>
                     <div class="server-status" id="server-status">
                         <span class="status-dot offline"></span>
                         <span id="status-text">Łączenie...</span>
                     </div>
-                    <a href="../index.html" class="back-to-main-btn" title="WrAlć do strony głównej">
+                    <a href="../index.html" class="back-to-main-btn" title="Wróć do strony głównej">
                         <i class="fa-solid fa-house"></i>
-                        <span>Stronąa główna</span>
+                        <span>Strona główna</span>
                     </a>
                 </div>
             </div>
@@ -892,6 +904,20 @@
                 </div>
             </div>
 
+            <!-- ===== STRONA: SERWERY ===== -->
+            <div id="page-servers" class="page">
+                <div class="page-header">
+                    <h1>Serwery</h1>
+                    <p>Zarządzaj wieloma serwerami Minecraft w jednym panelu</p>
+                </div>
+                <div style="display:flex;justify-content:flex-end;margin-bottom:1rem;">
+                    <button class="modal-submit-btn" style="width:auto;padding:.6rem 1.4rem;" onclick="openAddServerModal()">
+                        <i class="fa-solid fa-plus"></i> Dodaj serwer
+                    </button>
+                </div>
+                <div id="servers-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem;"></div>
+            </div>
+
             <!-- ===== STRONA: INFORMACJE ===== -->
             <div id="page-info" class="page">
                 <div class="page-header">
@@ -1467,7 +1493,7 @@
             document.getElementById('login-password').value = '';
         }
 
-        // Nawigacja między stronąami
+        // Nawigacja między stronąmi
         function switchPage(pageName) {
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -1488,6 +1514,7 @@
                 site:      'Zarządzanie stroną',
                 shop:      'Sklep',
                 files:     'Pliki',
+                servers:   'Serwery',
                 info:      'Informacje systemowe'
             };
             document.getElementById('topbar-title').textContent = titles[pageName] || pageName;
@@ -1607,7 +1634,7 @@
             window.dispatchEvent(new CustomEvent('submitModalAction'));
         };
 
-        // OtwAlrz modal akcji na graczu (z tabeli)
+        // Otwórz modal akcji na graczu (z tabeli)
         window.openActionModal = function(nick, uuid) {
             window._actionModalPlayer = { nick, uuid };
             window._selectedAction   = null;
@@ -1653,6 +1680,41 @@
             }
         });
     </script>
+
+    <!-- ===== MODAL: SERWER ===== -->
+    <div class="modal-overlay" id="server-modal" onclick="closeModal(event)">
+        <div class="modal-box" style="max-width:480px;">
+            <div class="modal-header">
+                <div class="modal-title" id="srv-modal-title">Dodaj serwer</div>
+                <button class="modal-close" onclick="document.getElementById('server-modal').classList.remove('open')"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-field">
+                    <label>ID serwera <span style="color:#999;font-weight:400;">(niezmienne, np. survival, skyblock)</span></label>
+                    <input type="text" id="srv-id" placeholder="np. survival" pattern="[a-zA-Z0-9_-]+" style="font-family:monospace;">
+                </div>
+                <div class="modal-field">
+                    <label>Nazwa wyświetlana</label>
+                    <input type="text" id="srv-name" placeholder="np. Serwer Survival">
+                </div>
+                <div class="modal-field">
+                    <label>Opis <span style="color:#999;font-weight:400;">(opcjonalny)</span></label>
+                    <textarea id="srv-desc" rows="2" placeholder="Krótki opis serwera..." style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea>
+                </div>
+                <div class="modal-field">
+                    <label>Kolor identyfikacyjny</label>
+                    <div style="display:flex;align-items:center;gap:.75rem;">
+                        <input type="color" id="srv-color" value="#10b981" style="width:44px;height:36px;border:1.5px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;padding:2px;">
+                        <span style="font-size:.82rem;color:var(--text-secondary);">Kolor paska i kropki serwera</span>
+                    </div>
+                </div>
+                <div id="srv-msg" class="modal-msg" style="display:none;"></div>
+                <button class="modal-submit-btn" onclick="saveServer()">
+                    <i class="fa-solid fa-floppy-disk"></i> Zapisz serwer
+                </button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
 

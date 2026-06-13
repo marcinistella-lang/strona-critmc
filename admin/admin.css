@@ -1445,3 +1445,168 @@ select:focus {
 .badge-action-unban   { font-weight: 700; }
 .badge-action-unmute  { font-weight: 700; }
 .badge-action-check   { font-weight: 700; }
+
+/* =============================================================================
+   SKLEP — KARTY PRODUKTÓW
+   ============================================================================= */
+
+.shop-product-card {
+    background: var(--bg-card);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+.shop-product-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--accent);
+}
+
+.shop-product-card .card-media {
+    width: 100%;
+    height: 160px;
+    object-fit: cover;
+    background: linear-gradient(135deg, #1a1a2e, #0f3460);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255,255,255,0.2);
+    font-size: 3rem;
+    flex-shrink: 0;
+}
+
+.shop-product-card .card-media img,
+.shop-product-card .card-media video {
+    width: 100%;
+    height: 160px;
+    object-fit: cover;
+}
+
+.shop-product-card .card-body {
+    padding: 1rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+}
+
+.shop-product-card .card-name {
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    line-height: 1.2;
+}
+
+.shop-product-card .card-desc {
+    font-size: .78rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+    flex: 1;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.shop-product-card .card-price {
+    display: flex;
+    align-items: baseline;
+    gap: .4rem;
+    margin-top: auto;
+}
+
+.shop-product-card .card-price-main {
+    font-size: 1.3rem;
+    font-weight: 900;
+    color: var(--accent);
+}
+
+.shop-product-card .card-price-old {
+    font-size: .8rem;
+    color: var(--text-secondary);
+    text-decoration: line-through;
+}
+
+.shop-product-card .card-price-currency {
+    font-size: .8rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.shop-product-card .card-footer {
+    padding: .75rem 1rem;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: .5rem;
+    background: var(--bg);
+}
+
+.shop-product-card .card-badge {
+    position: absolute;
+    top: .6rem;
+    right: .6rem;
+}
+
+.shop-product-card .card-status-hidden {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .85rem;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: .05em;
+    pointer-events: none;
+    border-radius: var(--radius);
+}
+
+/* =============================================================================
+   MULTI-SERWER — SELECTOR W TOPBAR
+   ============================================================================= */
+
+.server-selector {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: .35rem .75rem;
+    font-size: .82rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all var(--transition);
+}
+
+.server-selector:hover {
+    border-color: var(--accent);
+    background: var(--bg-card);
+}
+
+.server-selector select {
+    border: none;
+    background: transparent;
+    font-family: var(--font);
+    font-size: .82rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    outline: none;
+    cursor: pointer;
+}
+
+.server-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent-green);
+    flex-shrink: 0;
+    box-shadow: 0 0 5px rgba(16,185,129,.5);
+}

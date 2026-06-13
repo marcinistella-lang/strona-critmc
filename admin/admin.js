@@ -415,6 +415,7 @@ function initPanelUI() {
     updateServerStatus('loading', 'Łączenie...');
 
     loadAll();
+    loadServers();
 
     setTimeout(() => updateServerStatus('online', 'Serwer online'), 1500);
 
@@ -3175,518 +3176,91 @@ function renderShopGrid(list) {
     const grid = document.getElementById('shop-grid-view');
     if (!grid) return;
     if (!list.length) {
-        grid.innerHTML = `<div class="table-card" style="padding:3rem;text-align:center;color:var(--text-secondary);grid-column:1/-1;">
-            <i class="fa-solid fa-shop" style="font-size:2rem;margin-bottom:.75rem;display:block;opacity:.4;"></i>
-            Brak produktów. Kliknij <strong>+ Dodaj produkt</strong> aby dodać pierwszy.
-        </div>`;
+        grid.innerHTML = '<div class="table-card" style="padding:3rem;text-align:center;color:var(--text-secondary);grid-column:1/-1;"><i class="fa-solid fa-shop" style="font-size:2.5rem;opacity:.3;display:block;margin-bottom:.75rem;"></i><div style="font-weight:700;">Brak produktów</div><div style="font-size:.85rem;margin-top:.3rem;">Kliknij <strong>+ Dodaj produkt</strong> aby dodać pierwszy.</div></div>';
         return;
     }
-    const typeColors = { ranga:'#8b5cf6', zestaw:'#3b82f6', item:'#10b981', klucz:'#f59e0b' };
-    const typeIcons  = { ranga:'fa-crown', zestaw:'fa-box', item:'fa-sword', klucz:'fa-key' };
+    const typeCfg = {
+        ranga:  { icon: '\u{1F451}', color: '#8b5cf6', bg: 'rgba(139,92,246,.08)', border: 'rgba(139,92,246,.2)' },
+        zestaw: { icon: '\u{1F4E6}', color: '#3b82f6', bg: 'rgba(59,130,246,.08)',  border: 'rgba(59,130,246,.2)' },
+        item:   { icon: '\u2694\uFE0F',  color: '#10b981', bg: 'rgba(16,185,129,.08)', border: 'rgba(16,185,129,.2)' },
+        klucz:  { icon: '\u{1F511}', color: '#f59e0b', bg: 'rgba(245,158,11,.08)',  border: 'rgba(245,158,11,.2)' },
+    };
     grid.innerHTML = list.map(item => {
-        const color = typeColors[item.type] || '#6b7280';
-        const icon  = typeIcons[item.type]  || 'fa-shop';
-        const active = item.active !== false;
-        const hasMedia = item.mediaUrl && item.mediaUrl.length > 5;
-        const isVideo  = hasMedia && /\.(mp4|webm|mov)/i.test(item.mediaUrl);
-        const mediaBg  = hasMedia && !isVideo
-            ? `background-image:url('${item.mediaUrl}');background-size:cover;background-position:center;`
-            : `background:linear-gradient(135deg,${color}22,${color}11);`;
-        const items = item.itemsText
-            ? item.itemsText.split('\n').filter(Boolean).slice(0,4)
-                .map(i => `<div style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--text-secondary);padding:.15rem 0;">
-                    <i class="fa-solid fa-check" style="color:${color};font-size:.65rem;flex-shrink:0;"></i>${escapeHtml(i.trim())}
-                </div>`).join('')
+        const cfg    = typeCfg[(item.type||'').toLowerCase()] || { icon: '\u{1F6D2}', color: '#6b7280', bg: 'rgba(107,114,128,.08)', border: 'rgba(107,114,128,.2)' };
+        const hidden = item.active === false;
+        let mediaHtml;
+        if (item.mediaUrl) {
+            const isVideo = /\.(mp4|webm|mov)/i.test(item.mediaUrl);
+            if (isVideo) {
+                mediaHtml = '<video src="' + escapeHtml(item.mediaUrl) + '" muted loop autoplay playsinline style="width:100%;height:160px;object-fit:cover;"></video>';
+            } else {
+                mediaHtml = '<img src="' + escapeHtml(item.mediaUrl) + '" alt="' + escapeHtml(item.name||'') + '" style="width:100%;height:160px;object-fit:cover;" onerror="this.style.display=\'none\'">'
+                          + '<div class="shop-card-icon-fallback" style="display:none;width:100%;height:160px;background:' + cfg.bg + ';align-items:center;justify-content:center;font-size:3rem;">' + cfg.icon + '</div>';
+            }
+        } else {
+            mediaHtml = '<div style="width:100%;height:160px;background:' + cfg.bg + ';display:flex;align-items:center;justify-content:center;font-size:3.5rem;">' + cfg.icon + '</div>';
+        }
+        const rawItems = (item.itemsText || '').split('\n').filter(Boolean);
+        const showItems = rawItems.slice(0, 4);
+        const moreCount = rawItems.length - showItems.length;
+        const itemsHtml = showItems.length
+            ? '<div style="display:flex;flex-direction:column;gap:.2rem;margin-top:.5rem;">'
+              + showItems.map(it => '<div style="font-size:.76rem;color:var(--text-secondary);display:flex;align-items:center;gap:.35rem;"><i class="fa-solid fa-check" style="color:' + cfg.color + ';font-size:.6rem;flex-shrink:0;"></i>' + escapeHtml(it) + '</div>').join('')
+              + (moreCount > 0 ? '<div style="font-size:.72rem;color:var(--text-secondary);margin-top:.1rem;">+' + moreCount + ' więcej...</div>' : '')
+              + '</div>'
             : '';
-        return `
-        <div class="shop-item-card ${active?'':'shop-item-hidden'}" data-id="${item.id}">
-            <div class="shop-item-media" style="${mediaBg}">
-                ${isVideo ? `<video src="${item.mediaUrl}" autoplay muted loop playsinline style="width:100%;height:100%;object-fit:cover;"></video>` : ''}
-                ${!active ? '<div class="shop-item-hidden-badge"><i class="fa-solid fa-eye-slash"></i> Ukryty</div>' : ''}
-                <div class="shop-item-type-badge" style="background:${color};">
-                    <i class="fa-solid ${icon}"></i> ${item.type||'—'}
-                </div>
-            </div>
-            <div class="shop-item-body">
-                <div class="shop-item-name">${escapeHtml(item.name||'—')}</div>
-                ${item.desc ? `<div class="shop-item-desc">${escapeHtml(item.desc)}</div>` : ''}
-                <div class="shop-item-items">${items}</div>
-                <div class="shop-item-price-row">
-                    <div>
-                        <span class="shop-item-price">${item.price != null ? item.price : '—'}<span style="font-size:.75rem;font-weight:600;color:var(--text-secondary);margin-left:.2rem;">PLN</span></span>
-                        ${item.oldPrice ? `<span class="shop-item-old-price">${item.oldPrice} PLN</span>` : ''}
-                    </div>
-                    <div style="font-size:.72rem;color:var(--text-secondary);">#${item.sortOrder??99}</div>
-                </div>
-                <div class="shop-item-actions">
-                    <button class="tbl-btn" style="flex:1;justify-content:center;" onclick="editShopItem('${item.id}')">
-                        <i class="fa-solid fa-pen"></i> Edytuj
-                    </button>
-                    <button class="tbl-btn tbl-btn-red" onclick='deleteShopItem("${item.id}","${escapeHtml(item.name||"")}")'
-                        style="padding:.35rem .6rem;" title="Usuń">
-                        <i class="fa-solid fa-trash"></i>
-                    </button>
-                </div>
-            </div>
-        </div>`;
+        const priceHtml = item.price != null
+            ? '<span style="font-size:1.25rem;font-weight:900;color:' + cfg.color + ';">' + item.price + '</span>'
+              + '<span style="font-size:.78rem;font-weight:600;color:var(--text-secondary);"> PLN</span>'
+              + (item.oldPrice ? '<span style="font-size:.78rem;color:var(--text-secondary);text-decoration:line-through;margin-left:.3rem;">' + item.oldPrice + ' PLN</span>' : '')
+            : '<span style="color:var(--text-secondary);">—</span>';
+
+        return '<div class="shop-product-card" style="border-color:' + cfg.border + ';">'
+             + '<div style="position:relative;overflow:hidden;">'
+             + mediaHtml
+             + '<span class="badge" style="position:absolute;top:.5rem;left:.5rem;background:' + cfg.bg + ';color:' + cfg.color + ';border:1px solid ' + cfg.border + ';">' + cfg.icon + ' ' + (item.type||'—') + '</span>'
+             + (hidden ? '<div class="card-status-hidden"><i class="fa-solid fa-eye-slash" style="margin-right:.4rem;"></i>Ukryty</div>' : '')
+             + '</div>'
+             + '<div class="card-body">'
+             + '<div class="card-name">' + escapeHtml(item.name||'—') + '</div>'
+             + (item.desc ? '<div class="card-desc">' + escapeHtml(item.desc) + '</div>' : '')
+             + itemsHtml
+             + '<div style="display:flex;align-items:baseline;gap:.3rem;margin-top:auto;padding-top:.5rem;">' + priceHtml + '</div>'
+             + '</div>'
+             + '<div class="card-footer">'
+             + '<button class="tbl-btn" style="flex:1;justify-content:center;" onclick="editShopItem(\'' + item.id + '\')"><i class="fa-solid fa-pen"></i> Edytuj</button>'
+             + '<button class="tbl-btn" onclick="toggleShopItemActive(\'' + item.id + '\',' + !hidden + ')" title="' + (hidden ? 'Aktywuj' : 'Ukryj') + '"><i class="fa-solid fa-' + (hidden ? 'eye' : 'eye-slash') + '"></i></button>'
+             + '<button class="tbl-btn tbl-btn-red" onclick="deleteShopItem(\'' + item.id + '\',\'' + escapeHtml(item.name||'') + '\')"><i class="fa-solid fa-trash"></i></button>'
+             + '</div>'
+             + '</div>';
     }).join('');
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-// ─── SKLEP — renderowanie ───────────────────────────────────────────────
-// ═══════════════════════════════════════════════════════════════════════
-
-let _shopView = 'grid'; // 'grid' | 'table'
-
-window.toggleShopView = function() {
-    _shopView = _shopView === 'grid' ? 'table' : 'grid';
-    const grid  = document.getElementById('shop-grid-view');
-    const table = document.getElementById('shop-table-view');
-    const btn   = document.getElementById('shop-view-toggle');
-    if (!grid || !table) return;
-    if (_shopView === 'grid') {
-        grid.style.display  = 'grid';
-        table.style.display = 'none';
-        if (btn) btn.innerHTML = '<i class="fa-solid fa-table-cells-large"></i>';
-    } else {
-        grid.style.display  = 'none';
-        table.style.display = 'block';
-        if (btn) btn.innerHTML = '<i class="fa-solid fa-table-list"></i>';
-    }
-    filterShopItems();
+window.toggleShopItemActive = async function(id, newActive) {
+    if (!requirePermission('shop','zarządzanie sklepem')) return;
+    try {
+        await updateDoc(doc(db, 'shop_items', id), { active: newActive, updatedAt: serverTimestamp() });
+        showToast('success', newActive ? 'Produkt aktywowany' : 'Produkt ukryty');
+        await window.loadShopPage();
+    } catch(e) { showToast('error', 'Błąd: '+e.message); }
 };
 
-const SHOP_TYPE_CONFIG = {
-    ranga:  { icon: '🏆', color: '#8b5cf6', bg: 'rgba(139,92,246,.1)',  border: 'rgba(139,92,246,.25)' },
-    zestaw: { icon: '📦', color: '#3b82f6', bg: 'rgba(59,130,246,.1)',  border: 'rgba(59,130,246,.25)' },
-    item:   { icon: '⚔️', color: '#10b981', bg: 'rgba(16,185,129,.1)',  border: 'rgba(16,185,129,.25)' },
-    klucz:  { icon: '🔑', color: '#f59e0b', bg: 'rgba(245,158,11,.1)',  border: 'rgba(245,158,11,.25)' },
-};
-
-function _shopTypeCfg(type) {
-    return SHOP_TYPE_CONFIG[(type||'').toLowerCase()] || { icon: '🛒', color: '#6b7280', bg: 'rgba(107,114,128,.1)', border: 'rgba(107,114,128,.2)' };
-}
-
-function renderShopGrid(list) {
-    const grid = document.getElementById('shop-grid-view');
-    if (!grid) return;
-    if (!list.length) {
-        grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:4rem 2rem;color:var(--text-secondary);">
-            <i class="fa-solid fa-shop" style="font-size:3rem;margin-bottom:1rem;display:block;opacity:.3;"></i>
-            <div style="font-size:1.1rem;font-weight:700;">Brak produktów w sklepie</div>
-            <div style="font-size:.85rem;margin-top:.4rem;">Kliknij "+ Dodaj produkt" aby dodać pierwszy</div>
-        </div>`;
-        return;
-    }
-
-    grid.innerHTML = list.map(item => {
-        const cfg = _shopTypeCfg(item.type);
-        const isActive = item.active !== false;
-        const items = (item.itemsText || '').split('\n').filter(Boolean).slice(0, 6);
-
-        const mediaHtml = item.mediaUrl
-            ? (/\.(mp4|webm|mov)/i.test(item.mediaUrl)
-                ? `<video src="${item.mediaUrl}" style="width:100%;height:160px;object-fit:cover;border-radius:10px 10px 0 0;" muted autoplay loop playsinline></video>`
-                : `<img src="${item.mediaUrl}" alt="${escapeHtml(item.name)}" style="width:100%;height:160px;object-fit:cover;border-radius:10px 10px 0 0;" onerror="this.style.display='none'">`)
-            : `<div style="width:100%;height:120px;display:flex;align-items:center;justify-content:center;font-size:3.5rem;border-radius:10px 10px 0 0;background:${cfg.bg};">${cfg.icon}</div>`;
-
-        const itemsList = items.length
-            ? `<ul style="list-style:none;padding:0;margin:.5rem 0 0;display:flex;flex-direction:column;gap:.2rem;">${items.map(i => `<li style="font-size:.75rem;color:var(--text-secondary);display:flex;align-items:center;gap:.35rem;"><span style="color:${cfg.color};font-size:.6rem;">✦</span>${escapeHtml(i)}</li>`).join('')}</ul>`
-            : '';
-
-        return `<div class="shop-card ${isActive ? '' : 'shop-card-hidden'}" style="background:var(--bg-card);border:1.5px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:var(--shadow-sm);transition:all .2s ease;cursor:pointer;" onmouseenter="this.style.boxShadow='var(--shadow-md)';this.style.transform='translateY(-2px)'" onmouseleave="this.style.boxShadow='var(--shadow-sm)';this.style.transform=''" onclick="editShopItem('${item.id}')">
-            ${mediaHtml}
-            <div style="padding:.9rem 1rem;">
-                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem;margin-bottom:.4rem;">
-                    <div style="font-weight:800;font-size:.95rem;color:var(--text-primary);line-height:1.3;">${escapeHtml(item.name || '—')}</div>
-                    <span style="flex-shrink:0;font-size:.68rem;font-weight:700;padding:.2rem .55rem;border-radius:999px;background:${cfg.bg};color:${cfg.color};border:1px solid ${cfg.border};">${item.type || '—'}</span>
-                </div>
-                ${item.desc ? `<div style="font-size:.78rem;color:var(--text-secondary);line-height:1.45;margin-bottom:.5rem;">${escapeHtml(item.desc)}</div>` : ''}
-                ${itemsList}
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-top:.8rem;padding-top:.7rem;border-top:1px solid var(--border);">
-                    <div>
-                        <span style="font-size:1.15rem;font-weight:900;color:var(--text-primary);">${item.price != null ? item.price : '—'}</span>
-                        <span style="font-size:.72rem;font-weight:600;color:var(--text-secondary);"> PLN</span>
-                        ${item.oldPrice ? `<span style="font-size:.72rem;color:var(--text-secondary);text-decoration:line-through;margin-left:.3rem;">${item.oldPrice} PLN</span>` : ''}
-                    </div>
-                    <div style="display:flex;gap:.35rem;">
-                        <span style="font-size:.7rem;font-weight:700;padding:.2rem .5rem;border-radius:999px;background:${isActive ? 'rgba(16,185,129,.1)' : 'rgba(239,68,68,.1)'};color:${isActive ? '#059669' : '#dc2626'};border:1px solid ${isActive ? 'rgba(5,150,105,.2)' : 'rgba(220,38,38,.2)'};">${isActive ? '✓ Aktywny' : '✗ Ukryty'}</span>
-                    </div>
-                </div>
-                <div style="display:flex;gap:.4rem;margin-top:.6rem;" onclick="event.stopPropagation()">
-                    <button class="tbl-btn" style="flex:1;justify-content:center;" onclick="editShopItem('${item.id}')"><i class="fa-solid fa-pen"></i> Edytuj</button>
-                    <button class="tbl-btn tbl-btn-red" onclick='deleteShopItem("${item.id}","${escapeHtml(item.name||"")}")'><i class="fa-solid fa-trash"></i></button>
-                </div>
-            </div>
-        </div>`;
-    }).join('');
-}
-
-let _shopView = 'grid'; // 'grid' | 'table'
-
 window.toggleShopView = function() {
-    _shopView = _shopView === 'grid' ? 'table' : 'grid';
-    const grid  = document.getElementById('shop-grid-view');
-    const table = document.getElementById('shop-table-view');
-    const btn   = document.getElementById('shop-view-toggle');
-    if (!grid || !table) return;
-    if (_shopView === 'grid') {
-        grid.style.display  = 'grid';
-        table.style.display = 'none';
-        if (btn) btn.innerHTML = '<i class="fa-solid fa-table-list"></i>';
-    } else {
-        grid.style.display  = 'none';
-        table.style.display = 'block';
-        if (btn) btn.innerHTML = '<i class="fa-solid fa-table-cells-large"></i>';
-    }
-    window.filterShopItems();
-};
-
-function renderShopGrid(list) {
-    const grid = document.getElementById('shop-grid-view');
-    if (!grid) return;
-    if (!list.length) {
-        grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--text-secondary);">
-            <i class="fa-solid fa-shop" style="font-size:2.5rem;margin-bottom:1rem;display:block;opacity:.3;"></i>
-            Brak produktów. Kliknij <strong>+ Dodaj produkt</strong> aby dodać pierwszy.
-        </div>`;
-        return;
-    }
-    const typeColors = { ranga:'#8b5cf6', zestaw:'#3b82f6', item:'#10b981', klucz:'#f59e0b' };
-    const typeIcons  = { ranga:'fa-crown', zestaw:'fa-box', item:'fa-sword', klucz:'fa-key' };
-    grid.innerHTML = list.map(item => {
-        const color = typeColors[item.type] || '#6b7280';
-        const icon  = typeIcons[item.type]  || 'fa-tag';
-        const isHidden = item.active === false;
-        const hasMedia = item.mediaUrl;
-        const mediaHtml = hasMedia
-            ? (/\.(mp4|webm|mov)/i.test(item.mediaUrl)
-                ? `<video src="${item.mediaUrl}" style="width:100%;height:160px;object-fit:cover;" muted playsinline loop></video>`
-                : `<img src="${item.mediaUrl}" style="width:100%;height:160px;object-fit:cover;" alt="${escapeHtml(item.name||'')}" onerror="this.parentElement.innerHTML='<div style=\'height:160px;display:flex;align-items:center;justify-content:center;color:var(--text-secondary);font-size:2rem;\'><i class=\'fa-solid fa-${icon}\'></i></div>'">`)
-            : `<div style="height:160px;display:flex;align-items:center;justify-content:center;background:${color}11;"><i class="fa-solid fa-${icon}" style="font-size:3rem;color:${color};opacity:.5;"></i></div>`;
-
-        const items = item.itemsText ? item.itemsText.split('\n').filter(Boolean) : [];
-        const itemsList = items.slice(0,4).map(i => `<div style="font-size:.75rem;color:var(--text-secondary);padding:.15rem 0;display:flex;align-items:center;gap:.4rem;"><i class="fa-solid fa-check" style="color:${color};font-size:.65rem;"></i>${escapeHtml(i.trim())}</div>`).join('');
-
-        return `<div class="shop-card ${isHidden ? 'shop-card-hidden' : ''}" onclick="editShopItem('${item.id}')">
-            <div class="shop-card-media">${mediaHtml}</div>
-            ${isHidden ? '<div class="shop-card-badge-hidden"><i class="fa-solid fa-eye-slash"></i> Ukryty</div>' : ''}
-            <div class="shop-card-body">
-                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem;margin-bottom:.4rem;">
-                    <div>
-                        <span class="badge" style="background:${color}18;color:${color};border:1px solid ${color}33;font-size:.68rem;margin-bottom:.35rem;display:inline-flex;">
-                            <i class="fa-solid fa-${icon}" style="margin-right:.3rem;"></i>${item.type || '—'}
-                        </span>
-                        <div style="font-weight:800;font-size:1rem;color:var(--text-primary);line-height:1.2;">${escapeHtml(item.name || '—')}</div>
-                    </div>
-                    <div style="text-align:right;flex-shrink:0;">
-                        <div style="font-size:1.2rem;font-weight:900;color:${color};">${item.price != null ? item.price : '—'}<span style="font-size:.7rem;font-weight:600;color:var(--text-secondary);"> PLN</span></div>
-                        ${item.oldPrice ? `<div style="font-size:.72rem;color:var(--text-secondary);text-decoration:line-through;">${item.oldPrice} PLN</div>` : ''}
-                    </div>
-                </div>
-                ${item.desc ? `<div style="font-size:.78rem;color:var(--text-secondary);margin-bottom:.5rem;line-height:1.4;">${escapeHtml(item.desc)}</div>` : ''}
-                ${itemsList ? `<div style="margin-bottom:.7rem;">${itemsList}</div>` : ''}
-                <div style="display:flex;gap:.4rem;margin-top:auto;padding-top:.6rem;border-top:1px solid var(--border);">
-                    <button class="tbl-btn" style="flex:1;justify-content:center;" onclick="event.stopPropagation();editShopItem('${item.id}')">
-                        <i class="fa-solid fa-pen"></i> Edytuj
-                    </button>
-                    <button class="tbl-btn tbl-btn-red" onclick="event.stopPropagation();deleteShopItem('${item.id}','${escapeHtml(item.name||'')}')">
-                        <i class="fa-solid fa-trash"></i>
-                    </button>
-                </div>
-            </div>
-        </div>`;
-    }).join('');
-}
-
-let _shopViewMode = 'grid'; // 'grid' | 'table'
-
-window.toggleShopView = function() {
-    _shopViewMode = _shopViewMode === 'grid' ? 'table' : 'grid';
-    const btn = document.getElementById('shop-view-toggle');
-    if (btn) btn.innerHTML = _shopViewMode === 'grid'
-        ? '<i class="fa-solid fa-table-cells-large"></i>'
-        : '<i class="fa-solid fa-list"></i>';
-    const grid  = document.getElementById('shop-grid-view');
-    const table = document.getElementById('shop-table-view');
-    if (grid)  grid.style.display  = _shopViewMode === 'grid'  ? 'grid' : 'none';
-    if (table) table.style.display = _shopViewMode === 'table' ? 'block' : 'none';
-    window.filterShopItems();
-};
-
-let _shopViewMode = 'grid'; // 'grid' | 'table'
-
-window.toggleShopView = function() {
-    _shopViewMode = _shopViewMode === 'grid' ? 'table' : 'grid';
-    const btn = document.getElementById('shop-view-toggle');
-    if (btn) btn.innerHTML = _shopViewMode === 'grid'
-        ? '<i class="fa-solid fa-table-cells-large"></i>'
-        : '<i class="fa-solid fa-list"></i>';
-    window.filterShopItems();
-};
-
-// ─── Shop view state ────────────────────────────────────────────────────────
-let _shopViewMode = 'grid'; // 'grid' | 'table'
-
-window.toggleShopView = function() {
-    _shopViewMode = _shopViewMode === 'grid' ? 'table' : 'grid';
-    const btn = document.getElementById('shop-view-toggle');
-    if (btn) btn.innerHTML = _shopViewMode === 'grid'
-        ? '<i class="fa-solid fa-table-cells-large"></i>'
-        : '<i class="fa-solid fa-table-list"></i>';
-    renderShopItems(
-        _lastShopList || allShopItems
-    );
-};
-
-let _lastShopList = [];
-
-// ─── SKLEP: widok kart + tabela ─────────────────────────────────────────────
-let _shopView = 'grid'; // 'grid' | 'table'
-
-window.toggleShopView = function() {
-    _shopView = _shopView === 'grid' ? 'table' : 'grid';
-    const btn = document.getElementById('shop-view-toggle');
+    _shopView = (_shopView === 'grid') ? 'table' : 'grid';
+    const gridEl  = document.getElementById('shop-grid-view');
+    const tableEl = document.getElementById('shop-table-view');
+    const btn     = document.getElementById('shop-view-toggle');
+    if (gridEl)  gridEl.style.display  = _shopView === 'grid'  ? '' : 'none';
+    if (tableEl) tableEl.style.display = _shopView === 'table' ? '' : 'none';
     if (btn) btn.innerHTML = _shopView === 'grid'
-        ? '<i class="fa-solid fa-table-cells-large"></i>'
-        : '<i class="fa-solid fa-list"></i>';
-    renderCurrentShop();
-};
-
-function renderCurrentShop() {
-    const s    = (document.getElementById('shop-search')?.value || '').toLowerCase();
-    const type = document.getElementById('shop-type-filter')?.value || '';
-    const stat = document.getElementById('shop-status-filter')?.value || '';
-    const list = allShopItems.filter(item => {
-        if (s && !(item.name||'').toLowerCase().includes(s) && !(item.desc||'').toLowerCase().includes(s)) return false;
-        if (type && item.type !== type) return false;
-        if (stat === 'active' && item.active === false) return false;
-        if (stat === 'hidden' && item.active !== false) return false;
-        return true;
-    });
-    if (_shopView === 'grid') {
-        document.getElementById('shop-grid-view').style.display = 'grid';
-        document.getElementById('shop-table-view').style.display = 'none';
-        renderShopGrid(list);
-    } else {
-        document.getElementById('shop-grid-view').style.display = 'none';
-        document.getElementById('shop-table-view').style.display = 'block';
-        renderShopItems(list);
-    }
-}
-
-function renderShopGrid(list) {
-    const grid = document.getElementById('shop-grid-view');
-    if (!grid) return;
-    if (!list.length) {
-        grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--text-secondary);">
-            <i class="fa-solid fa-shop" style="font-size:2.5rem;display:block;margin-bottom:.75rem;opacity:.3;"></i>
-            Brak produktów. Kliknij "+ Dodaj produkt".
-        </div>`;
-        return;
-    }
-    const typeEmoji = { ranga:'🏆', zestaw:'📦', item:'⚔️', klucz:'🔑' };
-    const typeColor = { ranga:'#8b5cf6', zestaw:'#3b82f6', item:'#10b981', klucz:'#f59e0b' };
-    grid.innerHTML = list.map(item => {
-        const tc = typeColor[item.type] || '#6b7280';
-        const te = typeEmoji[item.type] || '🛍️';
-        const isHidden = item.active === false;
-        const media = item.mediaUrl
-            ? (/\.(mp4|webm)/i.test(item.mediaUrl)
-                ? `<video src="${item.mediaUrl}" muted loop style="width:100%;height:160px;object-fit:cover;" onerror="this.style.display='none'"></video>`
-                : `<img src="${item.mediaUrl}" style="width:100%;height:160px;object-fit:cover;" onerror="this.style.background='var(--bg)';this.style.display='none'">`)
-            : `<div style="width:100%;height:160px;background:linear-gradient(135deg,${tc}22,${tc}44);display:flex;align-items:center;justify-content:center;font-size:3.5rem;">${te}</div>`;
-        const items = item.itemsText ? item.itemsText.split('\n').filter(Boolean) : [];
-        return `<div class="shop-card${isHidden?' shop-card-hidden':''}">
-            <div class="shop-card-media">${media}</div>
-            <div class="shop-card-body">
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem;">
-                    <span class="badge" style="background:${tc}22;color:${tc};border:1px solid ${tc}44;font-size:.68rem;">${te} ${item.type||'—'}</span>
-                    <span class="badge ${isHidden?'badge-banned':'badge-online'}" style="font-size:.68rem;">${isHidden?'Ukryty':'Aktywny'}</span>
-                </div>
-                <div style="font-size:1rem;font-weight:800;color:var(--text-primary);margin-bottom:.25rem;">${escapeHtml(item.name||'—')}</div>
-                ${item.desc?`<div style="font-size:.78rem;color:var(--text-secondary);margin-bottom:.5rem;line-height:1.4;">${escapeHtml(item.desc).substring(0,80)}${item.desc.length>80?'…':''}</div>`:''}
-                ${items.length?`<ul style="margin:.4rem 0 .6rem 1rem;padding:0;font-size:.76rem;color:var(--text-secondary);">${items.slice(0,3).map(i=>`<li>${escapeHtml(i)}</li>`).join('')}${items.length>3?`<li style="color:var(--accent);">+${items.length-3} więcej</li>`:''}</ul>`:''}
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:.6rem;border-top:1px solid var(--border);">
-                    <div>
-                        <span style="font-size:1.15rem;font-weight:900;color:var(--accent);">${item.price!=null?item.price:'—'} <span style="font-size:.7rem;font-weight:600;color:var(--text-secondary);">PLN</span></span>
-                        ${item.oldPrice?`<span style="font-size:.75rem;color:var(--text-secondary);text-decoration:line-through;margin-left:.4rem;">${item.oldPrice} PLN</span>`:''}
-                    </div>
-                    <div style="display:flex;gap:.35rem;">
-                        <button class="tbl-btn" onclick="editShopItem('${item.id}')" title="Edytuj"><i class="fa-solid fa-pen"></i></button>
-                        <button class="tbl-btn tbl-btn-red" onclick='deleteShopItem("${item.id}","${escapeHtml(item.name||"")}")' title="Usuń"><i class="fa-solid fa-trash"></i></button>
-                    </div>
-                </div>
-            </div>
-        </div>`;
-    }).join('');
-}
-
-let _shopViewMode = 'grid'; // 'grid' | 'table'
-
-window.toggleShopView = function() {
-    _shopViewMode = _shopViewMode === 'grid' ? 'table' : 'grid';
-    const grid = document.getElementById('shop-grid-view');
-    const tbl  = document.getElementById('shop-table-view');
-    const btn  = document.getElementById('shop-view-toggle');
-    if (grid) grid.style.display = _shopViewMode === 'grid' ? 'grid' : 'none';
-    if (tbl)  tbl.style.display  = _shopViewMode === 'table' ? 'block' : 'none';
-    if (btn)  btn.innerHTML = _shopViewMode === 'grid'
         ? '<i class="fa-solid fa-table-list"></i>'
         : '<i class="fa-solid fa-table-cells-large"></i>';
-    window.filterShopItems();
 };
 
-let _shopViewMode = 'grid'; // 'grid' | 'table'
+let _shopView = 'grid';
 
-window.toggleShopView = function() {
-    _shopViewMode = _shopViewMode === 'grid' ? 'table' : 'grid';
-    const grid = document.getElementById('shop-grid-view');
-    const table = document.getElementById('shop-table-view');
-    const btn = document.getElementById('shop-view-toggle');
-    if (_shopViewMode === 'grid') {
-        if (grid) grid.style.display = 'grid';
-        if (table) table.style.display = 'none';
-        if (btn) btn.innerHTML = '<i class="fa-solid fa-table-cells-large"></i>';
-    } else {
-        if (grid) grid.style.display = 'none';
-        if (table) table.style.display = 'block';
-        if (btn) btn.innerHTML = '<i class="fa-solid fa-list"></i>';
-    }
-    window.filterShopItems();
-};
 
-function renderShopItems(list) {
-    renderShopGrid(list);
-    renderShopTable(list);
-}
 
-let _shopViewMode = 'grid'; // 'grid' | 'table'
-
-window.toggleShopView = function() {
-    _shopViewMode = _shopViewMode === 'grid' ? 'table' : 'grid';
-    const grid = document.getElementById('shop-grid-view');
-    const table = document.getElementById('shop-table-view');
-    const btn = document.getElementById('shop-view-toggle');
-    if (_shopViewMode === 'grid') {
-        if (grid) grid.style.display = 'grid';
-        if (table) table.style.display = 'none';
-        if (btn) btn.innerHTML = '<i class="fa-solid fa-table-list"></i>';
-    } else {
-        if (grid) grid.style.display = 'none';
-        if (table) table.style.display = 'block';
-        if (btn) btn.innerHTML = '<i class="fa-solid fa-table-cells-large"></i>';
-    }
-};
-
-const TYPE_META = {
-    ranga:  { icon: '🏆', color: '#8b5cf6', label: 'Ranga' },
-    zestaw: { icon: '📦', color: '#3b82f6', label: 'Zestaw' },
-    item:   { icon: '⚔️', color: '#10b981', label: 'Item' },
-    klucz:  { icon: '🔑', color: '#f59e0b', label: 'Klucz' },
-};
-
-function renderShopGrid(list) {
-    const grid = document.getElementById('shop-grid-view');
-    if (!grid) return;
-    if (!list.length) {
-        grid.style.display = 'block';
-        grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--text-secondary);">
-            <i class="fa-solid fa-shop" style="font-size:2.5rem;margin-bottom:.75rem;display:block;opacity:.3;"></i>
-            Brak produktów. Kliknij <strong>+ Dodaj produkt</strong> aby zacząć.
-        </div>`;
-        return;
-    }
-    grid.innerHTML = list.map(item => {
-        const meta = TYPE_META[item.type] || { icon: '🎁', color: '#6b7280', label: item.type || '?' };
-        const active = item.active !== false;
-        const hasMedia = item.mediaUrl;
-        const isVideo = hasMedia && /\.(mp4|webm|mov)/i.test(item.mediaUrl);
-        const mediaHtml = hasMedia
-            ? (isVideo
-                ? `<video src="${escapeHtml(item.mediaUrl)}" muted loop autoplay style="width:100%;height:160px;object-fit:cover;" onerror="this.style.display='none'"></video>`
-                : `<img src="${escapeHtml(item.mediaUrl)}" alt="${escapeHtml(item.name||'')}" style="width:100%;height:160px;object-fit:cover;" onerror="this.style.display='none'">`)
-            : `<div style="width:100%;height:160px;background:linear-gradient(135deg,${meta.color}22,${meta.color}11);display:flex;align-items:center;justify-content:center;font-size:3.5rem;">${meta.icon}</div>`;
-
-        const items = (item.itemsText || '').split('\n').filter(Boolean).slice(0, 5);
-        const itemsList = items.length
-            ? `<ul style="padding:0;margin:.5rem 0 0;list-style:none;display:flex;flex-direction:column;gap:.2rem;">
-                ${items.map(i => `<li style="font-size:.78rem;color:var(--text-secondary);display:flex;align-items:center;gap:.35rem;"><i class="fa-solid fa-check" style="color:${meta.color};font-size:.65rem;flex-shrink:0;"></i>${escapeHtml(i)}</li>`).join('')}
-               </ul>` : '';
-
-        return `<div class="shop-card ${active ? '' : 'shop-card-hidden'}" data-id="${item.id}">
-            <div style="position:relative;border-radius:var(--radius-sm) var(--radius-sm) 0 0;overflow:hidden;">
-                ${mediaHtml}
-                <span style="position:absolute;top:.6rem;left:.6rem;background:${meta.color};color:#fff;font-size:.68rem;font-weight:800;padding:.2rem .6rem;border-radius:999px;">${meta.icon} ${meta.label}</span>
-                ${!active ? `<span style="position:absolute;top:.6rem;right:.6rem;background:rgba(0,0,0,.6);color:#fff;font-size:.68rem;font-weight:700;padding:.2rem .6rem;border-radius:999px;"><i class="fa-solid fa-eye-slash"></i> Ukryty</span>` : ''}
-            </div>
-            <div style="padding:1rem;">
-                <div style="font-size:1rem;font-weight:800;color:var(--text-primary);margin-bottom:.25rem;">${escapeHtml(item.name || '—')}</div>
-                ${item.desc ? `<div style="font-size:.8rem;color:var(--text-secondary);line-height:1.5;margin-bottom:.4rem;">${escapeHtml(item.desc)}</div>` : ''}
-                ${itemsList}
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-top:.85rem;padding-top:.75rem;border-top:1px solid var(--border);">
-                    <div>
-                        <span style="font-size:1.3rem;font-weight:900;color:${meta.color};">${item.price != null ? item.price : '—'}</span>
-                        <span style="font-size:.78rem;font-weight:600;color:var(--text-secondary);margin-left:.2rem;">PLN</span>
-                        ${item.oldPrice ? `<div style="font-size:.72rem;color:var(--text-secondary);text-decoration:line-through;">${item.oldPrice} PLN</div>` : ''}
-                    </div>
-                    <div style="display:flex;gap:.4rem;">
-                        <button class="tbl-btn" onclick="editShopItem('${item.id}')" title="Edytuj"><i class="fa-solid fa-pen"></i></button>
-                        <button class="tbl-btn" onclick="toggleShopItemActive('${item.id}',${active})" title="${active ? 'Ukryj' : 'Pokaż'}"><i class="fa-solid fa-${active ? 'eye-slash' : 'eye'}"></i></button>
-                        <button class="tbl-btn tbl-btn-red" onclick='deleteShopItem("${item.id}","${escapeHtml(item.name||"")}")' title="Usuń"><i class="fa-solid fa-trash"></i></button>
-                    </div>
-                </div>
-            </div>
-        </div>`;
-    }).join('');
-}
-
-function renderShopTable(list) {
-    const tb = document.getElementById('shop-items-tbody');
-    if (!tb) return;
-    if (!list.length) {
-        tb.innerHTML = `<tr><td colspan="7" class="table-empty">Brak produktów.</td></tr>`;
-        return;
-    }
-    tb.innerHTML = list.map(item => {
-        const meta = TYPE_META[item.type] || { icon: '🎁', color: '#6b7280', label: item.type || '?' };
-        const active = item.active !== false;
-        const mediaPreview = item.mediaUrl
-            ? `<img src="${escapeHtml(item.mediaUrl)}" style="width:36px;height:36px;object-fit:cover;border-radius:6px;border:1px solid var(--border);" onerror="this.style.display='none'">`
-            : `<span style="color:var(--text-secondary);font-size:.75rem;">Brak</span>`;
-        return `<tr>
-            <td>
-                <div style="font-weight:700;">${escapeHtml(item.name||'—')}</div>
-                ${item.desc ? `<div style="font-size:.72rem;color:var(--text-secondary);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(item.desc)}</div>` : ''}
-            </td>
-            <td><span class="badge" style="background:${meta.color}22;color:${meta.color};border:1px solid ${meta.color}44;">${meta.icon} ${meta.label}</span></td>
-            <td>
-                <span style="font-weight:800;">${item.price != null ? item.price : '—'}</span>
-                <span style="font-size:.72rem;color:var(--text-secondary);"> PLN</span>
-                ${item.oldPrice ? `<div style="font-size:.7rem;color:var(--text-secondary);text-decoration:line-through;">${item.oldPrice} PLN</div>` : ''}
-            </td>
-            <td>${mediaPreview}</td>
-            <td><span class="badge ${active ? 'badge-online' : 'badge-banned'}">${active ? 'Aktywny' : 'Ukryty'}</span></td>
-            <td style="color:var(--text-secondary);font-size:.82rem;">${item.sortOrder ?? 99}</td>
-            <td>
-                <div style="display:flex;gap:.35rem;">
-                    <button class="tbl-btn" onclick="editShopItem('${item.id}')"><i class="fa-solid fa-pen"></i></button>
-                    <button class="tbl-btn" onclick="toggleShopItemActive('${item.id}',${active})"><i class="fa-solid fa-${active ? 'eye-slash' : 'eye'}"></i></button>
-                    <button class="tbl-btn tbl-btn-red" onclick='deleteShopItem("${item.id}","${escapeHtml(item.name||"")}")'><i class="fa-solid fa-trash"></i></button>
-                </div>
-            </td>
-        </tr>`;
-    }).join('');
-}
-
-window.toggleShopItemActive = async function(id, currentlyActive) {
-    if (!requirePermission('shop', 'zarządzanie sklepem')) return;
-    try {
-        await updateDoc(doc(db, 'shop_items', id), { active: !currentlyActive, updatedAt: serverTimestamp() });
-        showToast('success', currentlyActive ? 'Produkt ukryty' : 'Produkt aktywny');
-        await window.loadShopPage();
-    } catch(e) { showToast('error', 'Błąd: ' + e.message); }
-};
 window.filterShopItems = function() {
     const type   = document.getElementById('shop-type-filter')?.value   || '';
     const status = document.getElementById('shop-status-filter')?.value || '';
@@ -3699,19 +3273,9 @@ window.filterShopItems = function() {
                       !(item.desc||'').toLowerCase().includes(search)) return false;
         return true;
     });
+    renderShopGrid(filtered);
     renderShopItems(filtered);
 };
-
-window.filterShopItems = function() {
-
-    const type = document.getElementById('shop-type-filter')?.value || '';
-
-    const filtered = type ? allShopItems.filter(item => item.type === type) : allShopItems;
-
-    renderShopItems(filtered);
-
-};
-
 
 
 window.openShopItemModal = function() {
@@ -5548,3 +5112,197 @@ window.loadInfoPage = async function() {
 
     if (refreshedEl) refreshedEl.textContent = `Odświeżono: ${new Date().toLocaleTimeString('pl-PL')}`;
 };
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ─── MULTI-SERWER ──────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+
+let _currentServer = 'default';
+let _allServers    = [];
+
+/**
+ * Schemat dokumentu w kolekcji `servers`:
+ * { id, name, description, color, online, maxPlayers, pollInterval }
+ */
+async function loadServers() {
+    try {
+        const snap = await getDocs(collection(db, 'servers'));
+        _allServers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        _renderServerSelector();
+    } catch (e) {
+        // Brak kolekcji servers — tylko jeden serwer domyślny
+        _allServers = [{ id: 'default', name: 'Serwer główny' }];
+        _renderServerSelector();
+    }
+}
+
+function _renderServerSelector() {
+    const sel = document.getElementById('server-select');
+    if (!sel) return;
+    const saved = localStorage.getItem('critmc_server') || 'default';
+    sel.innerHTML = _allServers.map(s =>
+        `<option value="${s.id}" ${s.id === saved ? 'selected' : ''}>${s.name || s.id}</option>`
+    ).join('');
+    if (_allServers.length <= 1) {
+        sel.closest('.server-selector').style.display = 'none';
+    }
+    _currentServer = saved;
+    _applyServerPrefix();
+}
+
+window.switchServer = function(serverId) {
+    _currentServer = serverId;
+    localStorage.setItem('critmc_server', serverId);
+    _applyServerPrefix();
+    // Przeładuj dane dla nowego serwera
+    loadAll();
+    showToast('info', `Przełączono na: ${_allServers.find(s => s.id === serverId)?.name || serverId}`);
+};
+
+/**
+ * Zwraca prefiks kolekcji dla aktywnego serwera.
+ * Serwer domyślny: brak prefiksu (wsteczna kompatybilność).
+ * Inne: "servers/{id}/" jako subcollection.
+ *
+ * UWAGA: Zmienia globalne zmienne dla kolekcji używanych w zapytaniach.
+ */
+function _applyServerPrefix() {
+    // Aktualizuj kolor kropki
+    const dot = document.getElementById('server-sel-dot');
+    if (dot) {
+        const srv = _allServers.find(s => s.id === _currentServer);
+        dot.style.background = srv?.color || '#10b981';
+    }
+}
+
+/**
+ * Pobiera referencję do kolekcji dla aktywnego serwera.
+ * Używaj zamiast collection(db, 'players') itp.
+ */
+function serverCollection(colName) {
+    if (_currentServer === 'default') {
+        return collection(db, colName);
+    }
+    return collection(db, 'servers', _currentServer, colName);
+}
+
+// ─── STRONA SERWERÓW ─────────────────────────────────────────────────────────
+
+window.loadServersPage = async function() {
+    const grid = document.getElementById('servers-grid');
+    if (!grid) return;
+    grid.innerHTML = '<div class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</div>';
+
+    try {
+        const snap = await getDocs(collection(db, 'servers'));
+        _allServers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+        if (!_allServers.length) {
+            grid.innerHTML = `<div class="table-card" style="padding:2rem;text-align:center;color:var(--text-secondary);">
+                <i class="fa-solid fa-server" style="font-size:2rem;opacity:.3;display:block;margin-bottom:.75rem;"></i>
+                Brak dodanych serwerów. Kliknij <strong>+ Dodaj serwer</strong>.
+            </div>`;
+            return;
+        }
+
+        grid.innerHTML = _allServers.map(s => {
+            const isActive = _currentServer === s.id;
+            const color    = s.color || '#10b981';
+            return `<div class="table-card" style="padding:1.2rem;border-left:4px solid ${color};position:relative;">
+                ${isActive ? `<span style="position:absolute;top:.6rem;right:.6rem;font-size:.7rem;background:${color}22;color:${color};border:1px solid ${color}44;padding:.15rem .5rem;border-radius:6px;font-weight:700;">AKTYWNY</span>` : ''}
+                <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.9rem;">
+                    <div style="width:38px;height:38px;border-radius:10px;background:${color}22;display:flex;align-items:center;justify-content:center;color:${color};font-size:1.1rem;flex-shrink:0;">
+                        <i class="fa-solid fa-server"></i>
+                    </div>
+                    <div>
+                        <div style="font-weight:800;font-size:.95rem;">${escapeHtml(s.name || s.id)}</div>
+                        <div style="font-size:.75rem;color:var(--text-secondary);">ID: ${escapeHtml(s.id)}</div>
+                    </div>
+                </div>
+                ${s.description ? `<div style="font-size:.82rem;color:var(--text-secondary);margin-bottom:.9rem;">${escapeHtml(s.description)}</div>` : ''}
+                <div style="display:flex;gap:.4rem;flex-wrap:wrap;">
+                    <button class="tbl-btn" onclick="switchServer('${s.id}')">
+                        <i class="fa-solid fa-arrow-right-arrow-left"></i> Przełącz
+                    </button>
+                    <button class="tbl-btn" onclick="editServer('${s.id}')">
+                        <i class="fa-solid fa-pen"></i> Edytuj
+                    </button>
+                    <button class="tbl-btn tbl-btn-red" onclick="deleteServer('${s.id}','${escapeHtml(s.name||s.id)}')">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </div>
+            </div>`;
+        }).join('');
+    } catch (e) {
+        grid.innerHTML = `<div style="color:#ef4444;padding:1rem;">Błąd: ${e.message}</div>`;
+    }
+};
+
+window.openAddServerModal = function() {
+    document.getElementById('srv-id').value        = '';
+    document.getElementById('srv-name').value      = '';
+    document.getElementById('srv-desc').value      = '';
+    document.getElementById('srv-color').value     = '#10b981';
+    document.getElementById('srv-modal-title').textContent = 'Dodaj serwer';
+    document.getElementById('srv-msg').style.display = 'none';
+    document.getElementById('server-modal').classList.add('open');
+};
+
+window.editServer = function(id) {
+    const s = _allServers.find(x => x.id === id);
+    if (!s) return;
+    document.getElementById('srv-id').value        = s.id;
+    document.getElementById('srv-name').value      = s.name || '';
+    document.getElementById('srv-desc').value      = s.description || '';
+    document.getElementById('srv-color').value     = s.color || '#10b981';
+    document.getElementById('srv-modal-title').textContent = 'Edytuj serwer';
+    document.getElementById('srv-msg').style.display = 'none';
+    document.getElementById('server-modal').classList.add('open');
+};
+
+window.saveServer = async function() {
+    if (!requirePermission('all', 'zarządzanie serwerami')) return;
+    const id    = document.getElementById('srv-id').value.trim();
+    const name  = document.getElementById('srv-name').value.trim();
+    const desc  = document.getElementById('srv-desc').value.trim();
+    const color = document.getElementById('srv-color').value;
+
+    if (!id) { _showSrvMsg('error', 'Podaj ID serwera!'); return; }
+    if (!name) { _showSrvMsg('error', 'Podaj nazwę serwera!'); return; }
+
+    try {
+        await setDoc(doc(db, 'servers', id), { name, description: desc, color, updatedAt: serverTimestamp() }, { merge: true });
+        showToast('success', `Serwer "${name}" zapisany.`);
+        document.getElementById('server-modal').classList.remove('open');
+        await loadServers();
+        await window.loadServersPage();
+    } catch (e) {
+        _showSrvMsg('error', 'Błąd: ' + e.message);
+    }
+};
+
+window.deleteServer = async function(id, name) {
+    if (!requirePermission('all', 'zarządzanie serwerami')) return;
+    if (id === 'default') { showToast('error', 'Nie można usunąć serwera domyślnego!'); return; }
+    if (!confirm(`Usunąć serwer "${name}"? Dane graczy na tym serwerze NIE zostaną usunięte.`)) return;
+    try {
+        await deleteDoc(doc(db, 'servers', id));
+        showToast('success', `Serwer "${name}" usunięty.`);
+        if (_currentServer === id) window.switchServer('default');
+        await loadServers();
+        await window.loadServersPage();
+    } catch (e) {
+        showToast('error', 'Błąd: ' + e.message);
+    }
+};
+
+function _showSrvMsg(type, text) {
+    const el = document.getElementById('srv-msg');
+    if (!el) return;
+    el.className = `modal-msg ${type}`;
+    el.textContent = text;
+    el.style.display = 'block';
+}
+
+// Wywołaj loadServers przy starcie (po initPanelUI)
+const _origInitPanelUI = window._initPanelUI_orig;
