@@ -1080,7 +1080,7 @@ async function loadBans() {
 
         renderBans(allBans);
 
-        document.getElementById('badge-bans').textContent = allBans.length;
+        document.getElementById('badge-bans')?.textContent && (document.getElementById('badge-bans').textContent = allBans.length); _updatePenaltiesBadge();
 
     } catch (e) { console.error('loadBans:', e); }
 
@@ -1562,7 +1562,7 @@ async function loadMutes() {
 
         renderMutes(allMutes);
 
-        document.getElementById('badge-mutes').textContent = allMutes.length;
+        document.getElementById('badge-mutes')?.textContent && (document.getElementById('badge-mutes').textContent = allMutes.length); _updatePenaltiesBadge();
 
     } catch (e) { console.error('loadMutes:', e); }
 
@@ -3264,6 +3264,39 @@ let _shopView = 'grid';
 
 
 
+function renderShopItems(list) {
+    const tb = document.getElementById('shop-items-tbody');
+    if (!tb) return;
+    if (!list || !list.length) {
+        tb.innerHTML = '<tr><td colspan="7" class="table-empty"><i class="fa-solid fa-shop" style="font-size:1.5rem;opacity:.3;display:block;margin-bottom:.4rem;"></i>Brak produktów.</td></tr>';
+        return;
+    }
+    tb.innerHTML = list.map(function(item) {
+        var typeBadgeColor = { ranga:'#8b5cf6', zestaw:'#3b82f6', item:'#10b981', klucz:'#f59e0b' };
+        var col = typeBadgeColor[item.type] || '#6b7280';
+        var mediaPreview = item.mediaUrl
+            ? (/\.(mp4|webm|mov)/i.test(item.mediaUrl)
+                ? '<span style="color:#3b82f6;font-size:.75rem;"><i class="fa-solid fa-video"></i> Film</span>'
+                : '<img src="' + item.mediaUrl + '" style="width:36px;height:36px;object-fit:cover;border-radius:6px;border:1px solid var(--border);" onerror="this.style.display=\'none\'">')
+            : '<span style="color:var(--text-secondary);font-size:.75rem;">Brak</span>';
+        return '<tr>'
+            + '<td><div style="font-weight:700;">' + escapeHtml(item.name || '—') + '</div>'
+            + (item.desc ? '<div style="font-size:.75rem;color:var(--text-secondary);">' + escapeHtml(item.desc.substring(0,60)) + (item.desc.length>60?'…':'') + '</div>' : '')
+            + '</td>'
+            + '<td><span class="badge" style="background:' + col + '22;color:' + col + ';border:1px solid ' + col + '44;">' + (item.type||'—') + '</span></td>'
+            + '<td><div style="font-weight:800;">' + (item.price != null ? item.price : '—') + ' <span style="font-size:.72rem;font-weight:600;color:var(--text-secondary);">PLN</span></div>'
+            + (item.oldPrice ? '<div style="font-size:.72rem;color:var(--text-secondary);text-decoration:line-through;">' + item.oldPrice + ' PLN</div>' : '')
+            + '</td>'
+            + '<td>' + mediaPreview + '</td>'
+            + '<td><span class="badge ' + (item.active === false ? 'badge-banned' : 'badge-online') + '">' + (item.active === false ? 'Ukryty' : 'Aktywny') + '</span></td>'
+            + '<td style="color:var(--text-secondary);font-size:.78rem;">' + (item.sortOrder != null ? item.sortOrder : 99) + '</td>'
+            + '<td><div style="display:flex;gap:.4rem;">'
+            + '<button class="tbl-btn" onclick="editShopItem(\'' + item.id + '\')" title="Edytuj"><i class="fa-solid fa-pen"></i></button>'
+            + '<button class="tbl-btn tbl-btn-red" onclick="deleteShopItem(\'' + item.id + '\',\'' + escapeHtml(item.name||'') + '\')" title="Usuń"><i class="fa-solid fa-trash"></i></button>'
+            + '</div></td>'
+            + '</tr>';
+    }).join('');
+}
 window.filterShopItems = function() {
     const type   = document.getElementById('shop-type-filter')?.value   || '';
     const status = document.getElementById('shop-status-filter')?.value || '';
@@ -5464,4 +5497,117 @@ window.resetPollVotes = async function() {
         showToast('success','Głosy zresetowane.');
         window.loadPollTab();
     } catch(ex) { showToast('error',ex.message); }
+};
+
+// ─── RICH TEXT EDITOR (Aktualności) ───────────────────────────────────────
+
+function rteCmd(cmd) {
+    document.getElementById('news-editor')?.focus();
+    document.execCommand(cmd, false, null);
+}
+
+function rteSize(size) {
+    if (!size) return;
+    document.getElementById('news-editor')?.focus();
+    document.execCommand('fontSize', false, size);
+}
+
+function rteFontFamily(font) {
+    if (!font) return;
+    document.getElementById('news-editor')?.focus();
+    document.execCommand('fontName', false, font);
+}
+
+function rteColor(color) {
+    document.getElementById('news-editor')?.focus();
+    document.execCommand('foreColor', false, color);
+}
+
+function rteBgColor(color) {
+    document.getElementById('news-editor')?.focus();
+    document.execCommand('hiliteColor', false, color);
+}
+
+function rteInsertLink() {
+    const url = prompt('Podaj adres URL linku:');
+    if (!url) return;
+    const text = prompt('Tekst linku (lub Enter dla URL):') || url;
+    document.getElementById('news-editor')?.focus();
+    document.execCommand('insertHTML', false, '<a href="' + url + '" target="_blank" rel="noopener">' + text + '</a>');
+}
+
+function rteInsertImage() {
+    const url = prompt('Podaj URL zdjęcia:');
+    if (!url) return;
+    document.getElementById('news-editor')?.focus();
+    document.execCommand('insertHTML', false, '<img src="' + url + '" alt="zdjęcie" style="max-width:100%;border-radius:8px;">');
+}
+
+window.syncNewsContent = function() {
+    const editor  = document.getElementById('news-editor');
+    const hidden  = document.getElementById('news-content');
+    if (editor && hidden) hidden.value = editor.innerHTML;
+};
+
+// Nadpisz openNewsModal i editNews żeby używały edytora HTML
+
+const _origOpenNewsModal = window.openNewsModal;
+window.openNewsModal = function() {
+    document.getElementById('news-modal-title').textContent = 'Dodaj aktualność';
+    document.getElementById('news-id').value      = '';
+    document.getElementById('news-title').value   = '';
+    document.getElementById('news-video').value   = '';
+    document.getElementById('news-pinned').checked = false;
+    document.getElementById('news-msg').style.display = 'none';
+    const editor = document.getElementById('news-editor');
+    if (editor) editor.innerHTML = '';
+    document.getElementById('news-content').value = '';
+    document.getElementById('news-modal').classList.add('open');
+    setTimeout(() => editor?.focus(), 100);
+};
+
+const _origEditNews = window.editNews;
+window.editNews = async function(id) {
+    try {
+        const snap = await getDoc(doc(db, 'news', id));
+        if (!snap.exists()) return;
+        const n = snap.data();
+        document.getElementById('news-modal-title').textContent = 'Edytuj aktualność';
+        document.getElementById('news-id').value      = id;
+        document.getElementById('news-title').value   = n.title   || '';
+        document.getElementById('news-video').value   = n.video   || '';
+        document.getElementById('news-pinned').checked = !!n.pinned;
+        document.getElementById('news-msg').style.display = 'none';
+        const editor = document.getElementById('news-editor');
+        // content może być HTML (z edytora) lub plain text (stare wpisy)
+        if (editor) editor.innerHTML = n.content || '';
+        document.getElementById('news-content').value = n.content || '';
+        document.getElementById('news-modal').classList.add('open');
+    } catch(ex) { showToast('error', ex.message); }
+};
+
+// saveNews odczytuje innerHTML z edytora
+const _origSaveNews = window.saveNews;
+window.saveNews = async function() {
+    if (!requirePermission('site','zarządzanie stroną')) return;
+    // Synchronizuj edytor przed zapisem
+    syncNewsContent();
+    const id      = document.getElementById('news-id').value;
+    const title   = document.getElementById('news-title').value.trim();
+    const content = document.getElementById('news-content').value.trim();
+    const video   = document.getElementById('news-video').value.trim();
+    const pinned  = document.getElementById('news-pinned').checked;
+    if (!title) { _showNewsMsg('error','Podaj tytuł!'); return; }
+    try {
+        const data = { title, content, video, pinned, author: currentUser?.displayName||'Admin', updatedAt: serverTimestamp() };
+        if (id) {
+            await updateDoc(doc(db, 'news', id), data);
+        } else {
+            data.createdAt = serverTimestamp();
+            await addDoc(collection(db, 'news'), data);
+        }
+        showToast('success', id ? 'Aktualność zaktualizowana!' : 'Aktualność dodana!');
+        document.getElementById('news-modal').classList.remove('open');
+        window.loadNewsTab();
+    } catch(ex) { _showNewsMsg('error','Błąd: '+ex.message); }
 };

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
@@ -101,6 +101,33 @@
                         <button onclick="submitContest()" style="background:linear-gradient(135deg,#f2c84a,#ff8c00);color:#000;font-weight:900;padding:0.85rem;border:none;border-radius:10px;font-size:1rem;cursor:pointer;"><i class="fa-solid fa-trophy"></i> Dolacz do konkursu</button>
                         <div id="contest-msg" style="text-align:center;font-size:0.9rem;color:var(--text-muted);"></div>
                     </div>
+                </div>
+            </div>
+
+            <!-- Aktualności z Firestore -->
+            <div id="home-news-section" style="margin-top:2rem;">
+                <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:1rem;">
+                    <i class="fa-solid fa-newspaper" style="color:#ff1744;font-size:1.1rem;"></i>
+                    <h3 style="font-weight:800;font-size:1rem;color:#fff;margin:0;">Aktualności</h3>
+                </div>
+                <div id="home-news-list" style="display:flex;flex-direction:column;gap:.75rem;">
+                    <div style="text-align:center;padding:1.5rem;color:rgba(255,255,255,.4);font-size:.88rem;">
+                        <i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ankieta z Firestore -->
+            <div id="home-poll-section" style="margin-top:2rem;display:none;">
+                <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:1rem;">
+                    <i class="fa-solid fa-square-poll-horizontal" style="color:#8b5cf6;font-size:1.1rem;"></i>
+                    <h3 style="font-weight:800;font-size:1rem;color:#fff;margin:0;">Ankieta</h3>
+                </div>
+                <div id="home-poll-box" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:1.4rem;">
+                    <div style="font-weight:700;font-size:.95rem;color:#fff;margin-bottom:1rem;" id="home-poll-question">Ładowanie...</div>
+                    <div id="home-poll-options" style="display:flex;flex-direction:column;gap:.5rem;"></div>
+                    <div id="home-poll-voted" style="display:none;margin-top:.75rem;font-size:.82rem;color:rgba(255,255,255,.5);">Już zagłosowałeś/aś. Dziękujemy!</div>
+                    <div id="home-poll-results" style="margin-top:.75rem;display:none;"></div>
                 </div>
             </div>
 
@@ -892,6 +919,117 @@
                 await loadProposals();
             } catch(e) { console.error('vote:', e); }
         };
+
+        // ─── AKTUALNOŚCI — ładuj z Firestore ─────────────────────────────
+        async function loadHomeNews() {
+            const container = document.getElementById('home-news-list');
+            if (!container) return;
+            try {
+                const snap = await getDocs(query(collection(db2, 'news'), orderBy('createdAt', 'desc')));
+                const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                if (!items.length) {
+                    container.innerHTML = '<div style="text-align:center;padding:1.5rem;color:rgba(255,255,255,.35);font-size:.88rem;">Brak aktualności.</div>';
+                    return;
+                }
+                container.innerHTML = items.map(n => {
+                    const date = n.createdAt
+                        ? (n.createdAt.seconds
+                            ? new Date(n.createdAt.seconds * 1000).toLocaleDateString('pl-PL', {day:'2-digit',month:'2-digit',year:'numeric'})
+                            : new Date(n.createdAt).toLocaleDateString('pl-PL', {day:'2-digit',month:'2-digit',year:'numeric'}))
+                        : '';
+                    let videoHtml = '';
+                    if (n.video) {
+                        const yt = n.video.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+                        if (yt) {
+                            videoHtml = '<div style="margin-top:.9rem;border-radius:12px;overflow:hidden;position:relative;padding-bottom:56.25%;height:0;">'
+                                + '<iframe src="https://www.youtube.com/embed/' + yt[1] + '" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;" allowfullscreen loading="lazy"></iframe>'
+                                + '</div>';
+                        } else if (/\.(mp4|webm|mov)/i.test(n.video)) {
+                            videoHtml = '<video src="' + n.video + '" controls style="width:100%;border-radius:12px;margin-top:.9rem;max-height:360px;"></video>';
+                        }
+                    }
+                    return '<div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:1.2rem;' + (n.pinned ? 'border-left:3px solid #ff1744;' : '') + '">'
+                        + '<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem;">'
+                        + (n.pinned ? '<i class="fa-solid fa-thumbtack" style="color:#ff1744;font-size:.72rem;"></i>' : '')
+                        + '<span style="font-size:.7rem;color:rgba(255,255,255,.35);">' + date + '</span>'
+                        + '</div>'
+                        + '<div style="font-weight:800;font-size:.95rem;color:#fff;margin-bottom:.4rem;">' + (n.title || '') + '</div>'
+                        + (n.content ? '<div class="home-news-content" style="font-size:.85rem;color:rgba(255,255,255,.75);line-height:1.6;">' + n.content + '</div>' : '')
+                        + videoHtml
+                        + '</div>';
+                }).join('');
+            } catch(e) {
+                container.innerHTML = '<div style="text-align:center;padding:1rem;color:#ff5252;font-size:.85rem;">Błąd ładowania aktualności.</div>';
+            }
+        }
+
+        // ─── ANKIETA — ładuj z Firestore ─────────────────────────────────
+        async function loadHomePoll() {
+            const section = document.getElementById('home-poll-section');
+            if (!section) return;
+            try {
+                const snap = await getDoc(doc(db2, 'site_poll', 'current'));
+                if (!snap.exists()) return;
+                const p = snap.data();
+                if (!p.active) return;
+                section.style.display = '';
+                document.getElementById('home-poll-question').textContent = p.question || '';
+                const voterKey = localStorage.getItem('critmc_poll_voted');
+                const voted    = voterKey && (p.votedIPs || []).includes(voterKey);
+                const options  = p.options || [];
+                const total    = options.reduce(function(s, o) { return s + (o.votes || 0); }, 0);
+                const colors   = ['#3b82f6','#10b981','#8b5cf6','#f59e0b','#ef4444'];
+                if (voted) {
+                    document.getElementById('home-poll-voted').style.display = '';
+                    document.getElementById('home-poll-results').style.display = '';
+                    document.getElementById('home-poll-options').innerHTML = '';
+                    document.getElementById('home-poll-results').innerHTML = options.map(function(o, i) {
+                        const pct = total > 0 ? Math.round((o.votes||0)/total*100) : 0;
+                        const col = colors[i % colors.length];
+                        return '<div style="margin-bottom:.6rem;">'
+                            + '<div style="display:flex;justify-content:space-between;margin-bottom:.25rem;">'
+                            + '<span style="font-size:.85rem;color:#fff;font-weight:600;">' + (o.label||o) + '</span>'
+                            + '<span style="font-size:.78rem;color:rgba(255,255,255,.5);">' + (o.votes||0) + ' głosów (' + pct + '%)</span>'
+                            + '</div>'
+                            + '<div style="height:8px;background:rgba(255,255,255,.08);border-radius:999px;overflow:hidden;">'
+                            + '<div style="height:100%;width:' + pct + '%;background:' + col + ';border-radius:999px;transition:width .5s;"></div>'
+                            + '</div></div>';
+                    }).join('');
+                } else {
+                    document.getElementById('home-poll-options').innerHTML = options.map(function(o, i) {
+                        const col = colors[i % colors.length];
+                        return '<button onclick="castPollVote(\'' + (o.label||o).replace(/'/g, "\\'") + '\')" style="width:100%;text-align:left;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);color:#fff;padding:.75rem 1rem;border-radius:10px;cursor:pointer;font-size:.9rem;font-weight:600;display:flex;align-items:center;gap:.6rem;transition:background .15s;"'
+                            + ' onmouseenter="this.style.background=\'' + col + '22\';this.style.borderColor=\'' + col + '55\'"'
+                            + ' onmouseleave="this.style.background=\'rgba(255,255,255,.04)\';this.style.borderColor=\'rgba(255,255,255,.1)\'">'
+                            + '<span style="width:10px;height:10px;border-radius:50%;background:' + col + ';flex-shrink:0;"></span>'
+                            + (o.label||o) + '</button>';
+                    }).join('');
+                }
+            } catch(e) { console.warn('loadHomePoll:', e); }
+        }
+
+        window.castPollVote = async function(optionLabel) {
+            const voterKey = 'poll_' + (Math.random().toString(36).slice(2)) + '_' + Date.now();
+            localStorage.setItem('critmc_poll_voted', voterKey);
+            try {
+                const ref = doc(db2, 'site_poll', 'current');
+                const snap = await getDoc(ref);
+                if (!snap.exists()) return;
+                const p = snap.data();
+                const voted = p.votedIPs || [];
+                if (voted.includes(voterKey)) { await loadHomePoll(); return; }
+                const options = (p.options || []).map(function(o) {
+                    if ((o.label||o) === optionLabel) return { label: o.label||o, votes: (o.votes||0)+1 };
+                    return o;
+                });
+                await updateDoc(ref, { options: options, votedIPs: [...voted, voterKey] });
+                await loadHomePoll();
+            } catch(e) { console.error('vote:', e); }
+        };
+
+        // ─── INICJALIZACJA ────────────────────────────────────────────────
+        loadHomeNews();
+        loadHomePoll();
     </script>
 </body>
 </html>

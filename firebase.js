@@ -124,3 +124,36 @@ export async function deleteContest(contestId) {
     }
     await deleteDoc(doc(db, "contests", contestId));
 }
+
+// --- AKTUALNOŚCI ---
+
+export async function getNews() {
+    try {
+        const snap = await getDocs(query(collection(db, 'news'), orderBy('createdAt', 'desc')));
+        return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch(e) { return []; }
+}
+
+// --- ANKIETA ---
+
+export async function getPoll() {
+    try {
+        const snap = await getDoc(doc(db, 'site_poll', 'current'));
+        return snap.exists() ? snap.data() : null;
+    } catch(e) { return null; }
+}
+
+export async function voteInPoll(optionLabel, voterKey) {
+    const ref = doc(db, 'site_poll', 'current');
+    const snap = await getDoc(ref);
+    if (!snap.exists()) throw new Error('Brak ankiety');
+    const data = snap.data();
+    const voted = data.votedIPs || [];
+    if (voted.includes(voterKey)) throw new Error('already_voted');
+    const options = (data.options || []).map(o => {
+        if ((o.label || o) === optionLabel) return { label: o.label||o, votes: (o.votes||0) + 1 };
+        return o;
+    });
+    await updateDoc(ref, { options, votedIPs: [...voted, voterKey] });
+    return options;
+}

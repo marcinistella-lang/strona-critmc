@@ -26,12 +26,12 @@
             <form id="login-form" onsubmit="handleLogin(event)">
                 <div class="login-field">
                     <label><i class="fa-solid fa-user"></i> Login</label>
-                    <input type="text" id="login-username" placeholder="Wpisz login..." autocomplete="username" required>
+                    <input type="text" id="login-username" placeholder="Wpisz login..." autocomplete="off" required>
                 </div>
                 <div class="login-field">
                     <label><i class="fa-solid fa-lock"></i> hasło</label>
                     <div class="password-wrap">
-                        <input type="password" id="login-password" placeholder="Wpisz hasło..." autocomplete="current-password" required>
+                        <input type="password" id="login-password" placeholder="Wpisz hasło..." autocomplete="new-password" required>
                         <button type="button" class="pw-toggle" onclick="togglePasswordVisibility()" title="PokałL/ukryj hasło">
                             <i class="fa-solid fa-eye" id="pw-toggle-icon"></i>
                         </button>
@@ -65,43 +65,32 @@
                     <i class="fa-solid fa-users"></i>
                     <span>Gracze</span>
                 </button>
-                <button class="nav-btn" data-page="bans" onclick="switchPage('bans')">
-                    <i class="fa-solid fa-ban"></i>
-                    <span>Bany</span>
-                    <span class="nav-badge" id="badge-bans">0</span>
-                </button>
-                <button class="nav-btn" data-page="mutes" onclick="switchPage('mutes')">
-                    <i class="fa-solid fa-microphone-slash"></i>
-                    <span>Muty</span>
-                    <span class="nav-badge" id="badge-mutes">0</span>
+                <button class="nav-btn" data-page="penalties" onclick="switchPage('penalties')">
+                    <i class="fa-solid fa-gavel"></i>
+                    <span>Kary</span>
+                    <span class="nav-badge" id="badge-penalties">0</span>
                 </button>
                 <button class="nav-btn" data-page="action" onclick="switchPage('action')">
-                    <i class="fa-solid fa-gavel"></i>
+                    <i class="fa-solid fa-plus-circle"></i>
                     <span>Nadaj karę</span>
                 </button>
                 <button class="nav-btn" data-page="logs" onclick="switchPage('logs')">
                     <i class="fa-solid fa-clock-rotate-left"></i>
                     <span>Logi akcji</span>
                 </button>
-                <button class="nav-btn" data-page="stats" onclick="switchPage('stats')">
-                    <i class="fa-solid fa-chart-bar"></i>
-                    <span>Statystyki</span>
-                </button>
 
-                <div class="nav-section-label" style="margin-top:1.5rem;">Personel</div>
-                <button class="nav-btn" data-page="personel" onclick="switchPage('personel');loadPersonel();">
-                    <i class="fa-solid fa-id-badge"></i>
-                    <span>Personel</span>
-                </button>
-
-                <div class="nav-section-label" style="margin-top:1.5rem;">Stroną</div>
+                <div class="nav-section-label" style="margin-top:1.5rem;">Strona</div>
                 <button class="nav-btn" data-page="site" onclick="switchPage('site');loadSitePage();">
                     <i class="fa-solid fa-globe"></i>
-                    <span>Stroną</span>
+                    <span>Strona</span>
                 </button>
                 <button class="nav-btn" data-page="shop" onclick="switchPage('shop');loadShopPage();">
                     <i class="fa-solid fa-shop"></i>
                     <span>Sklep</span>
+                </button>
+                <button class="nav-btn" data-page="personel" onclick="switchPage('personel');loadPersonel();">
+                    <i class="fa-solid fa-id-badge"></i>
+                    <span>Personel</span>
                 </button>
                 <button class="nav-btn" data-page="files" onclick="switchPage('files');loadFilesPage();">
                     <i class="fa-solid fa-folder-open"></i>
@@ -220,91 +209,95 @@
                 </div>
             </div>
 
-            <!-- ===== STRONA: BANY ===== -->
-            <div id="page-bans" class="page">
+            <!-- ===== STRONA: KARY (bany + muty) ===== -->
+            <div id="page-penalties" class="page">
                 <div class="page-header">
-                    <h1>Aktywne Bany</h1>
-                    <p>Lista aktualnie zbanowanych graczy</p>
+                    <h1>Kary</h1>
+                    <p>Aktywne bany i muty na serwerze</p>
                 </div>
 
-                <div class="filters-bar">
-                    <div class="filter-search">
-                        <i class="fa-solid fa-magnifying-glass"></i>
-                        <input type="text" id="bans-search" placeholder="Szukaj po nicku lub powodzie..." oninput="filterBans()">
+                <!-- Przełącznik Ban / Mute -->
+                <div style="display:flex;gap:.5rem;margin-bottom:1.2rem;">
+                    <button class="tbl-btn" id="pen-tab-bans" onclick="switchPenaltyTab('bans')"
+                        style="background:rgba(239,68,68,.1);color:#dc2626;border-color:rgba(220,38,38,.3);font-weight:700;">
+                        <i class="fa-solid fa-ban"></i> Bany
+                        <span class="nav-badge" id="badge-bans" style="background:#ef4444;">0</span>
+                    </button>
+                    <button class="tbl-btn" id="pen-tab-mutes" onclick="switchPenaltyTab('mutes')"
+                        style="font-weight:700;">
+                        <i class="fa-solid fa-microphone-slash"></i> Muty
+                        <span class="nav-badge" id="badge-mutes" style="background:#f59e0b;">0</span>
+                    </button>
+                </div>
+
+                <!-- Panel Bany -->
+                <div id="pen-panel-bans">
+                    <div class="filters-bar">
+                        <div class="filter-search">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" id="bans-search" placeholder="Szukaj po nicku lub powodzie..." oninput="filterBans()">
+                        </div>
+                        <div class="filter-group">
+                            <select id="bans-filter-type" onchange="filterBans()">
+                                <option value="">Wszystkie typy</option>
+                                <option value="permanent">Permanentne</option>
+                                <option value="temporary">Czasowe</option>
+                            </select>
+                        </div>
                     </div>
-                    <div class="filter-group">
-                        <select id="bans-filter-type" onchange="filterBans()">
-                            <option value="">Wszystkie typy</option>
-                            <option value="permanent">Permanentne</option>
-                            <option value="temporary">Czasowe</option>
-                        </select>
+                    <div class="table-card">
+                        <div class="table-wrap">
+                            <table class="data-table" id="bans-table">
+                                <thead>
+                                    <tr>
+                                        <th>Gracz</th><th>Powód</th><th>Przez kogo</th>
+                                        <th>Data</th><th>Czas trwania</th><th>Załącznik</th><th>Akcje</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="bans-tbody">
+                                    <tr><td colspan="7" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
 
-                <div class="table-card">
-                    <div class="table-wrap">
-                        <table class="data-table" id="bans-table">
-                            <thead>
-                                <tr>
-                                    <th>Gracz</th>
-                                    <th>Powód</th>
-                                    <th>Przez kogo</th>
-                                    <th>Data</th>
-                                    <th>Czas trwania</th>
-                                    <th>Załącznik</th>
-                                    <th>Akcje</th>
-                                </tr>
-                            </thead>
-                            <tbody id="bans-tbody">
-                                <tr><td colspan="7" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>
-                            </tbody>
-                        </table>
+                <!-- Panel Muty -->
+                <div id="pen-panel-mutes" style="display:none;">
+                    <div class="filters-bar">
+                        <div class="filter-search">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" id="mutes-search" placeholder="Szukaj po nicku lub powodzie..." oninput="filterMutes()">
+                        </div>
+                        <div class="filter-group">
+                            <select id="mutes-filter-type" onchange="filterMutes()">
+                                <option value="">Wszystkie typy</option>
+                                <option value="permanent">Permanentne</option>
+                                <option value="temporary">Czasowe</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="table-card">
+                        <div class="table-wrap">
+                            <table class="data-table" id="mutes-table">
+                                <thead>
+                                    <tr>
+                                        <th>Gracz</th><th>Powód</th><th>Przez kogo</th>
+                                        <th>Data</th><th>Czas trwania</th><th>Załącznik</th><th>Akcje</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="mutes-tbody">
+                                    <tr><td colspan="7" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- ===== STRONA: MUTY ===== -->
-            <div id="page-mutes" class="page">
-                <div class="page-header">
-                    <h1>Aktywne Muty</h1>
-                    <p>Lista aktualnie zmutowanych graczy</p>
-                </div>
-
-                <div class="filters-bar">
-                    <div class="filter-search">
-                        <i class="fa-solid fa-magnifying-glass"></i>
-                        <input type="text" id="mutes-search" placeholder="Szukaj po nicku lub powodzie..." oninput="filterMutes()">
-                    </div>
-                    <div class="filter-group">
-                        <select id="mutes-filter-type" onchange="filterMutes()">
-                            <option value="">Wszystkie typy</option>
-                            <option value="permanent">Permanentne</option>
-                            <option value="temporary">Czasowe</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="table-card">
-                    <div class="table-wrap">
-                        <table class="data-table" id="mutes-table">
-                            <thead>
-                                <tr>
-                                    <th>Gracz</th>
-                                    <th>Powód</th>
-                                    <th>Przez kogo</th>
-                                    <th>Data</th>
-                                    <th>Czas trwania</th>
-                                    <th>Załącznik</th>
-                                    <th>Akcje</th>
-                                </tr>
-                            </thead>
-                            <tbody id="mutes-tbody">
-                                <tr><td colspan="7" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
+            <!-- Ukryte strony bans/mutes dla wstecznej kompatybilności -->
+            <div id="page-bans" class="page" style="display:none!important;"></div>
+            <div id="page-mutes" class="page" style="display:none!important;"></div>
 
             <!-- ===== STRONA: NADAJ KARĘ ===== -->
             <div id="page-action" class="page">
@@ -789,8 +782,7 @@
                     <button class="site-tab-btn" data-site-tab="proposals" onclick="switchSiteTab('proposals')"><i class="fa-solid fa-lightbulb"></i> Propozycje</button>
                     <button class="site-tab-btn" data-site-tab="news" onclick="switchSiteTab('news')"><i class="fa-solid fa-newspaper"></i> Aktualności</button>
                     <button class="site-tab-btn" data-site-tab="poll" onclick="switchSiteTab('poll')"><i class="fa-solid fa-square-poll-horizontal"></i> Ankieta</button>
-                    <button class="site-tab-btn" data-site-tab="news" onclick="switchSiteTab('news')"><i class="fa-solid fa-newspaper"></i> Aktualności</button>
-                    <button class="site-tab-btn" data-site-tab="poll" onclick="switchSiteTab('poll')"><i class="fa-solid fa-square-poll-horizontal"></i> Ankieta</button>
+                    <button c
                 </div>
 
                 <!-- Konkurs -->
@@ -1071,6 +1063,7 @@
 
                 <!-- Przycisk odśwież -->
                 <div style="display:flex;gap:.75rem;align-items:center;">
+                    <button class="tbl-btn" onclick="switchPage('stats')" style="margin-right:.5rem;"><i class="fa-solid fa-chart-bar"></i> Statystyki adminów</button>
                     <button class="modal-submit-btn" style="width:auto;padding:.65rem 1.4rem;" onclick="loadInfoPage()">
                         <i class="fa-solid fa-rotate-right"></i> Odśwież dane
                     </button>
@@ -1552,8 +1545,7 @@
             if (page) page.classList.add('active');
             const titles = {
                 players:   'Gracze',
-                bans:      'Bany',
-                mutes:     'Muty',
+                                                penalties: 'Kary',
                 action:    'Nadaj karę',
                 logs:      'Logi Akcji',
                 stats:     'Statystyki Adminów',
@@ -1731,7 +1723,7 @@
 
     <!-- ===== MODAL: AKTUALNOŚĆ ===== -->
     <div class="modal-overlay" id="news-modal" onclick="closeModal(event)">
-        <div class="modal-box" style="max-width:600px;">
+        <div class="modal-box" style="max-width:680px;">
             <div class="modal-header">
                 <div class="modal-title" id="news-modal-title">Dodaj aktualność</div>
                 <button class="modal-close" onclick="document.getElementById('news-modal').classList.remove('open')"><i class="fa-solid fa-xmark"></i></button>
@@ -1744,12 +1736,74 @@
                 </div>
                 <div class="modal-field">
                     <label>Treść</label>
-                    <textarea id="news-content" rows="5" placeholder="Treść aktualności..." style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea>
+                    <!-- Rich text toolbar -->
+                    <div style="border:1.5px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;">
+                        <div id="news-editor-toolbar" style="display:flex;gap:.2rem;padding:.45rem .6rem;background:var(--bg);border-bottom:1px solid var(--border);flex-wrap:wrap;align-items:center;">
+                            <!-- Formatowanie -->
+                            <button type="button" class="rte-btn" onclick="rteCmd('bold')" title="Pogrubienie"><i class="fa-solid fa-bold"></i></button>
+                            <button type="button" class="rte-btn" onclick="rteCmd('italic')" title="Kursywa"><i class="fa-solid fa-italic"></i></button>
+                            <button type="button" class="rte-btn" onclick="rteCmd('underline')" title="Podkreślenie"><i class="fa-solid fa-underline"></i></button>
+                            <button type="button" class="rte-btn" onclick="rteCmd('strikeThrough')" title="Przekreślenie"><i class="fa-solid fa-strikethrough"></i></button>
+                            <div style="width:1px;height:20px;background:var(--border);margin:0 .3rem;flex-shrink:0;"></div>
+                            <!-- Rozmiar -->
+                            <select onchange="rteSize(this.value)" title="Rozmiar czcionki" style="padding:.2rem .4rem;border:1px solid var(--border);border-radius:4px;font-size:.78rem;background:var(--bg-card);color:var(--text-primary);outline:none;cursor:pointer;">
+                                <option value="">Rozmiar</option>
+                                <option value="1">Mały</option>
+                                <option value="3" selected>Normalny</option>
+                                <option value="4">Duży</option>
+                                <option value="5">Większy</option>
+                                <option value="6">Wielki</option>
+                            </select>
+                            <!-- Czcionka -->
+                            <select onchange="rteFontFamily(this.value)" title="Czcionka" style="padding:.2rem .4rem;border:1px solid var(--border);border-radius:4px;font-size:.78rem;background:var(--bg-card);color:var(--text-primary);outline:none;cursor:pointer;">
+                                <option value="">Czcionka</option>
+                                <option value="Outfit, sans-serif">Outfit (domyślna)</option>
+                                <option value="'Press Start 2P', cursive">Pixel</option>
+                                <option value="monospace">Monospace</option>
+                                <option value="Georgia, serif">Georgia</option>
+                                <option value="Arial, sans-serif">Arial</option>
+                            </select>
+                            <div style="width:1px;height:20px;background:var(--border);margin:0 .3rem;flex-shrink:0;"></div>
+                            <!-- Kolor tekstu -->
+                            <label title="Kolor tekstu" style="display:flex;align-items:center;gap:.25rem;cursor:pointer;font-size:.75rem;color:var(--text-secondary);">
+                                <i class="fa-solid fa-font"></i>
+                                <input type="color" id="rte-color" value="#000000" onchange="rteColor(this.value)" style="width:22px;height:22px;border:none;padding:0;cursor:pointer;background:transparent;">
+                            </label>
+                            <!-- Kolor tła -->
+                            <label title="Kolor tła" style="display:flex;align-items:center;gap:.25rem;cursor:pointer;font-size:.75rem;color:var(--text-secondary);">
+                                <i class="fa-solid fa-highlighter"></i>
+                                <input type="color" id="rte-bgcolor" value="#ffff00" onchange="rteBgColor(this.value)" style="width:22px;height:22px;border:none;padding:0;cursor:pointer;background:transparent;">
+                            </label>
+                            <div style="width:1px;height:20px;background:var(--border);margin:0 .3rem;flex-shrink:0;"></div>
+                            <!-- Wyrównanie -->
+                            <button type="button" class="rte-btn" onclick="rteCmd('justifyLeft')" title="Do lewej"><i class="fa-solid fa-align-left"></i></button>
+                            <button type="button" class="rte-btn" onclick="rteCmd('justifyCenter')" title="Wyśrodkuj"><i class="fa-solid fa-align-center"></i></button>
+                            <button type="button" class="rte-btn" onclick="rteCmd('justifyRight')" title="Do prawej"><i class="fa-solid fa-align-right"></i></button>
+                            <div style="width:1px;height:20px;background:var(--border);margin:0 .3rem;flex-shrink:0;"></div>
+                            <!-- Lista -->
+                            <button type="button" class="rte-btn" onclick="rteCmd('insertUnorderedList')" title="Lista"><i class="fa-solid fa-list-ul"></i></button>
+                            <!-- Link -->
+                            <button type="button" class="rte-btn" onclick="rteInsertLink()" title="Wstaw link"><i class="fa-solid fa-link"></i></button>
+                            <!-- Zdjęcie -->
+                            <button type="button" class="rte-btn" onclick="rteInsertImage()" title="Wstaw zdjęcie (URL)"><i class="fa-solid fa-image"></i></button>
+                            <!-- Wyczyść formatowanie -->
+                            <button type="button" class="rte-btn" onclick="rteCmd('removeFormat')" title="Wyczyść formatowanie" style="margin-left:auto;"><i class="fa-solid fa-eraser"></i></button>
+                        </div>
+                        <!-- Edytor contenteditable -->
+                        <div id="news-editor"
+                            contenteditable="true"
+                            style="min-height:140px;max-height:280px;overflow-y:auto;padding:.75rem .9rem;font-size:.92rem;color:var(--text-primary);background:var(--bg-card);outline:none;line-height:1.6;"
+                            placeholder="Treść aktualności..."
+                            oninput="syncNewsContent()">
+                        </div>
+                    </div>
+                    <!-- Ukryte pole do zapisu HTML -->
+                    <textarea id="news-content" style="display:none;"></textarea>
                 </div>
                 <div class="modal-field">
-                    <label>Link do filmiku <span style="color:#999;font-weight:400;">(YouTube URL lub link .mp4 — opcjonalny)</span></label>
+                    <label>Link do filmiku <span style="color:#999;font-weight:400;">(YouTube URL lub .mp4 — opcjonalny)</span></label>
                     <input type="text" id="news-video" placeholder="https://youtube.com/watch?v=... lub https://...mp4">
-                    <div style="font-size:.75rem;color:var(--text-secondary);margin-top:.3rem;">YouTube zostanie osadzony jako odtwarzacz. MP4 jako natywne wideo.</div>
+                    <div style="font-size:.75rem;color:var(--text-secondary);margin-top:.3rem;">YouTube → osadzony odtwarzacz · MP4 → natywne wideo</div>
                 </div>
                 <div class="modal-field">
                     <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;">
