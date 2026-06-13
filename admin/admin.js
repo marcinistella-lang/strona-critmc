@@ -46,7 +46,7 @@ let allFiles = [];
 
 
 
-// â”€â”€â”€ Domy>lne konta (fallback gdy Firestore puste) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â”€â”€â”€ Domyślne konta (fallback gdy Firestore puste) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const DEFAULT_ACCOUNTS = [
 
@@ -92,23 +92,23 @@ const PERMISSIONS_PL = {
 
     warn: { label: 'Ostrzeżenia', desc: 'Może nadawać ostrzeżenia administracyjne.' },
 
-    check: { label: 'Sprawdźzanie graczy', desc: 'Może wykonywać akcjęe kontrolne i sprawdzenia.' },
+    check: { label: 'Sprawdzanie graczy', desc: 'Może wykonywać akcje kontrolne i sprawdzenia.' },
 
-    logs: { label: 'Podgląd logów', desc: 'Może przeglądać historię akcjęi administracji.' },
+    logs: { label: 'Podgląd logów', desc: 'Może przeglądać historię akcji administracji.' },
 
-    notes: { label: 'Notatki administracyjne', desc: 'Może dodawać notatkęi do graczy.' },
+    notes: { label: 'Notatki administracyjne', desc: 'Może dodawać notatki do graczy.' },
 
-    site: { label: 'Zarządzanie stronąą', desc: 'Może edytować konkursy, media i tre>ci stronąy.' },
+    site: { label: 'Zarządzanie stroną', desc: 'Może edytować konkursy, media i treści strony.' },
 
     shop: { label: 'Zarządzanie sklepem', desc: 'Może edytować produkty, zestawy i ceny sklepu.' },
 
-    media_manage: { label: 'Zarządzanie mediami', desc: 'Może dodawać multimedia do stronąy i aktualno>ci.' },
+    media_manage: { label: 'Zarządzanie mediami', desc: 'Może dodawać multimedia do strony i aktualności.' },
 
     evidence_view: { label: 'Podgląd załączników', desc: 'Może otwierać dowody, linki i załączniki do kar.' },
 
     evidence_delete: { label: 'Usuwanie załączników', desc: 'Może usuwać załączniki z bazy plików.' },
 
-    permissions_manage: { label: 'Zarządzanie uprawnieniami', desc: 'Może edytować domy>lne uprawnienia rang.' },
+    permissions_manage: { label: 'Zarządzanie uprawnieniami', desc: 'Może edytować Domyślne uprawnienia rang.' },
 
     admins_manage: { label: 'Zarządzanie administratorami', desc: 'Może dodawać i edytować konta administratorów.' },
 
@@ -947,36 +947,48 @@ function head(nick) {
 let unsubscribePlayers = null;
 
 function loadPlayers() {
-
-    if (unsubscribePlayers) return; // already listening
-
+    if (unsubscribePlayers) return;
     try {
-
         unsubscribePlayers = onSnapshot(collection(db, 'players'), (snap) => {
-
-            allPlayers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-
-            filterPlayers(); // Używa obecnych filtrów zamiast renderować bez filtrowania
-
+            const raw = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            // Deduplikuj po nicku — zostaw najnowszy wpis dla każdego gracza
+            const byNick = new Map();
+            raw.forEach(p => {
+                const key = (p.nick || p.id || '').toLowerCase();
+                const existing = byNick.get(key);
+                if (!existing) {
+                    byNick.set(key, p);
+                } else {
+                    const existTs = existing.lastSeen?.seconds || 0;
+                    const newTs   = p.lastSeen?.seconds       || 0;
+                    if (newTs > existTs) byNick.set(key, p);
+                }
+            });
+            allPlayers = [...byNick.values()].sort((a, b) => {
+                if (a.online && !b.online) return -1;
+                if (!a.online && b.online) return 1;
+                return (a.nick||a.id||'').localeCompare(b.nick||b.id||'');
+            });
+            filterPlayers();
+            // Odśwież panel Nadaj karę jeśli aktywny
+            if (document.getElementById('page-action')?.classList.contains('active')) {
+                refreshApPlayers();
+            }
+            // Odśwież statystyki na stronie info jeśli aktywna
+            const infoPage = document.getElementById('page-info');
+            if (infoPage?.classList.contains('active')) {
+                _setEl('info-stat-players', allPlayers.length);
+                _setEl('info-stat-online',  allPlayers.filter(p => p.online).length);
+            }
         }, (e) => {
-
             document.getElementById('players-tbody').innerHTML =
-
                 `<tr><td colspan="5" class="table-empty" style="color:#ef4444;"><i class="fa-solid fa-circle-exclamation"></i> Błąd: ${e.message}</td></tr>`;
-
         });
-
     } catch (e) {
-
         document.getElementById('players-tbody').innerHTML =
-
             `<tr><td colspan="5" class="table-empty" style="color:#ef4444;"><i class="fa-solid fa-circle-exclamation"></i> Błąd: ${e.message}</td></tr>`;
-
     }
-
 }
-
-
 
 function renderPlayers(list) {
 
@@ -1646,7 +1658,7 @@ async function loadLogs() {
 
         buildAdminFilter();
 
-        loadRecentLogs();
+        refreshApPlayers();
 
         loadStats();
 
@@ -1828,39 +1840,63 @@ function loadStats() {
 
 
 
-// ——— OSTATNIE LOGI (strona Akcje) ——————————————————————————————————————
+// ——— GRACZE NA STRONIE "NADAJ KARĘ" ——————————————————————————————————————
 
-function loadRecentLogs() {
-
-    const el = document.getElementById('ap-recent-logs');
-
+function renderApPlayers(list) {
+    const el = document.getElementById('ap-players-list');
     if (!el) return;
-
-    const recent = allLogs.slice(0, 15);
-
-    if (!recent.length) { el.innerHTML = `<div style="text-align:center;padding:2rem;color:var(--text-secondary);font-size:.88rem;">Brak akcji</div>`; return; }
-
-    el.innerHTML = recent.map(l => `
-
-        <div style="display:flex;align-items:center;gap:.75rem;padding:.65rem 1rem;border-bottom:1px solid var(--border);">
-
-            ${actionBadge(l.action)}
-
+    if (!list.length) {
+        el.innerHTML = `<div style="text-align:center;padding:2rem;color:var(--text-secondary);font-size:.88rem;"><i class="fa-solid fa-users-slash"></i><br>Brak graczy w bazie</div>`;
+        return;
+    }
+    el.innerHTML = list.map(p => {
+        const nick = p.nick || p.id || '?';
+        const online = p.online;
+        const banned = p.banned;
+        const muted  = p.muted;
+        let statusDot = online
+            ? `<span style="width:7px;height:7px;border-radius:50%;background:#10b981;display:inline-block;flex-shrink:0;box-shadow:0 0 4px #10b981;"></span>`
+            : `<span style="width:7px;height:7px;border-radius:50%;background:#9ca3af;display:inline-block;flex-shrink:0;"></span>`;
+        let flags = '';
+        if (banned) flags += `<span style="font-size:.65rem;background:rgba(239,68,68,.12);color:#dc2626;border:1px solid rgba(220,38,38,.2);padding:.1rem .4rem;border-radius:999px;font-weight:700;">BAN</span>`;
+        if (muted)  flags += `<span style="font-size:.65rem;background:rgba(245,158,11,.12);color:#d97706;border:1px solid rgba(217,119,6,.2);padding:.1rem .4rem;border-radius:999px;font-weight:700;margin-left:.2rem;">MUTE</span>`;
+        return `<div style="display:flex;align-items:center;gap:.65rem;padding:.6rem 1rem;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s;"
+            onmouseenter="this.style.background='var(--bg)'" onmouseleave="this.style.background=''"
+            onclick="apSelectPlayer('${escapeHtml(nick)}')">
+            ${statusDot}
+            <img src="https://mc-heads.net/avatar/${encodeURIComponent(nick)}/28" style="width:28px;height:28px;border-radius:5px;image-rendering:pixelated;border:1px solid var(--border);flex-shrink:0;" onerror="this.src='https://mc-heads.net/avatar/Steve/28'">
             <div style="flex:1;min-width:0;">
-
-                <div style="font-weight:700;font-size:.88rem;">${l.player}</div>
-
-                <div style="font-size:.75rem;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${l.reason||'—'} · ${l.admin||'—'}</div>
-
+                <div style="font-weight:700;font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(nick)}</div>
+                <div style="font-size:.72rem;color:var(--text-secondary);">${p.ip ? `<i class="fa-solid fa-network-wired" style="font-size:.65rem;"></i> ${p.ip}` : ''} ${flags}</div>
             </div>
-
-            <div style="font-size:.75rem;color:var(--text-secondary);white-space:nowrap;">${formatDate(l.date)}</div>
-
-        </div>`).join('');
-
+            <button style="background:var(--accent);border:none;color:#fff;padding:.3rem .65rem;border-radius:5px;font-size:.75rem;font-weight:700;cursor:pointer;flex-shrink:0;font-family:var(--font);"
+                onclick="event.stopPropagation();apSelectPlayer('${escapeHtml(nick)}')">
+                Wybierz
+            </button>
+        </div>`;
+    }).join('');
 }
 
+window.apFilterPlayers = function() {
+    const s = (document.getElementById('ap-players-search')?.value || '').toLowerCase();
+    const filtered = s
+        ? allPlayers.filter(p => (p.nick||p.id||'').toLowerCase().includes(s) || (p.ip||'').includes(s))
+        : allPlayers;
+    renderApPlayers(filtered.slice(0, 50));
+};
 
+window.apSelectPlayer = function(nick) {
+    const input = document.getElementById('ap-nick');
+    if (input) {
+        input.value = nick;
+        apSearchPlayer(nick);
+    }
+};
+
+// Odśwież listę graczy przy wejściu na stronę Nadaj karę
+function refreshApPlayers() {
+    renderApPlayers(allPlayers.slice(0, 50));
+}
 
 // ——— LOG AKCJI —————————————————————————————————————————————————————————
 
@@ -2516,7 +2552,7 @@ window.addEventListener('openPlayerDetail', async (e) => {
 
             <div style="margin-bottom:1.5rem;">
 
-                <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.75rem;">Historia akcjęi (${hist.length})</div>
+                <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.75rem;">Historia akcji (${hist.length})</div>
 
                 ${hist.length === 0 ? '<div style="text-align:center;padding:1rem;color:var(--text-secondary);font-size:.88rem;">Brak historii</div>' :
 
@@ -2540,13 +2576,13 @@ window.addEventListener('openPlayerDetail', async (e) => {
 
                 <button class="login-btn" style="flex:1;" onclick="openActionModal('${p.nick||p.id}','${p.uuid||''}');closePlayerDetail();">
 
-                    <i class="fa-solid fa-gavel"></i> Wykonaj akcjęę
+                    <i class="fa-solid fa-gavel"></i> Wykonaj akcję
 
                 </button>
 
                 <button class="login-btn" style="flex:1;background:var(--accent-yellow);color:#000;" onclick="openNoteModal('${p.nick||p.id}');closePlayerDetail();">
 
-                    <i class="fa-solid fa-note-sticky"></i> Dodaj notatkęę
+                    <i class="fa-solid fa-note-sticky"></i> Dodaj notatkę
 
                 </button>
 
@@ -2596,7 +2632,7 @@ window.submitNote = async function() {
 
     const content = document.getElementById('note-content').value.trim();
 
-    if (!content) { showNoteMsg('error', 'Wpisz tre>ć notatkęi!'); return; }
+    if (!content) { showNoteMsg('error', 'Wpisz tre>ć notatki!'); return; }
 
 
 
@@ -2792,9 +2828,15 @@ function renderAdminAccounts(list) {
 
                     <button class="tbl-btn" onclick="editAdminAccount('${a.id}')"><i class="fa-solid fa-pen"></i></button>
 
-                    <button class="tbl-btn tbl-btn-red" onclick="toggleAdminDisable('${a.id}','${a.disabled?'false':'true'}')">
+                    <button class="tbl-btn tbl-btn-red" onclick="toggleAdminDisable('${a.id}','${a.disabled?'false':'true'}')" title="${a.disabled?'Odblokuj':'Zablokuj'}">
 
                         <i class="fa-solid fa-${a.disabled?'unlock':'lock'}"></i>
+
+                    </button>
+
+                    <button class="tbl-btn tbl-btn-red" onclick="deleteAdminAccount('${a.id}','${escapeHtml(a.displayName||a.login)}')" title="Usuń konto">
+
+                        <i class="fa-solid fa-trash"></i>
 
                     </button>
 
@@ -2952,6 +2994,23 @@ window.toggleAdminDisable = async function(id, disable) {
 
 };
 
+window.deleteAdminAccount = async function(id, name) {
+    if (!requirePermission('admins_manage', 'zarządzanie administratorami') && !hasPermission('all')) return;
+    // Nie pozwól usunąć własnego konta
+    if (currentUser && currentUser.id === id) {
+        showToast('error', 'Nie możesz usunąć własnego konta!');
+        return;
+    }
+    if (!confirm(`Usunąć konto "${name}" na stałe? Tej operacji nie można cofnąć.`)) return;
+    try {
+        await deleteDoc(doc(db, 'admins', id));
+        showToast('success', `Konto "${name}" zostało usunięte.`);
+        await window.loadAdminAccounts();
+    } catch (e) {
+        showToast('error', 'Błąd usuwania: ' + e.message);
+    }
+};
+
 
 
 window.loadPermissionsPage = async function() {
@@ -2960,7 +3019,7 @@ window.loadPermissionsPage = async function() {
     const grid = document.getElementById('permissions-grid');
     if (!grid) return;
 
-    // Domy>lne uprawnienia (hardcoded) — do porównania
+    // Domyślne uprawnienia (hardcoded) — do porównania
     const DEFAULT_ROLE_PERMISSIONS = {
         'ChatMod':      ['mute', 'warn', 'check'],
         'Pomocnik':     ['mute', 'warn', 'check', 'players'],
@@ -2987,12 +3046,12 @@ window.loadPermissionsPage = async function() {
                     <div>
                         <div style="display:flex;align-items:center;gap:.6rem;">
                             <div style="font-size:1rem;font-weight:800;color:var(--text-primary);">${role}</div>
-                            ${isEdited ? `<span style="background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.35);color:#f59e0b;font-size:.7rem;font-weight:700;padding:.15rem .5rem;border-radius:6px;"><i class="fa-solid fa-pen-to-square"></i> Edytowane</span>` : `<span style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25);color:#10b981;font-size:.7rem;font-weight:700;padding:.15rem .5rem;border-radius:6px;">Domy>lne</span>`}
+                            ${isEdited ? `<span style="background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.35);color:#f59e0b;font-size:.7rem;font-weight:700;padding:.15rem .5rem;border-radius:6px;"><i class="fa-solid fa-pen-to-square"></i> Edytowane</span>` : `<span style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25);color:#10b981;font-size:.7rem;font-weight:700;padding:.15rem .5rem;border-radius:6px;">Domyślne</span>`}
                         </div>
                         <div style="font-size:.78rem;color:var(--text-secondary);margin-top:.15rem;">Uprawnienia tej rangi</div>
                     </div>
                     <div style="display:flex;gap:.5rem;">
-                        ${isEdited ? `<button class="tbl-btn" onclick="resetRolePermissions('${role}')" title="Przywróć domy>lne"><i class="fa-solid fa-rotate-left"></i></button>` : ''}
+                        ${isEdited ? `<button class="tbl-btn" onclick="resetRolePermissions('${role}')" title="Przywróć Domyślne"><i class="fa-solid fa-rotate-left"></i></button>` : ''}
                         <button class="modal-submit-btn" style="width:auto;padding:.45rem 1rem;" onclick="saveRolePermissions('${role}')">
                             <i class="fa-solid fa-floppy-disk"></i> Zapisz
                         </button>
@@ -3086,7 +3145,7 @@ window.loadShopPage = async function() {
 
     if (!tb) return;
 
-    tb.innerHTML = `<tr><td colspan="6" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> ŁŁadowanie...</td></tr>`;
+    tb.innerHTML = `<tr><td colspan="6" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>`;
 
     try {
 
@@ -3109,65 +3168,43 @@ window.loadShopPage = async function() {
 
 
 function renderShopItems(list) {
-
     const tb = document.getElementById('shop-items-tbody');
-
     if (!tb) return;
-
     if (!list.length) {
-
-        tb.innerHTML = `<tr><td colspan="6" class="table-empty">Brak produktów sklepu. Dodaj pierwszy produkt.</td></tr>`;
-
+        tb.innerHTML = `<tr><td colspan="7" class="table-empty"><i class="fa-solid fa-shop" style="font-size:1.5rem;color:var(--text-secondary);display:block;margin-bottom:.5rem;"></i>Brak produktów sklepu. Kliknij "+ Dodaj produkt" aby dodać pierwszy.</td></tr>`;
         return;
-
     }
-
-    tb.innerHTML = list.map(item => `
-
-        <tr>
-
+    tb.innerHTML = list.map(item => {
+        const typeBadgeColor = {
+            ranga: '#8b5cf6', zestaw: '#3b82f6', item: '#10b981', klucz: '#f59e0b'
+        }[item.type] || '#6b7280';
+        const mediaPreview = item.mediaUrl
+            ? (/\.(mp4|webm|mov)/i.test(item.mediaUrl)
+                ? `<span style="color:#3b82f6;font-size:.75rem;"><i class="fa-solid fa-video"></i> Film</span>`
+                : `<img src="${item.mediaUrl}" style="width:36px;height:36px;object-fit:cover;border-radius:6px;border:1px solid var(--border);" onerror="this.style.display='none'">`)
+            : `<span style="color:var(--text-secondary);font-size:.75rem;">Brak</span>`;
+        return `<tr>
             <td>
-
-                <div style="font-weight:700;">${item.name || '"”'}</div>
-
-                ${item.desc ? `<div style="font-size:.78rem;color:var(--text-secondary);margin-top:.2rem;">${item.desc}</div>` : ''}
-
+                <div style="font-weight:700;color:var(--text-primary);">${escapeHtml(item.name || '—')}</div>
+                ${item.desc ? `<div style="font-size:.76rem;color:var(--text-secondary);margin-top:.15rem;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(item.desc)}</div>` : ''}
             </td>
-
-            <td><span class="badge badge-default">${item.type || '"”'}</span></td>
-
+            <td><span class="badge" style="background:${typeBadgeColor}22;color:${typeBadgeColor};border:1px solid ${typeBadgeColor}44;">${item.type || '—'}</span></td>
             <td>
-
-                <div style="font-weight:700;">${item.price ?? '"”'} PLN</div>
-
-                ${item.oldPrice ? `<div style="font-size:.75rem;color:var(--text-secondary);text-decoration:line-through;">${item.oldPrice} PLN</div>` : ''}
-
+                <div style="font-weight:800;font-size:.95rem;">${item.price != null ? item.price : '—'} <span style="font-size:.72rem;font-weight:600;color:var(--text-secondary);">PLN</span></div>
+                ${item.oldPrice ? `<div style="font-size:.72rem;color:var(--text-secondary);text-decoration:line-through;">${item.oldPrice} PLN</div>` : ''}
             </td>
-
+            <td style="text-align:center;">${mediaPreview}</td>
             <td><span class="badge ${item.active === false ? 'badge-banned' : 'badge-online'}">${item.active === false ? 'Ukryty' : 'Aktywny'}</span></td>
-
-            <td style="font-size:.8rem;color:var(--text-secondary);">${item.mediaUrl ? 'Podpięte' : 'Brak'}</td>
-
+            <td style="color:var(--text-secondary);font-size:.78rem;">${item.sortOrder ?? 99}</td>
             <td>
-
                 <div style="display:flex;gap:.4rem;">
-
-                    <button class="tbl-btn" onclick="editShopItem('${item.id}')"><i class="fa-solid fa-pen"></i></button>
-
-                    <button class="tbl-btn tbl-btn-red" onclick='deleteShopItem("${item.id}", ${JSON.stringify(item.name || "")})'><i class="fa-solid fa-trash"></i></button>
-
+                    <button class="tbl-btn" onclick="editShopItem('${item.id}')" title="Edytuj"><i class="fa-solid fa-pen"></i></button>
+                    <button class="tbl-btn tbl-btn-red" onclick='deleteShopItem("${item.id}","${escapeHtml(item.name||"")}")' title="Usuń"><i class="fa-solid fa-trash"></i></button>
                 </div>
-
             </td>
-
-        </tr>
-
-    `).join('');
-
-};
-
-
-
+        </tr>`;
+    }).join('');
+}
 window.filterShopItems = function() {
 
     const type = document.getElementById('shop-type-filter')?.value || '';
@@ -3476,7 +3513,7 @@ async function ensureDefaultAdmin() {
 
             });
 
-            console.log('[CritMC] Utworzono domy>lne konto test/test w Firestore');
+            console.log('[CritMC] Utworzono Domyślne konto test/test w Firestore');
 
         }
 
@@ -4166,7 +4203,7 @@ async function siteLoadContestList() {
 
 window.siteNewContest = async function() {
 
-    if (!requirePermission('site', 'zarządzanie stronąą')) return;
+    if (!requirePermission('site', 'zarządzanie stroną')) return;
 
     const id = prompt('Podaj ID nowego konkursu (np. "konkurs2025"):');
 
@@ -4372,7 +4409,7 @@ document.addEventListener('change', e => {
 
 window.siteUpdateContest = async function() {
 
-    if (!requirePermission('site', 'zarządzanie stronąą')) return;
+    if (!requirePermission('site', 'zarządzanie stroną')) return;
 
     const contestId = _currentContestId();
 
@@ -4414,7 +4451,7 @@ window.siteUpdateContest = async function() {
 
 window.siteAnnounceWinners = async function() {
 
-    if (!requirePermission('site', 'zarządzanie stronąą')) return;
+    if (!requirePermission('site', 'zarządzanie stroną')) return;
 
     const contestId = _currentContestId();
 
@@ -4456,7 +4493,7 @@ window.siteAnnounceWinners = async function() {
 
 window.siteEndContest = async function() {
 
-    if (!requirePermission('site', 'zarządzanie stronąą')) return;
+    if (!requirePermission('site', 'zarządzanie stroną')) return;
 
     const contestId = _currentContestId();
 
@@ -4484,7 +4521,7 @@ window.siteEndContest = async function() {
 
 window.siteDeleteContest = async function() {
 
-    if (!requirePermission('site', 'zarządzanie stronąą')) return;
+    if (!requirePermission('site', 'zarządzanie stroną')) return;
 
     const contestId = _currentContestId();
 
@@ -4526,7 +4563,7 @@ window.siteDeleteContest = async function() {
 
 window.siteRestartContest = async function() {
 
-    if (!requirePermission('site', 'zarządzanie stronąą')) return;
+    if (!requirePermission('site', 'zarządzanie stroną')) return;
 
     const contestId = _currentContestId();
 
@@ -4590,7 +4627,7 @@ window.siteLoadEntries = async function() {
 
     if (!tb) return;
 
-    tb.innerHTML = `<tr><td colspan="5" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> ŁŁadowanie...</td></tr>`;
+    tb.innerHTML = `<tr><td colspan="5" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>`;
 
     try {
 
@@ -4790,7 +4827,7 @@ window.siteLoadProposals = async function() {
 
     if (!tb) return;
 
-    tb.innerHTML = `<tr><td colspan="5" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> ŁŁadowanie...</td></tr>`;
+    tb.innerHTML = `<tr><td colspan="5" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>`;
 
     try {
 
@@ -4896,3 +4933,121 @@ window._extendedApplyPermissions = _extendedApplyPermissions;
 
 
 
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ─── STRONA INFORMACJE ──────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+
+const _panelStartTime = Date.now();
+
+function _setInfoStatus(elId, ok, label, detail) {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    const color = ok ? '#10b981' : '#ef4444';
+    const icon  = ok ? 'fa-circle-check' : 'fa-circle-xmark';
+    el.innerHTML = `<span style="width:10px;height:10px;border-radius:50%;background:${color};flex-shrink:0;box-shadow:0 0 6px ${color}88;"></span>
+        <span style="font-size:.88rem;font-weight:700;color:${color};"><i class="fa-solid ${icon}" style="margin-right:.3rem;"></i>${label}</span>`;
+    const det = document.getElementById(elId.replace('-status', '-detail'));
+    if (det) det.textContent = detail || '';
+}
+
+function _setEl(id, val) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val ?? '—';
+}
+
+function _formatUptime(ms) {
+    const s = Math.floor(ms / 1000);
+    const m = Math.floor(s / 60);
+    const h = Math.floor(m / 60);
+    if (h > 0) return `${h}h ${m % 60}m`;
+    if (m > 0) return `${m}m ${s % 60}s`;
+    return `${s}s`;
+}
+
+window.loadInfoPage = async function() {
+    const refreshedEl = document.getElementById('info-refreshed-at');
+    if (refreshedEl) refreshedEl.textContent = 'Odświeżanie...';
+
+    // ── Uptime ──────────────────────────────────────────────────────────────
+    const uptimeEl = document.getElementById('info-uptime');
+    if (uptimeEl) uptimeEl.textContent = _formatUptime(Date.now() - _panelStartTime);
+    // Aktualizuj co sekundę
+    if (!window._uptimeInterval) {
+        window._uptimeInterval = setInterval(() => {
+            const el = document.getElementById('info-uptime');
+            if (el) el.textContent = _formatUptime(Date.now() - _panelStartTime);
+        }, 1000);
+    }
+
+    // ── Statystyki z cache ───────────────────────────────────────────────────
+    _setEl('info-stat-players', allPlayers.length);
+    _setEl('info-stat-online',  allPlayers.filter(p => p.online).length);
+    _setEl('info-stat-bans',    allBans.length);
+    _setEl('info-stat-mutes',   allMutes.length);
+    _setEl('info-stat-logs',    allLogs.length);
+    _setEl('info-stat-files',   allFiles.length);
+    _setEl('info-stat-admins',  typeof allAdmins !== 'undefined' ? allAdmins.length : '—');
+    _setEl('info-stat-shop',    typeof allShopItems !== 'undefined' ? allShopItems.length : '—');
+
+    // ── Sesja ────────────────────────────────────────────────────────────────
+    _setEl('info-s-user',       currentUser?.displayName || '—');
+    _setEl('info-s-role',       currentUser?.role || '—');
+    _setEl('info-s-login-time', new Date(Date.now() - _panelStartTime < 1000 ? Date.now() : Date.now() - (Date.now() - _panelStartTime)).toLocaleTimeString('pl-PL'));
+    _setEl('info-s-browser',    navigator.userAgent.split(') ').pop().split(' ')[0] || navigator.userAgent.substring(0,60));
+    _setEl('info-s-res',        `${window.screen.width}×${window.screen.height} (viewport: ${window.innerWidth}×${window.innerHeight})`);
+    _setEl('info-s-tz',         Intl.DateTimeFormat().resolvedOptions().timeZone);
+
+    // ── Zasoby strony ────────────────────────────────────────────────────────
+    _setEl('info-worker-url', FILE_WORKER_URL);
+    _setEl('info-scripts',    document.scripts.length);
+    const mem = performance?.memory;
+    _setEl('info-memory', mem ? `${Math.round(mem.usedJSHeapSize / 1048576)} MB / ${Math.round(mem.jsHeapSizeLimit / 1048576)} MB` : 'N/A (Chrome only)');
+    _setEl('info-last-refresh', new Date().toLocaleTimeString('pl-PL'));
+
+    // ── Test Firebase ─────────────────────────────────────────────────────────
+    const t0 = performance.now();
+    try {
+        await getDoc(doc(db, 'panel_settings', 'health_check'));
+        const ping = Math.round(performance.now() - t0);
+        _setInfoStatus('info-db-status', true, `Połączono (${ping}ms)`, `Projekt: stronacritmcpl · Firebase 12.14.0`);
+    } catch (e) {
+        _setInfoStatus('info-db-status', false, 'Błąd połączenia', e.message);
+    }
+
+    // ── Test Worker B2 ───────────────────────────────────────────────────────
+    const t1 = performance.now();
+    try {
+        const res = await fetch(`${FILE_WORKER_URL}/health`, { method: 'GET', signal: AbortSignal.timeout(5000) });
+        const ping2 = Math.round(performance.now() - t1);
+        if (res.ok || res.status === 404) {
+            _setInfoStatus('info-b2-status', true, `Dostępny (${ping2}ms)`, FILE_WORKER_URL);
+        } else {
+            _setInfoStatus('info-b2-status', false, `HTTP ${res.status}`, FILE_WORKER_URL);
+        }
+    } catch (e) {
+        const ping2 = Math.round(performance.now() - t1);
+        // Jeśli CORS error lub network — worker może nadal działać
+        _setInfoStatus('info-b2-status', ping2 < 5000, ping2 < 5000 ? `Dostępny (CORS: ${ping2}ms)` : 'Timeout / niedostępny', FILE_WORKER_URL);
+    }
+
+    // ── Status MC (online gracze) ────────────────────────────────────────────
+    const onlineCount = allPlayers.filter(p => p.online).length;
+    const totalPlayers = allPlayers.length;
+    if (totalPlayers > 0 || allLogs.length > 0) {
+        _setInfoStatus('info-mc-status', true, `Online: ${onlineCount} graczy`, `${totalPlayers} graczy w bazie · ${allLogs.length} wpisów w logach`);
+    } else {
+        _setInfoStatus('info-mc-status', null, 'Brak danych', 'Nie odebrano jeszcze danych z pluginu');
+        const mcEl = document.getElementById('info-mc-status');
+        if (mcEl) {
+            const dot = mcEl.querySelector('span');
+            if (dot) dot.style.background = '#f59e0b';
+        }
+    }
+
+    // ── Czas logowania ────────────────────────────────────────────────────────
+    const loginTime = new Date(Date.now() - (Date.now() - _panelStartTime));
+    _setEl('info-s-login-time', loginTime.toLocaleTimeString('pl-PL'));
+
+    if (refreshedEl) refreshedEl.textContent = `Odświeżono: ${new Date().toLocaleTimeString('pl-PL')}`;
+};

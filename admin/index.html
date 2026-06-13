@@ -11,8 +11,8 @@
         .auth-ready #admin-panel { display: flex !important; }
         .auth-ready #login-screen { display: none !important; }
     </style>
-    <link href="https://fonts.googleapis.com/css2łfamily=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/ó.min.css">
 </head>
 <body>
 
@@ -81,7 +81,7 @@
                 </button>
                 <button class="nav-btn" data-page="logs" onclick="switchPage('logs')">
                     <i class="fa-solid fa-clock-rotate-left"></i>
-                    <span>Logi akcjęi</span>
+                    <span>Logi akcji</span>
                 </button>
                 <button class="nav-btn" data-page="stats" onclick="switchPage('stats')">
                     <i class="fa-solid fa-chart-bar"></i>
@@ -117,6 +117,12 @@
                     <i class="fa-solid fa-key"></i>
                     <span>Uprawnienia</span>
                 </button>
+
+                <div class="nav-section-label" style="margin-top:1.5rem;">System</div>
+                <button class="nav-btn" data-page="info" onclick="switchPage('info');loadInfoPage();">
+                    <i class="fa-solid fa-circle-info"></i>
+                    <span>Informacje</span>
+                </button>
             </nav>
 
             <div class="sidebar-footer">
@@ -147,7 +153,7 @@
                         <span class="status-dot offline"></span>
                         <span id="status-text">L�ączenie...</span>
                     </div>
-                    <a href="../index.html" class="back-to-main-btn" title="WrAlć do stronąy gL�Alwnej">
+                    <a href="../index.html" class="back-to-main-btn" title="WrAlć do strony gL�Alwnej">
                         <i class="fa-solid fa-house"></i>
                         <span>Stronąa gL�Alwna</span>
                     </a>
@@ -331,7 +337,7 @@
                         </div>
 
                         <div class="modal-field" style="margin-bottom:1.2rem;">
-                            <label>Rodzaj akcjęi</label>
+                            <label>Rodzaj akcji</label>
                             <div class="action-btns">
                                 <button class="action-btn ban-btn"    onclick="apSetAction('ban')">   <i class="fa-solid fa-ban"></i> Ban</button>
                                 <button class="action-btn unban-btn"  onclick="apSetAction('unban')"> <i class="fa-solid fa-ban" style="opacity:.4"></i> Unban</button>
@@ -341,7 +347,7 @@
                                 <button class="action-btn warn-btn"   onclick="apSetAction('warn')">  <i class="fa-solid fa-triangle-exclamation"></i> Na Ekran</button>
                                 <button class="action-btn check-btn"  onclick="apSetAction('check')"> <i class="fa-solid fa-magnifying-glass"></i> Sprawdźź</button>
                                 <button class="action-btn alts-btn" onclick="checkAlts(true)" style="background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.3);color:#8b5cf6;"><i class="fa-solid fa-users-viewfinder"></i> Multikonta</button>
-                                <button class="action-btn message-btn" onclick="apSetAction('message')" style="background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3);color:#3b82f6;"> <i class="fa-solid fa-envelope"></i> Wiadomo>ć>ć</button>
+                                <button class="action-btn message-btn" onclick="apSetAction('message')" style="background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3);color:#3b82f6;"> <i class="fa-solid fa-envelope"></i> Wiadomość</button>
                             </div>
                         </div>
 
@@ -368,7 +374,7 @@
                         </div>
 
                         <div class="modal-field" style="margin-bottom:1.5rem;">
-                            <label>Zał�ącznik do akcjęi <span style="color:#999;font-weight:400;">(opcjonalny)</span></label>
+                            <label>Zał�ącznik do akcji <span style="color:#999;font-weight:400;">(opcjonalny)</span></label>
                             <select id="ap-attachment-type" style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);margin-bottom:.6rem;" onchange="toggleActionAttachmentFields('ap')">
                                 <option value="">Brak zał�ącznika</option>
                                 <option value="link">Link</option>
@@ -378,26 +384,26 @@
                             <input type="text" id="ap-attachment-link" placeholder="https://..." style="display:none;width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);margin-bottom:.6rem;">
                             <textarea id="ap-attachment-text" rows="3" placeholder="Wpisz opis, krótką notatkęę albo streszczenie dowodu..." style="display:none;width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;margin-bottom:.6rem;"></textarea>
                             <input type="file" id="ap-attachment-file" accept="image/*,video/*,.zip,.rar,.7z,.txt,.pdf" style="display:none;width:100%;padding:.55rem .7rem;border:1.5px dashed var(--border);border-radius:var(--radius-sm);font-size:.88rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);margin-bottom:.45rem;">
-                            <div style="font-size:.76rem;color:var(--text-secondary);line-height:1.5;">Plik zostanie wyslany do bazy plikow i zapisany przy akcjęi jako zalacznik.</div>
+                            <div style="font-size:.76rem;color:var(--text-secondary);line-height:1.5;">Plik zostanie wyslany do bazy plikow i zapisany przy akcji jako zalacznik.</div>
                         </div>
 
                         <div id="ap-msg" style="display:none;margin-bottom:1rem;padding:0.7rem 1rem;border-radius:var(--radius-sm);font-size:0.88rem;font-weight:600;"></div>
 
-                        <button onclick="apSubmit()" style="width:100%;padding:0.9rem;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:0.95rem;font-weight:800;cursor:pointer;transition:all .2s;font-family:var(--font);">
-                            <i class="fa-solid fa-check"></i> Wykonaj akcjęę
+                        <button onclick="apSubmit()" style="width:100%;padding:0.9rem;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:0.95rem;font-weight:800;cursor:pointer;transition:ó .2s;font-family:var(--font);">
+                            <i class="fa-solid fa-check"></i> Wykonaj akcję
                         </button>
                     </div>
 
-                    <!-- Ostatnie akcjęe (mini log) -->
+                    <!-- Gracze z bazy -->
                     <div class="table-card" style="overflow:hidden;">
-                        <div style="padding:1rem 1.2rem;border-bottom:1px solid var(--border);font-size:0.8rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;">
-                            <i class="fa-solid fa-clock-rotate-left"></i> Ostatnie akcjęe
-                        </div>
-                        <div id="ap-recent-logs" style="max-height:420px;overflow-y:auto;">
-                            <div style="text-align:center;padding:2rem;color:var(--text-secondary);font-size:0.88rem;">
-                                <i class="fa-solid fa-spinner fa-spin"></i> L�Ładowanie...
+                        <div style="padding:1rem 1.2rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:.5rem;">
+                            <div style="font-size:0.8rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;">
+                                <i class="fa-solid fa-users"></i> Gracze online / ostatnio widziani
                             </div>
+                            <input type="text" id="ap-players-search" placeholder="Szukaj gracza..." oninput="apFilterPlayers()"
+                                style="padding:.35rem .7rem;border:1.5px solid var(--border);border-radius:6px;font-size:.82rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);width:160px;">
                         </div>
+                        <div id="ap-players-list" style="max-height:460px;overflow-y:auto;"></div>
                     </div>
                 </div>
             </div>
@@ -406,7 +412,7 @@
             <div id="page-logs" class="page">
                 <div class="page-header">
                     <h1>Logi Akcji</h1>
-                    <p>Historia wszystkich akcjęi administracyjnych</p>
+                    <p>Historia wszystkich akcji administracyjnych</p>
                 </div>
 
                 <div class="filters-bar">
@@ -416,7 +422,7 @@
                     </div>
                     <div class="filter-group">
                         <select id="logs-filter-action" onchange="filterLogs()">
-                            <option value="">Wszystkie akcjęe</option>
+                            <option value="">Wszystkie akcje</option>
                             <option value="ban">Ban</option>
                             <option value="unban">Unban</option>
                             <option value="mute">Mute</option>
@@ -460,7 +466,7 @@
             <div id="page-stats" class="page">
                 <div class="page-header">
                     <h1>Statystyki Adminów</h1>
-                    <p>Aktywno>ć>ć ć i efektywno>cić administracji</p>
+                    <p>Aktywność i efektywność administracji</p>
                 </div>
 
                 <!-- Karty ogólne -->
@@ -498,7 +504,7 @@
                 <!-- Tabela adminów -->
                 <div class="table-card" style="margin-top:1.5rem;">
                     <div style="padding:.9rem 1.2rem;border-bottom:1px solid var(--border);font-size:.8rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;">
-                        Ranking Aktywno>ć>ć ci
+                        Ranking Aktywności
                     </div>
                     <div class="table-wrap">
                         <table class="data-table">
@@ -528,7 +534,7 @@
             <div id="page-admins" class="page">
                 <div class="page-header">
                     <h1>Administratorzy</h1>
-                    <p>Zarządzaj kontami administracyjnymi i uprawnieńniami</p>
+                    <p>Zarządzaj kontami administracyjnymi i uprawnieniami</p>
                 </div>
                 <div style="display:flex;justify-content:flex-end;margin-bottom:1rem;">
                     <button class="modal-submit-btn" style="width:auto;padding:.6rem 1.4rem;" onclick="openAddAdminModal()">
@@ -561,11 +567,11 @@
             <div id="page-permissions" class="page">
                 <div class="page-header">
                     <h1>Uprawnienia</h1>
-                    <p>Zarządzaj uprawnieńniami rang administracyjnych po polsku</p>
+                    <p>Zarządzaj uprawnieniami rang administracyjnych po polsku</p>
                 </div>
                 <div class="table-card" style="padding:1.2rem;margin-bottom:1rem;">
                     <div style="font-size:.88rem;color:var(--text-secondary);line-height:1.6;">
-                        Tutaj ustawiasz domyL�lne uprawnieńnia dla rang. Nowe konta administratorAlw będą mogąL�y automatycznie korzystaćć z tych zestawAlw.
+                        Tutaj ustawiasz domyL�lne uprawnienia dla rang. Nowe konta administratorAlw będą mogąL�y automatycznie korzystaćć z tych zestawAlw.
                     </div>
                 </div>
                 <div id="permissions-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:1rem;">
@@ -613,7 +619,7 @@
                                 </tr>
                             </thead>
                             <tbody id="files-tbody">
-                                <tr><td colspan="8" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> ŁŁadowanie...</td></tr>
+                                <tr><td colspan="8" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -648,13 +654,14 @@
                                     <th>Nazwa</th>
                                     <th>Typ</th>
                                     <th>Cena</th>
-                                    <th>Status</th>
                                     <th>Media</th>
+                                    <th>Status</th>
+                                    <th>Kolejność</th>
                                     <th>Akcje</th>
                                 </tr>
                             </thead>
                             <tbody id="shop-items-tbody">
-                                <tr><td colspan="6" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> L�Ładowanie...</td></tr>
+                                <tr><td colspan="7" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -683,7 +690,7 @@
                     <div class="table-card" style="padding:1.2rem;">
                         <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.8rem;"><i class="fa-solid fa-crown" style="color:#88c5ff;"></i> Współ�wł�ał�ciciel</div>
                         <div style="display:flex;flex-direction:column;gap:.6rem;">
-                            <input type="text" id="cowowner-nick" placeholder="Nick MC (lub łłł je>li ukryty)..." style="padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                            <input type="text" id="cowowner-nick" placeholder="Nick MC (lub łłł jeśli ukryty)..." style="padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
                             <input type="text" id="cowowner-yt" placeholder="URL YouTube (opcjonalne)..." style="padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
                             <input type="text" id="cowowner-dc" placeholder="URL Discord (opcjonalne)..." style="padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
                             <textarea id="cowowner-desc" rows="2" placeholder="Opis współ�wł�ał�ciciela..." style="padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea>
@@ -702,7 +709,7 @@
                 <div class="table-card">
                     <div class="table-wrap">
                         <table class="data-table">
-                            <thead><tr><th>Avatar</th><th>Nick</th><th>Ranga</th><th>Opis</th><th>Socials</th><th>Kolejno>ć�ć</th><th>Akcje</th></tr></thead>
+                            <thead><tr><th>Avatar</th><th>Nick</th><th>Ranga</th><th>Opis</th><th>Socials</th><th>Kolejność</th><th>Akcje</th></tr></thead>
                             <tbody id="personel-tbody">
                                 <tr><td colspan="7" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> L�Ładowanie...</td></tr>
                             </tbody>
@@ -732,14 +739,14 @@
             <!-- ===== STRONA: STRONA (SITE) ===== -->
             <div id="page-site" class="page">
                 <div class="page-header">
-                    <h1>Zarządzanie Stronąą</h1>
-                    <p>Konkurs starątowy, zmiany serwerowe, propozycje graczy</p>
+                    <h1>Zarządzanie stroną</h1>
+                    <p>Konkurs startowy, zmiany serwerowe, propozycje graczy</p>
                 </div>
 
-                <!-- Zakł�adki podstronąy -->
+                <!-- Zakł�adki podstrony -->
                 <div style="display:flex;gap:.5rem;margin-bottom:1.5rem;flex-wrap:wrap;">
                     <button class="site-tab-btn active" data-site-tab="contest" onclick="switchSiteTab('contest')"><i class="fa-solid fa-trophy"></i> Konkurs</button>
-                    <button class="site-tab-btn" data-site-tab="changes" onclick="switchSiteTab('changes')"><i class="fa-solid fa-list-check"></i> Zmieńany</button>
+                    <button class="site-tab-btn" data-site-tab="changes" onclick="switchSiteTab('changes')"><i class="fa-solid fa-list-check"></i> zmiany</button>
                     <button class="site-tab-btn" data-site-tab="media" onclick="switchSiteTab('media')"><i class="fa-solid fa-photo-film"></i> Media</button>
                     <button class="site-tab-btn" data-site-tab="proposals" onclick="switchSiteTab('proposals')"><i class="fa-solid fa-lightbulb"></i> Propozycje</button>
                 </div>
@@ -750,7 +757,7 @@
                     <div style="display:flex;align-items:center;gap:.8rem;margin-bottom:1.2rem;flex-wrap:wrap;">
                         <label style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;">Konkurs:</label>
                         <select id="site-contest-select" onchange="siteLoadContestInfo();siteLoadEntries();" style="flex:1;min-width:180px;padding:.55rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
-                            <option value="starąt">starąt (domyL�lny)</option>
+                            <option value="start">start (domyL�lny)</option>
                         </select>
                         <button class="modal-submit-btn" style="width:auto;padding:.5rem 1.1rem;font-size:.85rem;" onclick="siteNewContest()"><i class="fa-solid fa-plus"></i> Nowy konkurs</button>
                         <button class="tbl-btn" onclick="siteLoadContestList()"><i class="fa-solid fa-rotate-right"></i></button>
@@ -765,7 +772,7 @@
                                     <input type="text" id="site-contest-nagroda" placeholder="np. 2x Ranga CRIT na 14 dni" style="width:100%;padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);"></div>
                                 <div><label style="font-size:.75rem;font-weight:700;color:var(--text-secondary);display:block;margin-bottom:.3rem;">Data wyników <span style="color:#f2c84a;">(pokazuje się na stronąie jako godzina)</span></label>
                                     <input type="datetime-local" id="site-contest-date" style="width:100%;padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);"></div>
-                                <div><label style="font-size:.75rem;font-weight:700;color:var(--text-secondary);display:block;margin-bottom:.3rem;">Ilo>ćL�ć zwycięzcAlw</label>
+                                <div><label style="font-size:.75rem;font-weight:700;color:var(--text-secondary);display:block;margin-bottom:.3rem;">Ilość zwycięzców</label>
                                     <input type="number" id="site-contest-winners-count" min="1" max="20" value="2" oninput="_buildWinnersInputs(parseInt(this.value)||2)" style="width:100px;padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);"></div>
                                 <button class="modal-submit-btn" style="padding:.6rem;" onclick="siteUpdateContest()"><i class="fa-solid fa-floppy-disk"></i> Zapisz ustawienia</button>
                             </div>
@@ -777,7 +784,7 @@
                                 <div id="site-winners-inputs" style="display:flex;flex-direction:column;gap:.35rem;margin-bottom:.3rem;"></div>
                                 <button style="background:linear-gradient(135deg,#f2c84a,#ff8c00);color:#000;border:none;padding:.65rem;border-radius:var(--radius-sm);font-weight:900;cursor:pointer;font-family:var(--font);" onclick="siteAnnounceWinners()"><i class="fa-solid fa-trophy"></i> Ogł�oL� zwycięzcAlw i zakoń�cz</button>
                                 <button style="background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);color:#f59e0b;padding:.55rem;border-radius:var(--radius-sm);font-weight:700;cursor:pointer;font-family:var(--font);" onclick="siteEndContest()"><i class="fa-solid fa-flag-checkered"></i> ZakoL�cz bez wyników</button>
-                                <button style="background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.25);color:#3b82f6;padding:.55rem;border-radius:var(--radius-sm);font-weight:700;cursor:pointer;font-family:var(--font);" onclick="siteRestarątContest()"><i class="fa-solid fa-rotate-right"></i> Zresetuj (nowa tura)</button>
+                                <button style="background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.25);color:#3b82f6;padding:.55rem;border-radius:var(--radius-sm);font-weight:700;cursor:pointer;font-family:var(--font);" onclick="siteRestartContest()"><i class="fa-solid fa-rotate-right"></i> Zresetuj (nowa tura)</button>
                                 <button style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);color:#ef4444;padding:.55rem;border-radius:var(--radius-sm);font-weight:700;cursor:pointer;font-family:var(--font);" onclick="siteDeleteContest()"><i class="fa-solid fa-trash"></i> UsuńL� konkurs cał�kowicie</button>
                             </div>
                             <div id="site-contest-msg" style="margin-top:.7rem;font-size:.85rem;text-align:center;min-height:1.2em;"></div>
@@ -800,7 +807,7 @@
                     </div>
                 </div>
 
-                <!-- Zmieńany serwerowe -->
+                <!-- zmiany serwerowe -->
                 <div id="site-tab-changes" class="site-tab-panel">
                     <div class="table-card" style="padding:1.4rem;">
                         <div style="display:flex;flex-direction:column;gap:1rem;">
@@ -865,6 +872,117 @@
                             </table>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- ===== STRONA: INFORMACJE ===== -->
+            <div id="page-info" class="page">
+                <div class="page-header">
+                    <h1>Informacje systemowe</h1>
+                    <p>Status połączeń, zasoby serwera i statystyki techniczne</p>
+                </div>
+
+                <!-- Karty statusu połączeń -->
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin-bottom:1.5rem;">
+                    <div class="table-card" style="padding:1.2rem;">
+                        <div style="font-size:.72rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.7rem;"><i class="fa-solid fa-database" style="color:#3b82f6;margin-right:.4rem;"></i>Firebase / Firestore</div>
+                        <div style="display:flex;align-items:center;gap:.6rem;" id="info-db-status">
+                            <span style="width:10px;height:10px;border-radius:50%;background:#9ca3af;flex-shrink:0;"></span>
+                            <span style="font-size:.88rem;font-weight:600;">Sprawdzanie...</span>
+                        </div>
+                        <div style="margin-top:.5rem;font-size:.75rem;color:var(--text-secondary);" id="info-db-detail">—</div>
+                    </div>
+                    <div class="table-card" style="padding:1.2rem;">
+                        <div style="font-size:.72rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.7rem;"><i class="fa-solid fa-box-archive" style="color:#8b5cf6;margin-right:.4rem;"></i>Baza plików (B2/Worker)</div>
+                        <div style="display:flex;align-items:center;gap:.6rem;" id="info-b2-status">
+                            <span style="width:10px;height:10px;border-radius:50%;background:#9ca3af;flex-shrink:0;"></span>
+                            <span style="font-size:.88rem;font-weight:600;">Sprawdzanie...</span>
+                        </div>
+                        <div style="margin-top:.5rem;font-size:.75rem;color:var(--text-secondary);" id="info-b2-detail">—</div>
+                    </div>
+                    <div class="table-card" style="padding:1.2rem;">
+                        <div style="font-size:.72rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.7rem;"><i class="fa-solid fa-server" style="color:#10b981;margin-right:.4rem;"></i>Serwer Minecraft</div>
+                        <div style="display:flex;align-items:center;gap:.6rem;" id="info-mc-status">
+                            <span style="width:10px;height:10px;border-radius:50%;background:#9ca3af;flex-shrink:0;"></span>
+                            <span style="font-size:.88rem;font-weight:600;">Sprawdzanie...</span>
+                        </div>
+                        <div style="margin-top:.5rem;font-size:.75rem;color:var(--text-secondary);" id="info-mc-detail">—</div>
+                    </div>
+                    <div class="table-card" style="padding:1.2rem;">
+                        <div style="font-size:.72rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.7rem;"><i class="fa-solid fa-clock" style="color:#f59e0b;margin-right:.4rem;"></i>Czas działania panelu</div>
+                        <div style="font-size:1.4rem;font-weight:800;color:var(--text-primary);" id="info-uptime">—</div>
+                        <div style="margin-top:.3rem;font-size:.75rem;color:var(--text-secondary);">od zalogowania</div>
+                    </div>
+                </div>
+
+                <!-- Statystyki bazy danych -->
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1rem;margin-bottom:1.5rem;" id="info-db-stats">
+                    <div class="table-card" style="padding:1rem 1.2rem;text-align:center;">
+                        <div style="font-size:2rem;font-weight:800;color:var(--accent);" id="info-stat-players">—</div>
+                        <div style="font-size:.75rem;color:var(--text-secondary);font-weight:600;margin-top:.2rem;text-transform:uppercase;">Graczy w bazie</div>
+                    </div>
+                    <div class="table-card" style="padding:1rem 1.2rem;text-align:center;">
+                        <div style="font-size:2rem;font-weight:800;color:#10b981;" id="info-stat-online">—</div>
+                        <div style="font-size:.75rem;color:var(--text-secondary);font-weight:600;margin-top:.2rem;text-transform:uppercase;">Online teraz</div>
+                    </div>
+                    <div class="table-card" style="padding:1rem 1.2rem;text-align:center;">
+                        <div style="font-size:2rem;font-weight:800;color:#ef4444;" id="info-stat-bans">—</div>
+                        <div style="font-size:.75rem;color:var(--text-secondary);font-weight:600;margin-top:.2rem;text-transform:uppercase;">Aktywnych banów</div>
+                    </div>
+                    <div class="table-card" style="padding:1rem 1.2rem;text-align:center;">
+                        <div style="font-size:2rem;font-weight:800;color:#f59e0b;" id="info-stat-mutes">—</div>
+                        <div style="font-size:.75rem;color:var(--text-secondary);font-weight:600;margin-top:.2rem;text-transform:uppercase;">Aktywnych mutów</div>
+                    </div>
+                    <div class="table-card" style="padding:1rem 1.2rem;text-align:center;">
+                        <div style="font-size:2rem;font-weight:800;color:#3b82f6;" id="info-stat-logs">—</div>
+                        <div style="font-size:.75rem;color:var(--text-secondary);font-weight:600;margin-top:.2rem;text-transform:uppercase;">Wpisów w logach</div>
+                    </div>
+                    <div class="table-card" style="padding:1rem 1.2rem;text-align:center;">
+                        <div style="font-size:2rem;font-weight:800;color:#8b5cf6;" id="info-stat-files">—</div>
+                        <div style="font-size:.75rem;color:var(--text-secondary);font-weight:600;margin-top:.2rem;text-transform:uppercase;">Plików w bazie</div>
+                    </div>
+                    <div class="table-card" style="padding:1rem 1.2rem;text-align:center;">
+                        <div style="font-size:2rem;font-weight:800;color:#0ea5e9;" id="info-stat-admins">—</div>
+                        <div style="font-size:.75rem;color:var(--text-secondary);font-weight:600;margin-top:.2rem;text-transform:uppercase;">Kont adminów</div>
+                    </div>
+                    <div class="table-card" style="padding:1rem 1.2rem;text-align:center;">
+                        <div style="font-size:2rem;font-weight:800;color:#f97316;" id="info-stat-shop">—</div>
+                        <div style="font-size:.75rem;color:var(--text-secondary);font-weight:600;margin-top:.2rem;text-transform:uppercase;">Produktów w sklepie</div>
+                    </div>
+                </div>
+
+                <!-- Info o przeglądarce / sesji -->
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem;">
+                    <div class="table-card" style="padding:1.2rem;">
+                        <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.9rem;"><i class="fa-solid fa-laptop" style="color:#3b82f6;margin-right:.4rem;"></i>Informacje o sesji</div>
+                        <table style="width:100%;font-size:.85rem;border-collapse:collapse;" id="info-session-table">
+                            <tr><td style="padding:.3rem 0;color:var(--text-secondary);width:45%;">Zalogowany jako</td><td style="padding:.3rem 0;font-weight:700;" id="info-s-user">—</td></tr>
+                            <tr><td style="padding:.3rem 0;color:var(--text-secondary);">Ranga</td><td style="padding:.3rem 0;font-weight:700;" id="info-s-role">—</td></tr>
+                            <tr><td style="padding:.3rem 0;color:var(--text-secondary);">Czas logowania</td><td style="padding:.3rem 0;font-weight:700;" id="info-s-login-time">—</td></tr>
+                            <tr><td style="padding:.3rem 0;color:var(--text-secondary);">Przeglądarka</td><td style="padding:.3rem 0;font-weight:700;font-size:.78rem;" id="info-s-browser">—</td></tr>
+                            <tr><td style="padding:.3rem 0;color:var(--text-secondary);">Rozdzielczość</td><td style="padding:.3rem 0;font-weight:700;" id="info-s-res">—</td></tr>
+                            <tr><td style="padding:.3rem 0;color:var(--text-secondary);">Strefa czasowa</td><td style="padding:.3rem 0;font-weight:700;" id="info-s-tz">—</td></tr>
+                        </table>
+                    </div>
+                    <div class="table-card" style="padding:1.2rem;">
+                        <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.9rem;"><i class="fa-solid fa-code" style="color:#8b5cf6;margin-right:.4rem;"></i>Zasoby strony</div>
+                        <table style="width:100%;font-size:.85rem;border-collapse:collapse;">
+                            <tr><td style="padding:.3rem 0;color:var(--text-secondary);width:45%;">Wersja Firebase</td><td style="padding:.3rem 0;font-weight:700;">12.14.0</td></tr>
+                            <tr><td style="padding:.3rem 0;color:var(--text-secondary);">Projekt Firebase</td><td style="padding:.3rem 0;font-weight:700;font-size:.78rem;">stronacritmcpl</td></tr>
+                            <tr><td style="padding:.3rem 0;color:var(--text-secondary);">Worker URL</td><td style="padding:.3rem 0;font-weight:700;font-size:.72rem;" id="info-worker-url">—</td></tr>
+                            <tr><td style="padding:.3rem 0;color:var(--text-secondary);">Pamięć JS</td><td style="padding:.3rem 0;font-weight:700;" id="info-memory">—</td></tr>
+                            <tr><td style="padding:.3rem 0;color:var(--text-secondary);">Załadowanych skryptów</td><td style="padding:.3rem 0;font-weight:700;" id="info-scripts">—</td></tr>
+                            <tr><td style="padding:.3rem 0;color:var(--text-secondary);">Ostatnie odświeżenie danych</td><td style="padding:.3rem 0;font-weight:700;" id="info-last-refresh">—</td></tr>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Przycisk odśwież -->
+                <div style="display:flex;gap:.75rem;align-items:center;">
+                    <button class="modal-submit-btn" style="width:auto;padding:.65rem 1.4rem;" onclick="loadInfoPage()">
+                        <i class="fa-solid fa-rotate-right"></i> Odśwież dane
+                    </button>
+                    <span style="font-size:.82rem;color:var(--text-secondary);" id="info-refreshed-at"></span>
                 </div>
             </div>
 
@@ -944,13 +1062,13 @@
                             <input type="checkbox" class="perm-checkbox" value="shop"> Zarządzanie sklepem
                         </label>
                         <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;">
-                            <input type="checkbox" class="perm-checkbox" value="site"> Zarządzanie stronąą
+                            <input type="checkbox" class="perm-checkbox" value="site"> Zarządzanie stroną
                         </label>
                         <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;">
-                            <input type="checkbox" class="perm-checkbox" value="permissions_manage"> Zarządzanie uprawnieńniami
+                            <input type="checkbox" class="perm-checkbox" value="permissions_manage"> Zarządzanie uprawnieniami
                         </label>
                         <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:rgba(255,23,68,.08);border:1.5px solid rgba(255,23,68,.25);padding:.35rem .75rem;border-radius:6px;color:var(--accent);">
-                            <input type="checkbox" class="perm-checkbox" value="all"> Wszystko (Zarządzający)
+                            <input type="checkbox" class="perm-checkbox" value="ó"> Wszystko (Zarządzający)
                         </label>
                     </div>
                 </div>
@@ -973,7 +1091,7 @@
             <div class="modal-body">
                 <div class="modal-player-info" id="note-player-info"></div>
                 <div class="modal-field">
-                    <label>Tre>ć notatkęi <span style="color:#999;font-weight:400;">(nie można usunąćąć)</span></label>
+                    <label>treść notatkęi <span style="color:#999;font-weight:400;">(nie można usunąćąć)</span></label>
                     <textarea id="note-content" rows="4" placeholder="Wpisz notatkęę o graczu..."
                         style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea>
                 </div>
@@ -1006,7 +1124,7 @@
                         <button class="action-btn warn-btn" onclick="setAction('warn')"><i class="fa-solid fa-triangle-exclamation"></i> Na Ekran</button>
                         <button class="action-btn check-btn" onclick="setAction('check')"><i class="fa-solid fa-magnifying-glass"></i> Sprawdźź</button>
                         <button class="action-btn alts-btn" onclick="checkAlts()" style="background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.3);color:#8b5cf6;"><i class="fa-solid fa-users-viewfinder"></i> Multikonta</button>
-                        <button class="action-btn message-btn" onclick="setAction('message')" style="background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3);color:#3b82f6;"><i class="fa-solid fa-envelope"></i> Wiadomo>ć>ć</button>
+                        <button class="action-btn message-btn" onclick="setAction('message')" style="background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3);color:#3b82f6;"><i class="fa-solid fa-envelope"></i> Wiadomość</button>
                     </div>
                 </div>
 
@@ -1034,7 +1152,7 @@
                 <div id="modal-msg" class="modal-msg" style="display:none;"></div>
 
                 <button class="modal-submit-btn" id="modal-submit" onclick="submitAction()">
-                    <i class="fa-solid fa-check"></i> Wykonaj akcjęę
+                    <i class="fa-solid fa-check"></i> Wykonaj akcję
                 </button>
             </div>
         </div>
@@ -1124,7 +1242,7 @@
                 <div class="modal-field"><label>TikTok (opcjonalne)</label><input type="text" id="pm-tt" placeholder="URL TikTok..."></div>
                 <div class="modal-field"><label>Uprawnienia (widoŁączne na stronąie)</label><input type="text" id="pm-perms" placeholder="np. /ban, /kick, /mute, /tp..."></div>
                 <div class="modal-field"><label>Data doL�ączenia (opcjonalne)</label><input type="date" id="pm-since" style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);"></div>
-                <div class="modal-field"><label>Kolejno>ć�ć (niLLszy = wyLLej)</label><input type="number" id="pm-order" value="99" min="0" style="width:100px;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);"></div>
+                <div class="modal-field"><label>Kolejność</label><input type="number" id="pm-order" value="99" min="0" style="width:100px;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);"></div>
                 <div id="pm-msg" class="modal-msg" style="display:none;"></div>
                 <button class="modal-submit-btn" onclick="savePersonelMember()"><i class="fa-solid fa-floppy-disk"></i> Zapisz</button>
             </div>
@@ -1187,17 +1305,17 @@
                         <input type="number" id="shop-item-old-price" min="0" step="0.01" placeholder="0.00">
                     </div>
                     <div class="modal-field">
-                        <label>Kolejno>ć�ć</label>
+                        <label>Kolejność</label>
                         <input type="number" id="shop-item-order" min="0" step="1" value="99">
                     </div>
                 </div>
                 <div class="modal-field">
-                    <label>Lista itemAlw / bonusAlw</label>
+                    <label>Lista itemów / bonusów</label>
                     <textarea id="shop-item-items" rows="4" placeholder="Jeden bonus lub item w osobnej linii..." style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea>
                 </div>
                 <div class="modal-field">
                     <label>Link do obrazka / filmu / pliku</label>
-                    <input type="text" id="shop-item-media-url" placeholder="Tutaj pAlLsniej podepniesz link z bazy plikAlw B2">
+                    <input type="text" id="shop-item-media-url" placeholder="Tutaj później podepniesz link z bazy plików B2">
                 </div>
                 <div class="modal-field">
                     <label style="display:flex;align-items:center;gap:.5rem;">
@@ -1274,8 +1392,8 @@
                 document.body.innerHTML = `
                     <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0f0c1a;flex-direction:column;gap:1.5rem;padding:2rem;text-align:center;">
                         <div style="font-size:3rem;">dz��</div>
-                        <div style="font-size:1.2rem;font-weight:800;color:#ef4444;">Zbyćt wiele bL�ędnych prób</div>
-                        <div style="color:#9ca3af;font-size:.9rem;">Został�eL� wylogowany ze stronąy po ${MAX_BEFORE_KICK} nieudanych próbach logowania.</div>
+                        <div style="font-size:1.2rem;font-weight:800;color:#ef4444;">Zbyt wiele bL�ędnych prób</div>
+                        <div style="color:#9ca3af;font-size:.9rem;">Został�eL� wylogowany ze strony po ${MAX_BEFORE_KICK} nieudanych próbach logowania.</div>
                         <div style="color:#6b7280;font-size:.82rem;">Pozostał�o prób do blokady: ${MAX_BEFORE_BLOCK - attempts}</div>
                         <button onclick="location.reload()" style="background:#ef4444;color:#fff;border:none;padding:.75rem 2rem;border-radius:8px;font-size:.95rem;font-weight:700;cursor:pointer;margin-top:.5rem;">
                             Spróbuj ponownie
@@ -1320,7 +1438,7 @@
             const password = document.getElementById('login-password').value;
 
             // Przekażż do admin.js (modułu) który sprawdza Firestore
-            // admin.js wywoła recordFailedAttempt() je>li bL�ąd
+            // admin.js wywoła recordFailedAttempt() jeśli bL�ąd
             window.dispatchEvent(new CustomEvent('adminLogin', { detail: { login, password } }));
         }
 
@@ -1350,11 +1468,16 @@
                 admins:    'Administratorzy',
                 permissions:'Uprawnienia',
                 personel:  'Personel',
-                site:      'Zarządzanie Stronąą',
+                site:      'Zarządzanie stroną',
                 shop:      'Sklep',
-                files:     'Pliki'
+                files:     'Pliki',
+                info:      'Informacje systemowe'
             };
             document.getElementById('topbar-title').textContent = titles[pageName] || pageName;
+            // Odśwież listę graczy w panelu "Nadaj karę"
+            if (pageName === 'action' && typeof window.apFilterPlayers === 'function') {
+                window.apFilterPlayers();
+            }
         }
 
         // Sidebar toggle (mobile)
@@ -1380,16 +1503,16 @@
         // Guard — przy kałLdym wejL�ciu na stronąę wymagane logowanie
         // Brak sessionStorage = brak auto-login = zawsze loguj od nowa
         (function checkAuth() {
-            // Wyączył�ć ewentualną starąą sesjęę
+            // Wyączył�ć ewentualną starą sesjęę
             sessionStorage.removeItem('admin_user');
-            // Panel zawsze ukryty na starąt — CSS !important to gwarantuje
+            // Panel zawsze ukryty na start — CSS !important to gwarantuje
         })();
 
         // =====================================================================
         // PRZYCISKI AKCJI I CZASU — musząą byćć globalne (poza type="module")
         // =====================================================================
 
-        // Zaznaczanie akcjęi (ban/mute/kick/warn/unban/unmute) w modalu
+        // Zaznaczanie akcji (ban/mute/kick/warn/unban/unmute) w modalu
         window.setAction = function(action) {
             window._selectedAction = action;
             document.querySelectorAll('#modal-action-btns .action-btn').forEach(b => b.classList.remove('selected'));
@@ -1399,16 +1522,16 @@
             const noDuration = ['unban', 'unmute', 'kick', 'warn', 'check', 'message'];
             document.getElementById('duration-field').style.display =
                 noDuration.includes(action) ? 'none' : 'block';
-            // Zmień label pola Powód dla wiadomo>ci
+            // Zmień label pola Powód dla wiadomości
             const reasonLabel = document.getElementById('reason-label');
             if (reasonLabel) {
                 reasonLabel.innerHTML = action === 'message'
-                    ? 'Tre>ć wiadomo>ci <span style="color:#3b82f6;font-weight:400;">(wymagana)</span>'
+                    ? 'treść wiadomości <span style="color:#3b82f6;font-weight:400;">(wymagana)</span>'
                     : 'Powód <span style="color:#888;font-weight:400;">(wymagany)</span>';
             }
             const reasonInput = document.getElementById('action-reason');
             if (reasonInput) {
-                reasonInput.placeholder = action === 'message' ? 'Wpisz wiadomo>ć do gracza...' : 'Podaj powód...';
+                reasonInput.placeholder = action === 'message' ? 'Wpisz wiadomość do gracza...' : 'Podaj powód...';
             }
         };
 
@@ -1420,7 +1543,7 @@
             document.getElementById('duration-custom').value = '';
         };
 
-        // Zaznaczanie akcjęi na stronąie "Nadaj karę"
+        // Zaznaczanie akcji na stronąie "Nadaj karę"
         window.apSetAction = function(action) {
             window._apAction = action;
             document.querySelectorAll('#page-action .action-btn').forEach(b => b.classList.remove('selected'));
@@ -1457,17 +1580,17 @@
                 '<span style="font-weight:700;font-size:0.92rem;">' + nick + '</span>';
         };
 
-        // Wykonaj akcjęę ze stronąy "Nadaj karę"
+        // Wykonaj akcję ze strony "Nadaj karę"
         window.apSubmit = function() {
             window.dispatchEvent(new CustomEvent('apSubmitAction'));
         };
 
-        // Wykonaj akcjęę z modala
+        // Wykonaj akcję z modala
         window.submitAction = function() {
             window.dispatchEvent(new CustomEvent('submitModalAction'));
         };
 
-        // OtwAlrz modal akcjęi na graczu (z tabeli)
+        // OtwAlrz modal akcji na graczu (z tabeli)
         window.openActionModal = function(nick, uuid) {
             window._actionModalPlayer = { nick, uuid };
             window._selectedAction   = null;
@@ -1491,6 +1614,27 @@
         window.openPlayerDetail = function(playerId) {
             window.dispatchEvent(new CustomEvent('openPlayerDetail', { detail: playerId }));
         };
+
+        // ── Topbar shadow on scroll ──────────────────────────────────────────
+        document.addEventListener('DOMContentLoaded', () => {
+            const mainContent = document.querySelector('.main-content');
+            const topbar = document.querySelector('.topbar');
+            if (mainContent && topbar) {
+                mainContent.addEventListener('scroll', () => {
+                    topbar.classList.toggle('scrolled', mainContent.scrollTop > 4);
+                }, { passive: true });
+            }
+        });
+
+        // ── Zamknij sidebar klikając poza nim (mobile) ───────────────────────
+        document.addEventListener('click', (e) => {
+            const sidebar = document.getElementById('sidebar');
+            const toggle  = document.querySelector('.sidebar-toggle');
+            if (sidebar && sidebar.classList.contains('open') &&
+                !sidebar.contains(e.target) && e.target !== toggle) {
+                sidebar.classList.remove('open');
+            }
+        });
     </script>
 </body>
 </html>
