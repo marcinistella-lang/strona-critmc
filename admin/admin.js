@@ -2147,39 +2147,43 @@ async function executeAction(action, nick, uuid, reason, duration, attachment = 
 
 
     // Wysyłamy do panel_commands aby plugin MC wykonał akcję
-
-    // check i unban/unmute nie wymagają komendy do serwera MC
-
-    const noMcCmd = ['check', 'ban', 'unban', 'mute', 'unmute'];
+    // check nie wymaga komendy do serwera MC (tylko podgląd)
+    const noMcCmd = ['check'];
 
     if (!noMcCmd.includes(action)) {
 
         const cmdMsg    = (action === 'message') ? reason : '';
-
-        const cmdReason = (action === 'message') ? 'Wiadomo>ć z panelu' : (reason || '—');
-
-
+        const cmdReason = (action === 'message') ? 'Wiadomość z panelu' : (reason || '—');
 
         await addDoc(collection(db, 'panel_commands'), {
-
             action,
-
             player:    nick,
-
             reason:    cmdReason,
-
             duration:  duration || '—',
-
             message:   cmdMsg,
-
             admin,
-
             executed:  false,
-
             createdAt: serverTimestamp()
-
         });
+    }
 
+    // Dla warn — zapisz też do kolekcji warns (plugin liczy z niej ostrzeżenia)
+    if (action === 'warn') {
+        const pSnap = await getDocs(query(collection(db, 'players'), where('nick', '==', nick)));
+        const playerUuid = pSnap.docs[0]?.data()?.uuid || '';
+        await addDoc(collection(db, 'warns'), {
+            uuid:    playerUuid,
+            player:  nick,
+            reason:  reason || '—',
+            admin,
+            active:  true,
+            date:    serverTimestamp()
+        });
+        // Zaktualizuj licznik warns w dokumencie gracza
+        if (!pSnap.empty) {
+            const warnSnap = await getDocs(query(collection(db, 'warns'), where('player', '==', nick), where('active', '==', true)));
+            await updateDoc(pSnap.docs[0].ref, { warns: warnSnap.size });
+        }
     }
 
 
@@ -3167,44 +3171,402 @@ window.loadShopPage = async function() {
 
 
 
-function renderShopItems(list) {
-    const tb = document.getElementById('shop-items-tbody');
-    if (!tb) return;
+function renderShopGrid(list) {
+    const grid = document.getElementById('shop-grid-view');
+    if (!grid) return;
     if (!list.length) {
-        tb.innerHTML = `<tr><td colspan="7" class="table-empty"><i class="fa-solid fa-shop" style="font-size:1.5rem;color:var(--text-secondary);display:block;margin-bottom:.5rem;"></i>Brak produktów sklepu. Kliknij "+ Dodaj produkt" aby dodać pierwszy.</td></tr>`;
+        grid.innerHTML = `<div class="table-card" style="padding:3rem;text-align:center;color:var(--text-secondary);grid-column:1/-1;">
+            <i class="fa-solid fa-shop" style="font-size:2rem;margin-bottom:.75rem;display:block;opacity:.4;"></i>
+            Brak produktów. Kliknij <strong>+ Dodaj produkt</strong> aby dodać pierwszy.
+        </div>`;
         return;
     }
-    tb.innerHTML = list.map(item => {
-        const typeBadgeColor = {
-            ranga: '#8b5cf6', zestaw: '#3b82f6', item: '#10b981', klucz: '#f59e0b'
-        }[item.type] || '#6b7280';
-        const mediaPreview = item.mediaUrl
-            ? (/\.(mp4|webm|mov)/i.test(item.mediaUrl)
-                ? `<span style="color:#3b82f6;font-size:.75rem;"><i class="fa-solid fa-video"></i> Film</span>`
-                : `<img src="${item.mediaUrl}" style="width:36px;height:36px;object-fit:cover;border-radius:6px;border:1px solid var(--border);" onerror="this.style.display='none'">`)
-            : `<span style="color:var(--text-secondary);font-size:.75rem;">Brak</span>`;
-        return `<tr>
-            <td>
-                <div style="font-weight:700;color:var(--text-primary);">${escapeHtml(item.name || '—')}</div>
-                ${item.desc ? `<div style="font-size:.76rem;color:var(--text-secondary);margin-top:.15rem;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(item.desc)}</div>` : ''}
-            </td>
-            <td><span class="badge" style="background:${typeBadgeColor}22;color:${typeBadgeColor};border:1px solid ${typeBadgeColor}44;">${item.type || '—'}</span></td>
-            <td>
-                <div style="font-weight:800;font-size:.95rem;">${item.price != null ? item.price : '—'} <span style="font-size:.72rem;font-weight:600;color:var(--text-secondary);">PLN</span></div>
-                ${item.oldPrice ? `<div style="font-size:.72rem;color:var(--text-secondary);text-decoration:line-through;">${item.oldPrice} PLN</div>` : ''}
-            </td>
-            <td style="text-align:center;">${mediaPreview}</td>
-            <td><span class="badge ${item.active === false ? 'badge-banned' : 'badge-online'}">${item.active === false ? 'Ukryty' : 'Aktywny'}</span></td>
-            <td style="color:var(--text-secondary);font-size:.78rem;">${item.sortOrder ?? 99}</td>
-            <td>
-                <div style="display:flex;gap:.4rem;">
-                    <button class="tbl-btn" onclick="editShopItem('${item.id}')" title="Edytuj"><i class="fa-solid fa-pen"></i></button>
-                    <button class="tbl-btn tbl-btn-red" onclick='deleteShopItem("${item.id}","${escapeHtml(item.name||"")}")' title="Usuń"><i class="fa-solid fa-trash"></i></button>
+    const typeColors = { ranga:'#8b5cf6', zestaw:'#3b82f6', item:'#10b981', klucz:'#f59e0b' };
+    const typeIcons  = { ranga:'fa-crown', zestaw:'fa-box', item:'fa-sword', klucz:'fa-key' };
+    grid.innerHTML = list.map(item => {
+        const color = typeColors[item.type] || '#6b7280';
+        const icon  = typeIcons[item.type]  || 'fa-shop';
+        const active = item.active !== false;
+        const hasMedia = item.mediaUrl && item.mediaUrl.length > 5;
+        const isVideo  = hasMedia && /\.(mp4|webm|mov)/i.test(item.mediaUrl);
+        const mediaBg  = hasMedia && !isVideo
+            ? `background-image:url('${item.mediaUrl}');background-size:cover;background-position:center;`
+            : `background:linear-gradient(135deg,${color}22,${color}11);`;
+        const items = item.itemsText
+            ? item.itemsText.split('\n').filter(Boolean).slice(0,4)
+                .map(i => `<div style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--text-secondary);padding:.15rem 0;">
+                    <i class="fa-solid fa-check" style="color:${color};font-size:.65rem;flex-shrink:0;"></i>${escapeHtml(i.trim())}
+                </div>`).join('')
+            : '';
+        return `
+        <div class="shop-item-card ${active?'':'shop-item-hidden'}" data-id="${item.id}">
+            <div class="shop-item-media" style="${mediaBg}">
+                ${isVideo ? `<video src="${item.mediaUrl}" autoplay muted loop playsinline style="width:100%;height:100%;object-fit:cover;"></video>` : ''}
+                ${!active ? '<div class="shop-item-hidden-badge"><i class="fa-solid fa-eye-slash"></i> Ukryty</div>' : ''}
+                <div class="shop-item-type-badge" style="background:${color};">
+                    <i class="fa-solid ${icon}"></i> ${item.type||'—'}
                 </div>
-            </td>
+            </div>
+            <div class="shop-item-body">
+                <div class="shop-item-name">${escapeHtml(item.name||'—')}</div>
+                ${item.desc ? `<div class="shop-item-desc">${escapeHtml(item.desc)}</div>` : ''}
+                <div class="shop-item-items">${items}</div>
+                <div class="shop-item-price-row">
+                    <div>
+                        <span class="shop-item-price">${item.price != null ? item.price : '—'}<span style="font-size:.75rem;font-weight:600;color:var(--text-secondary);margin-left:.2rem;">PLN</span></span>
+                        ${item.oldPrice ? `<span class="shop-item-old-price">${item.oldPrice} PLN</span>` : ''}
+                    </div>
+                    <div style="font-size:.72rem;color:var(--text-secondary);">#${item.sortOrder??99}</div>
+                </div>
+                <div class="shop-item-actions">
+                    <button class="tbl-btn" style="flex:1;justify-content:center;" onclick="editShopItem('${item.id}')">
+                        <i class="fa-solid fa-pen"></i> Edytuj
+                    </button>
+                    <button class="tbl-btn tbl-btn-red" onclick='deleteShopItem("${item.id}","${escapeHtml(item.name||"")}")'
+                        style="padding:.35rem .6rem;" title="Usuń">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// ─── SKLEP — renderowanie ───────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════
+
+let _shopView = 'grid'; // 'grid' | 'table'
+
+window.toggleShopView = function() {
+    _shopView = _shopView === 'grid' ? 'table' : 'grid';
+    const grid  = document.getElementById('shop-grid-view');
+    const table = document.getElementById('shop-table-view');
+    const btn   = document.getElementById('shop-view-toggle');
+    if (!grid || !table) return;
+    if (_shopView === 'grid') {
+        grid.style.display  = 'grid';
+        table.style.display = 'none';
+        if (btn) btn.innerHTML = '<i class="fa-solid fa-table-cells-large"></i>';
+    } else {
+        grid.style.display  = 'none';
+        table.style.display = 'block';
+        if (btn) btn.innerHTML = '<i class="fa-solid fa-table-list"></i>';
+    }
+    filterShopItems();
+};
+
+const SHOP_TYPE_CONFIG = {
+    ranga:  { icon: '🏆', color: '#8b5cf6', bg: 'rgba(139,92,246,.1)',  border: 'rgba(139,92,246,.25)' },
+    zestaw: { icon: '📦', color: '#3b82f6', bg: 'rgba(59,130,246,.1)',  border: 'rgba(59,130,246,.25)' },
+    item:   { icon: '⚔️', color: '#10b981', bg: 'rgba(16,185,129,.1)',  border: 'rgba(16,185,129,.25)' },
+    klucz:  { icon: '🔑', color: '#f59e0b', bg: 'rgba(245,158,11,.1)',  border: 'rgba(245,158,11,.25)' },
+};
+
+function _shopTypeCfg(type) {
+    return SHOP_TYPE_CONFIG[(type||'').toLowerCase()] || { icon: '🛒', color: '#6b7280', bg: 'rgba(107,114,128,.1)', border: 'rgba(107,114,128,.2)' };
+}
+
+function renderShopGrid(list) {
+    const grid = document.getElementById('shop-grid-view');
+    if (!grid) return;
+    if (!list.length) {
+        grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:4rem 2rem;color:var(--text-secondary);">
+            <i class="fa-solid fa-shop" style="font-size:3rem;margin-bottom:1rem;display:block;opacity:.3;"></i>
+            <div style="font-size:1.1rem;font-weight:700;">Brak produktów w sklepie</div>
+            <div style="font-size:.85rem;margin-top:.4rem;">Kliknij "+ Dodaj produkt" aby dodać pierwszy</div>
+        </div>`;
+        return;
+    }
+
+    grid.innerHTML = list.map(item => {
+        const cfg = _shopTypeCfg(item.type);
+        const isActive = item.active !== false;
+        const items = (item.itemsText || '').split('\n').filter(Boolean).slice(0, 6);
+
+        const mediaHtml = item.mediaUrl
+            ? (/\.(mp4|webm|mov)/i.test(item.mediaUrl)
+                ? `<video src="${item.mediaUrl}" style="width:100%;height:160px;object-fit:cover;border-radius:10px 10px 0 0;" muted autoplay loop playsinline></video>`
+                : `<img src="${item.mediaUrl}" alt="${escapeHtml(item.name)}" style="width:100%;height:160px;object-fit:cover;border-radius:10px 10px 0 0;" onerror="this.style.display='none'">`)
+            : `<div style="width:100%;height:120px;display:flex;align-items:center;justify-content:center;font-size:3.5rem;border-radius:10px 10px 0 0;background:${cfg.bg};">${cfg.icon}</div>`;
+
+        const itemsList = items.length
+            ? `<ul style="list-style:none;padding:0;margin:.5rem 0 0;display:flex;flex-direction:column;gap:.2rem;">${items.map(i => `<li style="font-size:.75rem;color:var(--text-secondary);display:flex;align-items:center;gap:.35rem;"><span style="color:${cfg.color};font-size:.6rem;">✦</span>${escapeHtml(i)}</li>`).join('')}</ul>`
+            : '';
+
+        return `<div class="shop-card ${isActive ? '' : 'shop-card-hidden'}" style="background:var(--bg-card);border:1.5px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:var(--shadow-sm);transition:all .2s ease;cursor:pointer;" onmouseenter="this.style.boxShadow='var(--shadow-md)';this.style.transform='translateY(-2px)'" onmouseleave="this.style.boxShadow='var(--shadow-sm)';this.style.transform=''" onclick="editShopItem('${item.id}')">
+            ${mediaHtml}
+            <div style="padding:.9rem 1rem;">
+                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem;margin-bottom:.4rem;">
+                    <div style="font-weight:800;font-size:.95rem;color:var(--text-primary);line-height:1.3;">${escapeHtml(item.name || '—')}</div>
+                    <span style="flex-shrink:0;font-size:.68rem;font-weight:700;padding:.2rem .55rem;border-radius:999px;background:${cfg.bg};color:${cfg.color};border:1px solid ${cfg.border};">${item.type || '—'}</span>
+                </div>
+                ${item.desc ? `<div style="font-size:.78rem;color:var(--text-secondary);line-height:1.45;margin-bottom:.5rem;">${escapeHtml(item.desc)}</div>` : ''}
+                ${itemsList}
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-top:.8rem;padding-top:.7rem;border-top:1px solid var(--border);">
+                    <div>
+                        <span style="font-size:1.15rem;font-weight:900;color:var(--text-primary);">${item.price != null ? item.price : '—'}</span>
+                        <span style="font-size:.72rem;font-weight:600;color:var(--text-secondary);"> PLN</span>
+                        ${item.oldPrice ? `<span style="font-size:.72rem;color:var(--text-secondary);text-decoration:line-through;margin-left:.3rem;">${item.oldPrice} PLN</span>` : ''}
+                    </div>
+                    <div style="display:flex;gap:.35rem;">
+                        <span style="font-size:.7rem;font-weight:700;padding:.2rem .5rem;border-radius:999px;background:${isActive ? 'rgba(16,185,129,.1)' : 'rgba(239,68,68,.1)'};color:${isActive ? '#059669' : '#dc2626'};border:1px solid ${isActive ? 'rgba(5,150,105,.2)' : 'rgba(220,38,38,.2)'};">${isActive ? '✓ Aktywny' : '✗ Ukryty'}</span>
+                    </div>
+                </div>
+                <div style="display:flex;gap:.4rem;margin-top:.6rem;" onclick="event.stopPropagation()">
+                    <button class="tbl-btn" style="flex:1;justify-content:center;" onclick="editShopItem('${item.id}')"><i class="fa-solid fa-pen"></i> Edytuj</button>
+                    <button class="tbl-btn tbl-btn-red" onclick='deleteShopItem("${item.id}","${escapeHtml(item.name||"")}")'><i class="fa-solid fa-trash"></i></button>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+let _shopView = 'grid'; // 'grid' | 'table'
+
+window.toggleShopView = function() {
+    _shopView = _shopView === 'grid' ? 'table' : 'grid';
+    const grid  = document.getElementById('shop-grid-view');
+    const table = document.getElementById('shop-table-view');
+    const btn   = document.getElementById('shop-view-toggle');
+    if (!grid || !table) return;
+    if (_shopView === 'grid') {
+        grid.style.display  = 'grid';
+        table.style.display = 'none';
+        if (btn) btn.innerHTML = '<i class="fa-solid fa-table-list"></i>';
+    } else {
+        grid.style.display  = 'none';
+        table.style.display = 'block';
+        if (btn) btn.innerHTML = '<i class="fa-solid fa-table-cells-large"></i>';
+    }
+    window.filterShopItems();
+};
+
+function renderShopGrid(list) {
+    const grid = document.getElementById('shop-grid-view');
+    if (!grid) return;
+    if (!list.length) {
+        grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--text-secondary);">
+            <i class="fa-solid fa-shop" style="font-size:2.5rem;margin-bottom:1rem;display:block;opacity:.3;"></i>
+            Brak produktów. Kliknij <strong>+ Dodaj produkt</strong> aby dodać pierwszy.
+        </div>`;
+        return;
+    }
+    const typeColors = { ranga:'#8b5cf6', zestaw:'#3b82f6', item:'#10b981', klucz:'#f59e0b' };
+    const typeIcons  = { ranga:'fa-crown', zestaw:'fa-box', item:'fa-sword', klucz:'fa-key' };
+    grid.innerHTML = list.map(item => {
+        const color = typeColors[item.type] || '#6b7280';
+        const icon  = typeIcons[item.type]  || 'fa-tag';
+        const isHidden = item.active === false;
+        const hasMedia = item.mediaUrl;
+        const mediaHtml = hasMedia
+            ? (/\.(mp4|webm|mov)/i.test(item.mediaUrl)
+                ? `<video src="${item.mediaUrl}" style="width:100%;height:160px;object-fit:cover;" muted playsinline loop></video>`
+                : `<img src="${item.mediaUrl}" style="width:100%;height:160px;object-fit:cover;" alt="${escapeHtml(item.name||'')}" onerror="this.parentElement.innerHTML='<div style=\'height:160px;display:flex;align-items:center;justify-content:center;color:var(--text-secondary);font-size:2rem;\'><i class=\'fa-solid fa-${icon}\'></i></div>'">`)
+            : `<div style="height:160px;display:flex;align-items:center;justify-content:center;background:${color}11;"><i class="fa-solid fa-${icon}" style="font-size:3rem;color:${color};opacity:.5;"></i></div>`;
+
+        const items = item.itemsText ? item.itemsText.split('\n').filter(Boolean) : [];
+        const itemsList = items.slice(0,4).map(i => `<div style="font-size:.75rem;color:var(--text-secondary);padding:.15rem 0;display:flex;align-items:center;gap:.4rem;"><i class="fa-solid fa-check" style="color:${color};font-size:.65rem;"></i>${escapeHtml(i.trim())}</div>`).join('');
+
+        return `<div class="shop-card ${isHidden ? 'shop-card-hidden' : ''}" onclick="editShopItem('${item.id}')">
+            <div class="shop-card-media">${mediaHtml}</div>
+            ${isHidden ? '<div class="shop-card-badge-hidden"><i class="fa-solid fa-eye-slash"></i> Ukryty</div>' : ''}
+            <div class="shop-card-body">
+                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem;margin-bottom:.4rem;">
+                    <div>
+                        <span class="badge" style="background:${color}18;color:${color};border:1px solid ${color}33;font-size:.68rem;margin-bottom:.35rem;display:inline-flex;">
+                            <i class="fa-solid fa-${icon}" style="margin-right:.3rem;"></i>${item.type || '—'}
+                        </span>
+                        <div style="font-weight:800;font-size:1rem;color:var(--text-primary);line-height:1.2;">${escapeHtml(item.name || '—')}</div>
+                    </div>
+                    <div style="text-align:right;flex-shrink:0;">
+                        <div style="font-size:1.2rem;font-weight:900;color:${color};">${item.price != null ? item.price : '—'}<span style="font-size:.7rem;font-weight:600;color:var(--text-secondary);"> PLN</span></div>
+                        ${item.oldPrice ? `<div style="font-size:.72rem;color:var(--text-secondary);text-decoration:line-through;">${item.oldPrice} PLN</div>` : ''}
+                    </div>
+                </div>
+                ${item.desc ? `<div style="font-size:.78rem;color:var(--text-secondary);margin-bottom:.5rem;line-height:1.4;">${escapeHtml(item.desc)}</div>` : ''}
+                ${itemsList ? `<div style="margin-bottom:.7rem;">${itemsList}</div>` : ''}
+                <div style="display:flex;gap:.4rem;margin-top:auto;padding-top:.6rem;border-top:1px solid var(--border);">
+                    <button class="tbl-btn" style="flex:1;justify-content:center;" onclick="event.stopPropagation();editShopItem('${item.id}')">
+                        <i class="fa-solid fa-pen"></i> Edytuj
+                    </button>
+                    <button class="tbl-btn tbl-btn-red" onclick="event.stopPropagation();deleteShopItem('${item.id}','${escapeHtml(item.name||'')}')">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+let _shopViewMode = 'grid'; // 'grid' | 'table'
+
+window.toggleShopView = function() {
+    _shopViewMode = _shopViewMode === 'grid' ? 'table' : 'grid';
+    const btn = document.getElementById('shop-view-toggle');
+    if (btn) btn.innerHTML = _shopViewMode === 'grid'
+        ? '<i class="fa-solid fa-table-cells-large"></i>'
+        : '<i class="fa-solid fa-list"></i>';
+    const grid  = document.getElementById('shop-grid-view');
+    const table = document.getElementById('shop-table-view');
+    if (grid)  grid.style.display  = _shopViewMode === 'grid'  ? 'grid' : 'none';
+    if (table) table.style.display = _shopViewMode === 'table' ? 'block' : 'none';
+    window.filterShopItems();
+};
+
+let _shopViewMode = 'grid'; // 'grid' | 'table'
+
+window.toggleShopView = function() {
+    _shopViewMode = _shopViewMode === 'grid' ? 'table' : 'grid';
+    const btn = document.getElementById('shop-view-toggle');
+    if (btn) btn.innerHTML = _shopViewMode === 'grid'
+        ? '<i class="fa-solid fa-table-cells-large"></i>'
+        : '<i class="fa-solid fa-list"></i>';
+    window.filterShopItems();
+};
+
+// ─── Shop view state ────────────────────────────────────────────────────────
+let _shopViewMode = 'grid'; // 'grid' | 'table'
+
+window.toggleShopView = function() {
+    _shopViewMode = _shopViewMode === 'grid' ? 'table' : 'grid';
+    const btn = document.getElementById('shop-view-toggle');
+    if (btn) btn.innerHTML = _shopViewMode === 'grid'
+        ? '<i class="fa-solid fa-table-cells-large"></i>'
+        : '<i class="fa-solid fa-table-list"></i>';
+    renderShopItems(
+        _lastShopList || allShopItems
+    );
+};
+
+let _lastShopList = [];
+
+function renderShopItems(list) {
+    _lastShopList = list;
+    const grid = document.getElementById('shop-grid-view');
+    const tb   = document.getElementById('shop-items-tbody');
+    const tableView = document.getElementById('shop-table-view');
+
+    if (!grid && !tb) return;
+
+    if (!list.length) {
+        if (grid) grid.innerHTML = `
+            <div style="grid-column:1/-1;text-align:center;padding:3rem 1rem;color:var(--text-secondary);">
+                <i class="fa-solid fa-shop" style="font-size:2.5rem;display:block;margin-bottom:.75rem;opacity:.4;"></i>
+                <div style="font-weight:700;font-size:1rem;margin-bottom:.4rem;">Brak produktów</div>
+                <div style="font-size:.85rem;">Kliknij &quot;+ Dodaj produkt&quot; aby dodać pierwszy.</div>
+            </div>`;
+        if (tb) tb.innerHTML = `<tr><td colspan="7" class="table-empty"><i class="fa-solid fa-shop"></i> Brak produktów</td></tr>`;
+        return;
+    }
+
+    // ── WIDOK SIATKI KART ────────────────────────────────────────────────────
+    if (_shopViewMode === 'grid' && grid) {
+        if (tableView) tableView.style.display = 'none';
+        grid.style.display = 'grid';
+
+        const typeColors = { ranga:'#8b5cf6', zestaw:'#3b82f6', item:'#10b981', klucz:'#f59e0b' };
+        const typeIcons  = { ranga:'fa-crown', zestaw:'fa-box', item:'fa-sword', klucz:'fa-key' };
+
+        grid.innerHTML = list.map(item => {
+            const color = typeColors[item.type] || '#6b7280';
+            const icon  = typeIcons[item.type]  || 'fa-shop';
+            const isHidden = item.active === false;
+
+            const mediaHtml = item.mediaUrl
+                ? (/\.(mp4|webm|mov)/i.test(item.mediaUrl)
+                    ? `<video src="${item.mediaUrl}" style="width:100%;height:160px;object-fit:cover;" muted playsinline></video>`
+                    : `<img src="${item.mediaUrl}" alt="${escapeHtml(item.name||'')}" style="width:100%;height:160px;object-fit:cover;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                       <div style="display:none;width:100%;height:160px;align-items:center;justify-content:center;background:${color}11;color:${color};font-size:2rem;"><i class="fa-solid ${icon}"></i></div>`)
+                : `<div style="width:100%;height:160px;display:flex;align-items:center;justify-content:center;background:${color}11;color:${color};font-size:2.5rem;"><i class="fa-solid ${icon}"></i></div>`;
+
+            const itemsList = item.itemsText
+                ? item.itemsText.split('\n').filter(Boolean).slice(0,5).map(i =>
+                    `<div style="font-size:.75rem;color:var(--text-secondary);display:flex;align-items:center;gap:.35rem;"><i class="fa-solid fa-check" style="color:${color};font-size:.65rem;flex-shrink:0;"></i>${escapeHtml(i.trim())}</div>`
+                  ).join('') : '';
+
+            return `<div class="shop-card ${isHidden ? 'shop-card-hidden' : ''}" style="--card-color:${color};">
+                <div class="shop-card-media" onclick="editShopItem('${item.id}')" style="cursor:pointer;">
+                    ${mediaHtml}
+                    <div class="shop-card-type-badge">
+                        <i class="fa-solid ${icon}"></i> ${item.type || '—'}
+                    </div>
+                    ${isHidden ? '<div class="shop-card-hidden-badge"><i class="fa-solid fa-eye-slash"></i> Ukryty</div>' : ''}
+                </div>
+                <div class="shop-card-body">
+                    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem;margin-bottom:.4rem;">
+                        <div style="font-weight:800;font-size:1rem;color:var(--text-primary);line-height:1.2;">${escapeHtml(item.name || '—')}</div>
+                        <div style="text-align:right;flex-shrink:0;">
+                            <div style="font-weight:900;font-size:1.1rem;color:${color};">${item.price != null ? item.price : '—'}<span style="font-size:.7rem;font-weight:600;color:var(--text-secondary);"> PLN</span></div>
+                            ${item.oldPrice ? `<div style="font-size:.72rem;color:var(--text-secondary);text-decoration:line-through;">${item.oldPrice} PLN</div>` : ''}
+                        </div>
+                    </div>
+                    ${item.desc ? `<div style="font-size:.8rem;color:var(--text-secondary);margin-bottom:.6rem;line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${escapeHtml(item.desc)}</div>` : ''}
+                    ${itemsList ? `<div style="display:flex;flex-direction:column;gap:.2rem;margin-bottom:.6rem;">${itemsList}</div>` : ''}
+                    <div style="display:flex;gap:.4rem;margin-top:auto;padding-top:.6rem;border-top:1px solid var(--border);">
+                        <button class="tbl-btn" style="flex:1;justify-content:center;" onclick="editShopItem('${item.id}')"><i class="fa-solid fa-pen"></i> Edytuj</button>
+                        <button class="tbl-btn" onclick="toggleShopItemActive('${item.id}',${!isHidden})" title="${isHidden ? 'Aktywuj' : 'Ukryj'}">
+                            <i class="fa-solid ${isHidden ? 'fa-eye' : 'fa-eye-slash'}"></i>
+                        </button>
+                        <button class="tbl-btn tbl-btn-red" onclick='deleteShopItem("${item.id}","${escapeHtml(item.name||"")}")' title="Usuń"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+        return;
+    }
+
+    // ── WIDOK TABELI ─────────────────────────────────────────────────────────
+    if (grid) grid.style.display = 'none';
+    if (tableView) tableView.style.display = 'block';
+    if (!tb) return;
+
+    tb.innerHTML = list.map(item => {
+        const color = { ranga:'#8b5cf6', zestaw:'#3b82f6', item:'#10b981', klucz:'#f59e0b' }[item.type] || '#6b7280';
+        const mediaThumb = item.mediaUrl
+            ? (/\.(mp4|webm|mov)/i.test(item.mediaUrl)
+                ? `<span style="color:#3b82f6;font-size:.75rem;"><i class="fa-solid fa-video"></i></span>`
+                : `<img src="${item.mediaUrl}" style="width:36px;height:36px;object-fit:cover;border-radius:6px;" onerror="this.style.display='none'">`)
+            : `<span style="color:var(--text-secondary);font-size:.75rem;">—</span>`;
+        return `<tr>
+            <td><div style="font-weight:700;">${escapeHtml(item.name||'—')}</div>${item.desc?`<div style="font-size:.72rem;color:var(--text-secondary);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(item.desc)}</div>`:''}</td>
+            <td><span class="badge" style="background:${color}22;color:${color};border:1px solid ${color}44;">${item.type||'—'}</span></td>
+            <td><strong>${item.price??'—'}</strong>${item.price!=null?' PLN':''}<br>${item.oldPrice?`<s style="font-size:.72rem;color:var(--text-secondary);">${item.oldPrice} PLN</s>`:''}</td>
+            <td>${mediaThumb}</td>
+            <td><span class="badge ${item.active===false?'badge-banned':'badge-online'}">${item.active===false?'Ukryty':'Aktywny'}</span></td>
+            <td style="color:var(--text-secondary);">${item.sortOrder??99}</td>
+            <td><div style="display:flex;gap:.3rem;">
+                <button class="tbl-btn" onclick="editShopItem('${item.id}')"><i class="fa-solid fa-pen"></i></button>
+                <button class="tbl-btn" onclick="toggleShopItemActive('${item.id}',${item.active===false})"><i class="fa-solid ${item.active===false?'fa-eye':'fa-eye-slash'}"></i></button>
+                <button class="tbl-btn tbl-btn-red" onclick='deleteShopItem("${item.id}","${escapeHtml(item.name||"")}")'><i class="fa-solid fa-trash"></i></button>
+            </div></td>
         </tr>`;
     }).join('');
 }
+
+window.toggleShopItemActive = async function(id, makeActive) {
+    if (!requirePermission('shop','zarządzanie sklepem')) return;
+    try {
+        await updateDoc(doc(db,'shop_items',id), { active: makeActive, updatedAt: serverTimestamp(), updatedBy: currentUser?.displayName||'Panel' });
+        showToast('success', makeActive ? 'Produkt aktywowany' : 'Produkt ukryty');
+        await window.loadShopPage();
+    } catch(e) { showToast('error','Błąd: '+e.message); }
+};
+window.filterShopItems = function() {
+    const type   = document.getElementById('shop-type-filter')?.value   || '';
+    const status = document.getElementById('shop-status-filter')?.value || '';
+    const search = (document.getElementById('shop-search')?.value || '').toLowerCase();
+    const filtered = allShopItems.filter(item => {
+        if (type   && item.type !== type)                           return false;
+        if (status === 'active'  && item.active === false)          return false;
+        if (status === 'hidden'  && item.active !== false)          return false;
+        if (search && !(item.name||'').toLowerCase().includes(search) &&
+                      !(item.desc||'').toLowerCase().includes(search)) return false;
+        return true;
+    });
+    renderShopItems(filtered);
+};
+
 window.filterShopItems = function() {
 
     const type = document.getElementById('shop-type-filter')?.value || '';

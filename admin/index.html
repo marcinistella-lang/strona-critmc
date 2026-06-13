@@ -12,7 +12,7 @@
         .auth-ready #login-screen { display: none !important; }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/ó.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body>
 
@@ -38,7 +38,7 @@
                     </div>
                 </div>
                 <div id="login-error" class="login-error" style="display:none;">
-                    <i class="fa-solid fa-circle-exclamation"></i> BL�ędny login lub hasło!
+                    <i class="fa-solid fa-circle-exclamation"></i> Błędny login lub hasło!
                 </div>
                 <button type="submit" class="login-btn">
                     <i class="fa-solid fa-right-to-bracket"></i> Zaloguj się
@@ -47,7 +47,7 @@
         </div>
     </div>
 
-    <!-- ===== PANEL GL�A�WNY ===== -->
+    <!-- ===== PANEL GŁÓWNY ===== -->
     <div id="admin-panel" class="admin-panel" style="display:none;">
 
         <!-- SIDEBAR -->
@@ -151,11 +151,11 @@
                 <div class="topbar-right">
                     <div class="server-status" id="server-status">
                         <span class="status-dot offline"></span>
-                        <span id="status-text">L�ączenie...</span>
+                        <span id="status-text">Łączenie...</span>
                     </div>
-                    <a href="../index.html" class="back-to-main-btn" title="WrAlć do strony gL�Alwnej">
+                    <a href="../index.html" class="back-to-main-btn" title="WrAlć do strony głównej">
                         <i class="fa-solid fa-house"></i>
-                        <span>Stronąa gL�Alwna</span>
+                        <span>Stronąa główna</span>
                     </a>
                 </div>
             </div>
@@ -211,7 +211,7 @@
                             <tbody id="players-tbody">
                                 <tr>
                                     <td colspan="5" class="table-loading">
-                                        <i class="fa-solid fa-spinner fa-spin"></i> L�Ładowanie...
+                                        <i class="fa-solid fa-spinner fa-spin"></i> łŁadowanie...
                                     </td>
                                 </tr>
                             </tbody>
@@ -230,7 +230,7 @@
                 <div class="filters-bar">
                     <div class="filter-search">
                         <i class="fa-solid fa-magnifying-glass"></i>
-                        <input type="text" id="bans-search" placeholder="Szukaj po nicku lub powodzień..." oninput="filterBans()">
+                        <input type="text" id="bans-search" placeholder="Szukaj po nicku lub powodzie..." oninput="filterBans()">
                     </div>
                     <div class="filter-group">
                         <select id="bans-filter-type" onchange="filterBans()">
@@ -250,16 +250,13 @@
                                     <th>Powód</th>
                                     <th>Przez kogo</th>
                                     <th>Data</th>
-                                    <th>Wygasa</th>
+                                    <th>Czas trwania</th>
+                                    <th>Załącznik</th>
                                     <th>Akcje</th>
                                 </tr>
                             </thead>
                             <tbody id="bans-tbody">
-                                <tr>
-                                    <td colspan="6" class="table-loading">
-                                        <i class="fa-solid fa-spinner fa-spin"></i> L�Ładowanie...
-                                    </td>
-                                </tr>
+                                <tr><td colspan="7" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -276,7 +273,7 @@
                 <div class="filters-bar">
                     <div class="filter-search">
                         <i class="fa-solid fa-magnifying-glass"></i>
-                        <input type="text" id="mutes-search" placeholder="Szukaj po nicku lub powodzień..." oninput="filterMutes()">
+                        <input type="text" id="mutes-search" placeholder="Szukaj po nicku lub powodzie..." oninput="filterMutes()">
                     </div>
                     <div class="filter-group">
                         <select id="mutes-filter-type" onchange="filterMutes()">
@@ -296,16 +293,13 @@
                                     <th>Powód</th>
                                     <th>Przez kogo</th>
                                     <th>Data</th>
-                                    <th>Wygasa</th>
+                                    <th>Czas trwania</th>
+                                    <th>Załącznik</th>
                                     <th>Akcje</th>
                                 </tr>
                             </thead>
                             <tbody id="mutes-tbody">
-                                <tr>
-                                    <td colspan="6" class="table-loading">
-                                        <i class="fa-solid fa-spinner fa-spin"></i> L�Ładowanie...
-                                    </td>
-                                </tr>
+                                <tr><td colspan="7" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -374,9 +368,9 @@
                         </div>
 
                         <div class="modal-field" style="margin-bottom:1.5rem;">
-                            <label>Zał�ącznik do akcji <span style="color:#999;font-weight:400;">(opcjonalny)</span></label>
+                            <label>Załącznik do akcji <span style="color:#999;font-weight:400;">(opcjonalny)</span></label>
                             <select id="ap-attachment-type" style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);margin-bottom:.6rem;" onchange="toggleActionAttachmentFields('ap')">
-                                <option value="">Brak zał�ącznika</option>
+                                <option value="">Brak załącznika</option>
                                 <option value="link">Link</option>
                                 <option value="text">Tekst / notatkęa</option>
                                 <option value="file">Plik / zdjęcie / nagranie</option>
@@ -453,7 +447,7 @@
                             <tbody id="logs-tbody">
                                 <tr>
                                     <td colspan="6" class="table-loading">
-                                        <i class="fa-solid fa-spinner fa-spin"></i> L�Ładowanie...
+                                        <i class="fa-solid fa-spinner fa-spin"></i> łŁadowanie...
                                     </td>
                                 </tr>
                             </tbody>
@@ -462,7 +456,7 @@
                 </div>
             </div>
 
-            <!-- ===== STRONA: STATYSTYKI ADMINA�W ===== -->
+            <!-- ===== STRONA: STATYSTYKI ADMINÓW ===== -->
             <div id="page-stats" class="page">
                 <div class="page-header">
                     <h1>Statystyki Adminów</h1>
@@ -475,21 +469,21 @@
                         <div class="stat-icon" style="background:rgba(239,68,68,.12);color:#ef4444;"><i class="fa-solid fa-ban"></i></div>
                         <div class="stat-info">
                             <div class="stat-value" id="stat-total-bans">—</div>
-                            <div class="stat-label">L�ąŁączne bany</div>
+                            <div class="stat-label">Łączne bany</div>
                         </div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-icon" style="background:rgba(245,158,11,.12);color:#f59e0b;"><i class="fa-solid fa-microphone-slash"></i></div>
                         <div class="stat-info">
                             <div class="stat-value" id="stat-total-mutes">—</div>
-                            <div class="stat-label">L�ąŁączne muty</div>
+                            <div class="stat-label">Łączne muty</div>
                         </div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-icon" style="background:rgba(99,102,241,.12);color:#6366f1;"><i class="fa-solid fa-door-open"></i></div>
                         <div class="stat-info">
                             <div class="stat-value" id="stat-total-kicks">—</div>
-                            <div class="stat-label">L�ąŁączne kicki</div>
+                            <div class="stat-label">Łączne kicki</div>
                         </div>
                     </div>
                     <div class="stat-card">
@@ -523,7 +517,7 @@
                                 </tr>
                             </thead>
                             <tbody id="stats-tbody">
-                                <tr><td colspan="10" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> L�Ładowanie...</td></tr>
+                                <tr><td colspan="10" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> łŁadowanie...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -556,7 +550,7 @@
                                 </tr>
                             </thead>
                             <tbody id="admin-accounts-tbody">
-                                <tr><td colspan="7" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> L�Ładowanie...</td></tr>
+                                <tr><td colspan="7" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> łŁadowanie...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -571,12 +565,12 @@
                 </div>
                 <div class="table-card" style="padding:1.2rem;margin-bottom:1rem;">
                     <div style="font-size:.88rem;color:var(--text-secondary);line-height:1.6;">
-                        Tutaj ustawiasz domyL�lne uprawnienia dla rang. Nowe konta administratorAlw będą mogąL�y automatycznie korzystaćć z tych zestawAlw.
+                        Tutaj ustawiasz domyłlne uprawnienia dla rang. Nowe konta administratorów będą mogły automatycznie korzystaćć z tych zestawów.
                     </div>
                 </div>
                 <div id="permissions-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:1rem;">
                     <div class="table-card" style="padding:1.5rem;text-align:center;color:var(--text-secondary);">
-                        <i class="fa-solid fa-spinner fa-spin"></i> L�Ładowanie uprawnieńL�...
+                        <i class="fa-solid fa-spinner fa-spin"></i> łŁadowanie uprawnieńł...
                     </div>
                 </div>
             </div>
@@ -630,40 +624,63 @@
             <div id="page-shop" class="page">
                 <div class="page-header">
                     <h1>Sklep</h1>
-                    <p>Zarządzaj zestawami, rangami, itemkami i multimediami sklepu</p>
+                    <p>Zarządzaj produktami, rangami, zestawami i cenami</p>
                 </div>
-                <div style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:1rem;">
-                    <div style="display:flex;gap:.6rem;flex-wrap:wrap;">
-                        <select id="shop-type-filter" onchange="filterShopItems()" style="padding:.65rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+
+                <!-- Toolbar -->
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:1.2rem;">
+                    <div style="display:flex;gap:.6rem;flex-wrap:wrap;align-items:center;">
+                        <div class="filter-search" style="min-width:200px;">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" id="shop-search" placeholder="Szukaj produktu..." oninput="filterShopItems()">
+                        </div>
+                        <select id="shop-type-filter" onchange="filterShopItems()" style="padding:.62rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.88rem;color:var(--text-primary);background:var(--bg-card);outline:none;font-family:var(--font);">
                             <option value="">Wszystkie typy</option>
-                            <option value="ranga">Rangi</option>
-                            <option value="zestaw">Zestawy</option>
-                            <option value="item">Itemki</option>
-                            <option value="klucz">Klucze</option>
+                            <option value="ranga">🏆 Rangi</option>
+                            <option value="zestaw">📦 Zestawy</option>
+                            <option value="item">⚔️ Itemki</option>
+                            <option value="klucz">🔑 Klucze</option>
+                        </select>
+                        <select id="shop-status-filter" onchange="filterShopItems()" style="padding:.62rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.88rem;color:var(--text-primary);background:var(--bg-card);outline:none;font-family:var(--font);">
+                            <option value="">Wszystkie statusy</option>
+                            <option value="active">Aktywne</option>
+                            <option value="hidden">Ukryte</option>
                         </select>
                     </div>
-                    <button class="modal-submit-btn" style="width:auto;padding:.6rem 1.4rem;" onclick="openShopItemModal()">
-                        <i class="fa-solid fa-plus"></i> Dodaj produkt
-                    </button>
+                    <div style="display:flex;gap:.5rem;">
+                        <button class="tbl-btn" onclick="toggleShopView()" id="shop-view-toggle" title="Zmień widok">
+                            <i class="fa-solid fa-table-cells-large"></i>
+                        </button>
+                        <button class="modal-submit-btn" style="width:auto;padding:.6rem 1.4rem;" onclick="openShopItemModal()">
+                            <i class="fa-solid fa-plus"></i> Dodaj produkt
+                        </button>
+                    </div>
                 </div>
-                <div class="table-card">
-                    <div class="table-wrap">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Nazwa</th>
-                                    <th>Typ</th>
-                                    <th>Cena</th>
-                                    <th>Media</th>
-                                    <th>Status</th>
-                                    <th>Kolejność</th>
-                                    <th>Akcje</th>
-                                </tr>
-                            </thead>
-                            <tbody id="shop-items-tbody">
-                                <tr><td colspan="7" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>
-                            </tbody>
-                        </table>
+
+                <!-- Widok siatki kart -->
+                <div id="shop-grid-view" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem;"></div>
+
+                <!-- Widok tabeli -->
+                <div id="shop-table-view" style="display:none;">
+                    <div class="table-card">
+                        <div class="table-wrap">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Nazwa</th>
+                                        <th>Typ</th>
+                                        <th>Cena</th>
+                                        <th>Media</th>
+                                        <th>Status</th>
+                                        <th>Kolejność</th>
+                                        <th>Akcje</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="shop-items-tbody">
+                                    <tr><td colspan="7" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -672,28 +689,28 @@
             <div id="page-personel" class="page">
                 <div class="page-header">
                     <h1>Personel</h1>
-                    <p>Zarządzaj ekipą serwera — wyL�wietlane na stronąie gL�Alwnej</p>
+                    <p>Zarządzaj ekipą serwera — wyłwietlane na stronąie głównej</p>
                 </div>
 
-                <!-- WL�ał�ciciel i Współ�wł�ał�ciciel -->
+                <!-- Właściciel i WspółWłaściciel -->
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem;">
                     <div class="table-card" style="padding:1.2rem;">
-                        <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.8rem;"><i class="fa-solid fa-crown" style="color:#fc84fb;"></i> WL�ał�ciciel</div>
+                        <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.8rem;"><i class="fa-solid fa-crown" style="color:#fc84fb;"></i> Właściciel</div>
                         <div style="display:flex;flex-direction:column;gap:.6rem;">
-                            <input type="text" id="owner-nick" placeholder="Nick MC wł�ał�ciciela..." style="padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                            <input type="text" id="owner-nick" placeholder="Nick MC Właściciela..." style="padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
                             <input type="text" id="owner-yt" placeholder="URL YouTube..." style="padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
                             <input type="text" id="owner-tt" placeholder="URL TikTok..." style="padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
-                            <textarea id="owner-desc" rows="2" placeholder="Opis wł�ał�ciciela..." style="padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea>
+                            <textarea id="owner-desc" rows="2" placeholder="Opis Właściciela..." style="padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea>
                             <button class="modal-submit-btn" style="padding:.6rem;" onclick="saveOwner()"><i class="fa-solid fa-floppy-disk"></i> Zapisz</button>
                         </div>
                     </div>
                     <div class="table-card" style="padding:1.2rem;">
-                        <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.8rem;"><i class="fa-solid fa-crown" style="color:#88c5ff;"></i> Współ�wł�ał�ciciel</div>
+                        <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.8rem;"><i class="fa-solid fa-crown" style="color:#88c5ff;"></i> WspółWłaściciel</div>
                         <div style="display:flex;flex-direction:column;gap:.6rem;">
                             <input type="text" id="cowowner-nick" placeholder="Nick MC (lub łłł jeśli ukryty)..." style="padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
                             <input type="text" id="cowowner-yt" placeholder="URL YouTube (opcjonalne)..." style="padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
                             <input type="text" id="cowowner-dc" placeholder="URL Discord (opcjonalne)..." style="padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
-                            <textarea id="cowowner-desc" rows="2" placeholder="Opis współ�wł�ał�ciciela..." style="padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea>
+                            <textarea id="cowowner-desc" rows="2" placeholder="Opis współWłaściciela..." style="padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea>
                             <button class="modal-submit-btn" style="padding:.6rem;" onclick="saveCowowner()"><i class="fa-solid fa-floppy-disk"></i> Zapisz</button>
                         </div>
                     </div>
@@ -701,9 +718,9 @@
 
                 <!-- Personel (admini, moderatorzy, technicy) -->
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:.8rem;">
-                    <div style="font-size:.9rem;font-weight:700;color:var(--text-primary);">Czł�onkowie personelu <span id="personel-count" style="color:var(--text-secondary);font-weight:400;font-size:.82rem;"></span></div>
+                    <div style="font-size:.9rem;font-weight:700;color:var(--text-primary);">Członkowie personelu <span id="personel-count" style="color:var(--text-secondary);font-weight:400;font-size:.82rem;"></span></div>
                     <button class="modal-submit-btn" style="width:auto;padding:.55rem 1.2rem;" onclick="openPersonelModal()">
-                        <i class="fa-solid fa-plus"></i> Dodaj czL�onka
+                        <i class="fa-solid fa-plus"></i> Dodaj członka
                     </button>
                 </div>
                 <div class="table-card">
@@ -711,7 +728,7 @@
                         <table class="data-table">
                             <thead><tr><th>Avatar</th><th>Nick</th><th>Ranga</th><th>Opis</th><th>Socials</th><th>Kolejność</th><th>Akcje</th></tr></thead>
                             <tbody id="personel-tbody">
-                                <tr><td colspan="7" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> L�Ładowanie...</td></tr>
+                                <tr><td colspan="7" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> łŁadowanie...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -729,7 +746,7 @@
                         <table class="data-table">
                             <thead><tr><th>Avatar</th><th>Nick</th><th>Opis</th><th>Socials</th><th>Akcje</th></tr></thead>
                             <tbody id="creators-tbody">
-                                <tr><td colspan="5" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> L�Ładowanie...</td></tr>
+                                <tr><td colspan="5" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> łŁadowanie...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -743,7 +760,7 @@
                     <p>Konkurs startowy, zmiany serwerowe, propozycje graczy</p>
                 </div>
 
-                <!-- Zakł�adki podstrony -->
+                <!-- Zakładki podstrony -->
                 <div style="display:flex;gap:.5rem;margin-bottom:1.5rem;flex-wrap:wrap;">
                     <button class="site-tab-btn active" data-site-tab="contest" onclick="switchSiteTab('contest')"><i class="fa-solid fa-trophy"></i> Konkurs</button>
                     <button class="site-tab-btn" data-site-tab="changes" onclick="switchSiteTab('changes')"><i class="fa-solid fa-list-check"></i> zmiany</button>
@@ -757,7 +774,7 @@
                     <div style="display:flex;align-items:center;gap:.8rem;margin-bottom:1.2rem;flex-wrap:wrap;">
                         <label style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;">Konkurs:</label>
                         <select id="site-contest-select" onchange="siteLoadContestInfo();siteLoadEntries();" style="flex:1;min-width:180px;padding:.55rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
-                            <option value="start">start (domyL�lny)</option>
+                            <option value="start">start (domyłlny)</option>
                         </select>
                         <button class="modal-submit-btn" style="width:auto;padding:.5rem 1.1rem;font-size:.85rem;" onclick="siteNewContest()"><i class="fa-solid fa-plus"></i> Nowy konkurs</button>
                         <button class="tbl-btn" onclick="siteLoadContestList()"><i class="fa-solid fa-rotate-right"></i></button>
@@ -780,12 +797,12 @@
                         <div class="table-card" style="padding:1.2rem;">
                             <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.8rem;"><i class="fa-solid fa-flag-checkered" style="color:#00e676;"></i> Akcje konkursu</div>
                             <div style="display:flex;flex-direction:column;gap:.6rem;">
-                                <div style="font-size:.75rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.2rem;">Nicki zwycięzcAlw</div>
+                                <div style="font-size:.75rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.2rem;">Nicki zwycięzców</div>
                                 <div id="site-winners-inputs" style="display:flex;flex-direction:column;gap:.35rem;margin-bottom:.3rem;"></div>
-                                <button style="background:linear-gradient(135deg,#f2c84a,#ff8c00);color:#000;border:none;padding:.65rem;border-radius:var(--radius-sm);font-weight:900;cursor:pointer;font-family:var(--font);" onclick="siteAnnounceWinners()"><i class="fa-solid fa-trophy"></i> Ogł�oL� zwycięzcAlw i zakoń�cz</button>
-                                <button style="background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);color:#f59e0b;padding:.55rem;border-radius:var(--radius-sm);font-weight:700;cursor:pointer;font-family:var(--font);" onclick="siteEndContest()"><i class="fa-solid fa-flag-checkered"></i> ZakoL�cz bez wyników</button>
+                                <button style="background:linear-gradient(135deg,#f2c84a,#ff8c00);color:#000;border:none;padding:.65rem;border-radius:var(--radius-sm);font-weight:900;cursor:pointer;font-family:var(--font);" onclick="siteAnnounceWinners()"><i class="fa-solid fa-trophy"></i> Ogłoś zwycięzców i zakończ</button>
+                                <button style="background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);color:#f59e0b;padding:.55rem;border-radius:var(--radius-sm);font-weight:700;cursor:pointer;font-family:var(--font);" onclick="siteEndContest()"><i class="fa-solid fa-flag-checkered"></i> Zakończ bez wyników</button>
                                 <button style="background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.25);color:#3b82f6;padding:.55rem;border-radius:var(--radius-sm);font-weight:700;cursor:pointer;font-family:var(--font);" onclick="siteRestartContest()"><i class="fa-solid fa-rotate-right"></i> Zresetuj (nowa tura)</button>
-                                <button style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);color:#ef4444;padding:.55rem;border-radius:var(--radius-sm);font-weight:700;cursor:pointer;font-family:var(--font);" onclick="siteDeleteContest()"><i class="fa-solid fa-trash"></i> UsuńL� konkurs cał�kowicie</button>
+                                <button style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);color:#ef4444;padding:.55rem;border-radius:var(--radius-sm);font-weight:700;cursor:pointer;font-family:var(--font);" onclick="siteDeleteContest()"><i class="fa-solid fa-trash"></i> Usuńł konkurs całkowicie</button>
                             </div>
                             <div id="site-contest-msg" style="margin-top:.7rem;font-size:.85rem;text-align:center;min-height:1.2em;"></div>
                         </div>
@@ -798,9 +815,9 @@
                     <div class="table-card">
                         <div class="table-wrap">
                             <table class="data-table">
-                                <thead><tr><th>Nick MC</th><th>Nick DC</th><th>SL�owo weryfikacyjne</th><th>Doł�ąączył�</th><th>Akcje</th></tr></thead>
+                                <thead><tr><th>Nick MC</th><th>Nick DC</th><th>Słowo weryfikacyjne</th><th>Dołąączył</th><th>Akcje</th></tr></thead>
                                 <tbody id="site-entries-tbody">
-                                    <tr><td colspan="5" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> L�Ładowanie...</td></tr>
+                                    <tr><td colspan="5" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> łŁadowanie...</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -812,7 +829,7 @@
                     <div class="table-card" style="padding:1.4rem;">
                         <div style="display:flex;flex-direction:column;gap:1rem;">
                             <div>
-                                <label style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;display:block;margin-bottom:.4rem;">Tryb: Zwykł�e</label>
+                                <label style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;display:block;margin-bottom:.4rem;">Tryb: Zwykłe</label>
                                 <textarea id="site-edit-zwykle" rows="5" style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea>
                             </div>
                             <div>
@@ -837,7 +854,7 @@
                         <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:1rem;"><i class="fa-brands fa-discord" style="color:#7289da;"></i> Discord</div>
                         <div style="display:flex;gap:.6rem;margin-bottom:1.2rem;">
                             <input type="text" id="site-dc-url" placeholder="URL Discord (np. https://dc.critmc.pl)" style="flex:1;padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
-                            <input type="text" id="site-dc-sub" placeholder="PodtytuL� (np. dc.critmc.pl)" style="flex:1;padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                            <input type="text" id="site-dc-sub" placeholder="Podtytuł (np. dc.critmc.pl)" style="flex:1;padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
                         </div>
                         <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.6rem;"><i class="fa-brands fa-youtube" style="color:#ff0000;"></i> YouTube</div>
                         <div style="display:flex;gap:.6rem;margin-bottom:1.2rem;">
@@ -865,9 +882,9 @@
                     <div class="table-card">
                         <div class="table-wrap">
                             <table class="data-table">
-                                <thead><tr><th>TreL�ć</th><th>TAK</th><th>NIE</th><th>Data</th><th>Akcje</th></tr></thead>
+                                <thead><tr><th>Trełć</th><th>TAK</th><th>NIE</th><th>Data</th><th>Akcje</th></tr></thead>
                                 <tbody id="site-proposals-tbody">
-                                    <tr><td colspan="5" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> L�Ładowanie...</td></tr>
+                                    <tr><td colspan="5" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> łŁadowanie...</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -1000,7 +1017,7 @@
                 <input type="hidden" id="aa-id">
 
                 <div class="modal-field">
-                    <label>Nazwa wyL�wietlana</label>
+                    <label>Nazwa wyłwietlana</label>
                     <input type="text" id="aa-displayname" placeholder="np. Moderator Jan...">
                 </div>
                 <div class="modal-field">
@@ -1029,16 +1046,16 @@
                     <label>Uprawnienia</label>
                     <div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.3rem;">
                         <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;">
-                            <input type="checkbox" class="perm-checkbox" value="ban"> Nadawanie banAlw
+                            <input type="checkbox" class="perm-checkbox" value="ban"> Nadawanie banów
                         </label>
                         <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;">
-                            <input type="checkbox" class="perm-checkbox" value="unban"> Zdejmowanie banAlw
+                            <input type="checkbox" class="perm-checkbox" value="unban"> Zdejmowanie banów
                         </label>
                         <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;">
-                            <input type="checkbox" class="perm-checkbox" value="mute"> Nadawanie mutAlw
+                            <input type="checkbox" class="perm-checkbox" value="mute"> Nadawanie mutów
                         </label>
                         <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;">
-                            <input type="checkbox" class="perm-checkbox" value="unmute"> Zdejmowanie mutAlw
+                            <input type="checkbox" class="perm-checkbox" value="unmute"> Zdejmowanie mutów
                         </label>
                         <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;">
                             <input type="checkbox" class="perm-checkbox" value="kick"> Wyrzucanie graczy
@@ -1050,7 +1067,7 @@
                             <input type="checkbox" class="perm-checkbox" value="players"> Podgląd graczy
                         </label>
                         <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;">
-                            <input type="checkbox" class="perm-checkbox" value="logs"> Podgląd logAlw
+                            <input type="checkbox" class="perm-checkbox" value="logs"> Podgląd logów
                         </label>
                         <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;">
                             <input type="checkbox" class="perm-checkbox" value="evidence_view"> Podglad plikow
@@ -1141,7 +1158,7 @@
                         <button class="dur-btn" onclick="setDuration('30d')">30 dni</button>
                         <button class="dur-btn perm-btn" onclick="setDuration('permanent')">Permanentny</button>
                     </div>
-                    <input type="text" id="duration-custom" placeholder="Lub wpisz wł�asny np. 2h, 5d..." style="margin-top:0.5rem;">
+                    <input type="text" id="duration-custom" placeholder="Lub wpisz własny np. 2h, 5d..." style="margin-top:0.5rem;">
                 </div>
 
                 <div class="modal-field">
@@ -1173,7 +1190,7 @@
     <!-- TOAST NOTIFICATIONS -->
     <div id="toast-container" class="toast-container"></div>
 
-    <!-- Styl dla zakL�adek site-tab -->
+    <!-- Styl dla zakładek site-tab -->
     <style>
         .site-tab-btn {
             background: var(--bg);
@@ -1204,22 +1221,22 @@
         .site-tab-panel { display: none !important; }
         .site-tab-panel.sp-active { display: block !important; }
 
-        /* PL�ynne przejL�cia stroną */
+        /* Płynne przejścia stroną */
         .page { animation: pageIn .18s ease forwards; }
         @keyframes pageIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
 
         /* Szybszy spinner */
         .table-loading { color: var(--text-secondary) !important; }
 
-        /* Lepsze tL�o kart */
+        /* Lepsze tło kart */
         .table-card { will-change: auto; }
     </style>
 
-    <!-- ===== MODAL: CZL�ONEK PERSONELU ===== -->
+    <!-- ===== MODAL: CZŁONEK PERSONELU ===== -->
     <div class="modal-overlay" id="personel-modal" onclick="closeModal(event)">
         <div class="modal-box" style="max-width:560px;">
             <div class="modal-header">
-                <div class="modal-title" id="personel-modal-title">Dodaj czL�onka personelu</div>
+                <div class="modal-title" id="personel-modal-title">Dodaj członka personelu</div>
                 <button class="modal-close" onclick="document.getElementById('personel-modal').classList.remove('open')"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="modal-body">
@@ -1236,12 +1253,12 @@
                         <option value="Zarządzający">Zarządzający</option>
                     </select>
                 </div>
-                <div class="modal-field"><label>Opis</label><textarea id="pm-desc" rows="3" placeholder="Opis czL�onka personelu..." style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea></div>
+                <div class="modal-field"><label>Opis</label><textarea id="pm-desc" rows="3" placeholder="Opis członka personelu..." style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea></div>
                 <div class="modal-field"><label>Discord (opcjonalne)</label><input type="text" id="pm-dc" placeholder="URL lub nick Discord..."></div>
                 <div class="modal-field"><label>YouTube (opcjonalne)</label><input type="text" id="pm-yt" placeholder="URL YouTube..."></div>
                 <div class="modal-field"><label>TikTok (opcjonalne)</label><input type="text" id="pm-tt" placeholder="URL TikTok..."></div>
-                <div class="modal-field"><label>Uprawnienia (widoŁączne na stronąie)</label><input type="text" id="pm-perms" placeholder="np. /ban, /kick, /mute, /tp..."></div>
-                <div class="modal-field"><label>Data doL�ączenia (opcjonalne)</label><input type="date" id="pm-since" style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);"></div>
+                <div class="modal-field"><label>Uprawnienia (widołączne na stronąie)</label><input type="text" id="pm-perms" placeholder="np. /ban, /kick, /mute, /tp..."></div>
+                <div class="modal-field"><label>Data dołączenia (opcjonalne)</label><input type="date" id="pm-since" style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);"></div>
                 <div class="modal-field"><label>Kolejność</label><input type="number" id="pm-order" value="99" min="0" style="width:100px;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);"></div>
                 <div id="pm-msg" class="modal-msg" style="display:none;"></div>
                 <button class="modal-submit-btn" onclick="savePersonelMember()"><i class="fa-solid fa-floppy-disk"></i> Zapisz</button>
@@ -1249,7 +1266,7 @@
         </div>
     </div>
 
-    <!-- ===== MODAL: TWA�RCA ===== -->
+    <!-- ===== MODAL: TWÓRCA ===== -->
     <div class="modal-overlay" id="creator-modal" onclick="closeModal(event)">
         <div class="modal-box" style="max-width:520px;">
             <div class="modal-header">
@@ -1391,10 +1408,10 @@
             if (attempts >= MAX_BEFORE_KICK) {
                 document.body.innerHTML = `
                     <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0f0c1a;flex-direction:column;gap:1.5rem;padding:2rem;text-align:center;">
-                        <div style="font-size:3rem;">dz��</div>
-                        <div style="font-size:1.2rem;font-weight:800;color:#ef4444;">Zbyt wiele bL�ędnych prób</div>
-                        <div style="color:#9ca3af;font-size:.9rem;">Został�eL� wylogowany ze strony po ${MAX_BEFORE_KICK} nieudanych próbach logowania.</div>
-                        <div style="color:#6b7280;font-size:.82rem;">Pozostał�o prób do blokady: ${MAX_BEFORE_BLOCK - attempts}</div>
+                        <div style="font-size:3rem;">dz</div>
+                        <div style="font-size:1.2rem;font-weight:800;color:#ef4444;">Zbyt wiele błędnych prób</div>
+                        <div style="color:#9ca3af;font-size:.9rem;">Zostałeś wylogowany ze strony po ${MAX_BEFORE_KICK} nieudanych próbach logowania.</div>
+                        <div style="color:#6b7280;font-size:.82rem;">Pozostało prób do blokady: ${MAX_BEFORE_BLOCK - attempts}</div>
                         <button onclick="location.reload()" style="background:#ef4444;color:#fff;border:none;padding:.75rem 2rem;border-radius:8px;font-size:.95rem;font-weight:700;cursor:pointer;margin-top:.5rem;">
                             Spróbuj ponownie
                         </button>
@@ -1406,7 +1423,7 @@
             const errEl = document.getElementById('login-error');
             if (errEl) {
                 errEl.style.display = 'flex';
-                errEl.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> BL�ędny login lub hasło! (${remaining} prób do wyrzutu)`;
+                errEl.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> Błędny login lub hasło! (${remaining} prób do wyrzutu)`;
             }
         };
 
@@ -1416,7 +1433,7 @@
                 <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0f0c1a;flex-direction:column;gap:1.5rem;padding:2rem;text-align:center;">
                     <div style="font-size:3rem;">⛔</div>
                     <div style="font-size:1.2rem;font-weight:800;color:#ef4444;">Dostęp zablokowany</div>
-                    <div style="color:#9ca3af;font-size:.9rem;">Przekroczono limit bL�ędnych prób logowania.</div>
+                    <div style="color:#9ca3af;font-size:.9rem;">Przekroczono limit błędnych prób logowania.</div>
                     <div style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:10px;padding:1rem 2rem;">
                         <div style="color:#ef4444;font-weight:800;font-size:1.1rem;">Blokada: ~${timeLeft}h</div>
                         <div style="color:#6b7280;font-size:.78rem;margin-top:.3rem;">Wygasa: ${new Date(until).toLocaleString('pl-PL')}</div>
@@ -1438,7 +1455,7 @@
             const password = document.getElementById('login-password').value;
 
             // Przekażż do admin.js (modułu) który sprawdza Firestore
-            // admin.js wywoła recordFailedAttempt() jeśli bL�ąd
+            // admin.js wywoła recordFailedAttempt() jeśli błąd
             window.dispatchEvent(new CustomEvent('adminLogin', { detail: { login, password } }));
         }
 
@@ -1485,7 +1502,7 @@
             document.getElementById('sidebar').classList.toggle('open');
         }
 
-        // Zamknij modal klikając w tL�o
+        // Zamknij modal klikając wtło
         function closeModal(e) {
             if (e.target.classList.contains('modal-overlay')) {
                 e.target.classList.remove('open');
@@ -1500,10 +1517,10 @@
             document.getElementById('player-detail-modal').classList.remove('open');
         }
 
-        // Guard — przy kałLdym wejL�ciu na stronąę wymagane logowanie
+        // Guard — przy kałLdym wejściu na stronąę wymagane logowanie
         // Brak sessionStorage = brak auto-login = zawsze loguj od nowa
         (function checkAuth() {
-            // Wyączył�ć ewentualną starą sesjęę
+            // Wyączyłć ewentualną starą sesjęę
             sessionStorage.removeItem('admin_user');
             // Panel zawsze ukryty na start — CSS !important to gwarantuje
         })();
