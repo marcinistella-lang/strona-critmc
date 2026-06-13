@@ -3441,116 +3441,251 @@ window.toggleShopView = function() {
 
 let _lastShopList = [];
 
-function renderShopItems(list) {
-    _lastShopList = list;
+// ─── SKLEP: widok kart + tabela ─────────────────────────────────────────────
+let _shopView = 'grid'; // 'grid' | 'table'
+
+window.toggleShopView = function() {
+    _shopView = _shopView === 'grid' ? 'table' : 'grid';
+    const btn = document.getElementById('shop-view-toggle');
+    if (btn) btn.innerHTML = _shopView === 'grid'
+        ? '<i class="fa-solid fa-table-cells-large"></i>'
+        : '<i class="fa-solid fa-list"></i>';
+    renderCurrentShop();
+};
+
+function renderCurrentShop() {
+    const s    = (document.getElementById('shop-search')?.value || '').toLowerCase();
+    const type = document.getElementById('shop-type-filter')?.value || '';
+    const stat = document.getElementById('shop-status-filter')?.value || '';
+    const list = allShopItems.filter(item => {
+        if (s && !(item.name||'').toLowerCase().includes(s) && !(item.desc||'').toLowerCase().includes(s)) return false;
+        if (type && item.type !== type) return false;
+        if (stat === 'active' && item.active === false) return false;
+        if (stat === 'hidden' && item.active !== false) return false;
+        return true;
+    });
+    if (_shopView === 'grid') {
+        document.getElementById('shop-grid-view').style.display = 'grid';
+        document.getElementById('shop-table-view').style.display = 'none';
+        renderShopGrid(list);
+    } else {
+        document.getElementById('shop-grid-view').style.display = 'none';
+        document.getElementById('shop-table-view').style.display = 'block';
+        renderShopItems(list);
+    }
+}
+
+function renderShopGrid(list) {
     const grid = document.getElementById('shop-grid-view');
-    const tb   = document.getElementById('shop-items-tbody');
-    const tableView = document.getElementById('shop-table-view');
-
-    if (!grid && !tb) return;
-
+    if (!grid) return;
     if (!list.length) {
-        if (grid) grid.innerHTML = `
-            <div style="grid-column:1/-1;text-align:center;padding:3rem 1rem;color:var(--text-secondary);">
-                <i class="fa-solid fa-shop" style="font-size:2.5rem;display:block;margin-bottom:.75rem;opacity:.4;"></i>
-                <div style="font-weight:700;font-size:1rem;margin-bottom:.4rem;">Brak produktów</div>
-                <div style="font-size:.85rem;">Kliknij &quot;+ Dodaj produkt&quot; aby dodać pierwszy.</div>
-            </div>`;
-        if (tb) tb.innerHTML = `<tr><td colspan="7" class="table-empty"><i class="fa-solid fa-shop"></i> Brak produktów</td></tr>`;
+        grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--text-secondary);">
+            <i class="fa-solid fa-shop" style="font-size:2.5rem;display:block;margin-bottom:.75rem;opacity:.3;"></i>
+            Brak produktów. Kliknij "+ Dodaj produkt".
+        </div>`;
         return;
     }
-
-    // ── WIDOK SIATKI KART ────────────────────────────────────────────────────
-    if (_shopViewMode === 'grid' && grid) {
-        if (tableView) tableView.style.display = 'none';
-        grid.style.display = 'grid';
-
-        const typeColors = { ranga:'#8b5cf6', zestaw:'#3b82f6', item:'#10b981', klucz:'#f59e0b' };
-        const typeIcons  = { ranga:'fa-crown', zestaw:'fa-box', item:'fa-sword', klucz:'fa-key' };
-
-        grid.innerHTML = list.map(item => {
-            const color = typeColors[item.type] || '#6b7280';
-            const icon  = typeIcons[item.type]  || 'fa-shop';
-            const isHidden = item.active === false;
-
-            const mediaHtml = item.mediaUrl
-                ? (/\.(mp4|webm|mov)/i.test(item.mediaUrl)
-                    ? `<video src="${item.mediaUrl}" style="width:100%;height:160px;object-fit:cover;" muted playsinline></video>`
-                    : `<img src="${item.mediaUrl}" alt="${escapeHtml(item.name||'')}" style="width:100%;height:160px;object-fit:cover;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-                       <div style="display:none;width:100%;height:160px;align-items:center;justify-content:center;background:${color}11;color:${color};font-size:2rem;"><i class="fa-solid ${icon}"></i></div>`)
-                : `<div style="width:100%;height:160px;display:flex;align-items:center;justify-content:center;background:${color}11;color:${color};font-size:2.5rem;"><i class="fa-solid ${icon}"></i></div>`;
-
-            const itemsList = item.itemsText
-                ? item.itemsText.split('\n').filter(Boolean).slice(0,5).map(i =>
-                    `<div style="font-size:.75rem;color:var(--text-secondary);display:flex;align-items:center;gap:.35rem;"><i class="fa-solid fa-check" style="color:${color};font-size:.65rem;flex-shrink:0;"></i>${escapeHtml(i.trim())}</div>`
-                  ).join('') : '';
-
-            return `<div class="shop-card ${isHidden ? 'shop-card-hidden' : ''}" style="--card-color:${color};">
-                <div class="shop-card-media" onclick="editShopItem('${item.id}')" style="cursor:pointer;">
-                    ${mediaHtml}
-                    <div class="shop-card-type-badge">
-                        <i class="fa-solid ${icon}"></i> ${item.type || '—'}
-                    </div>
-                    ${isHidden ? '<div class="shop-card-hidden-badge"><i class="fa-solid fa-eye-slash"></i> Ukryty</div>' : ''}
+    const typeEmoji = { ranga:'🏆', zestaw:'📦', item:'⚔️', klucz:'🔑' };
+    const typeColor = { ranga:'#8b5cf6', zestaw:'#3b82f6', item:'#10b981', klucz:'#f59e0b' };
+    grid.innerHTML = list.map(item => {
+        const tc = typeColor[item.type] || '#6b7280';
+        const te = typeEmoji[item.type] || '🛍️';
+        const isHidden = item.active === false;
+        const media = item.mediaUrl
+            ? (/\.(mp4|webm)/i.test(item.mediaUrl)
+                ? `<video src="${item.mediaUrl}" muted loop style="width:100%;height:160px;object-fit:cover;" onerror="this.style.display='none'"></video>`
+                : `<img src="${item.mediaUrl}" style="width:100%;height:160px;object-fit:cover;" onerror="this.style.background='var(--bg)';this.style.display='none'">`)
+            : `<div style="width:100%;height:160px;background:linear-gradient(135deg,${tc}22,${tc}44);display:flex;align-items:center;justify-content:center;font-size:3.5rem;">${te}</div>`;
+        const items = item.itemsText ? item.itemsText.split('\n').filter(Boolean) : [];
+        return `<div class="shop-card${isHidden?' shop-card-hidden':''}">
+            <div class="shop-card-media">${media}</div>
+            <div class="shop-card-body">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem;">
+                    <span class="badge" style="background:${tc}22;color:${tc};border:1px solid ${tc}44;font-size:.68rem;">${te} ${item.type||'—'}</span>
+                    <span class="badge ${isHidden?'badge-banned':'badge-online'}" style="font-size:.68rem;">${isHidden?'Ukryty':'Aktywny'}</span>
                 </div>
-                <div class="shop-card-body">
-                    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem;margin-bottom:.4rem;">
-                        <div style="font-weight:800;font-size:1rem;color:var(--text-primary);line-height:1.2;">${escapeHtml(item.name || '—')}</div>
-                        <div style="text-align:right;flex-shrink:0;">
-                            <div style="font-weight:900;font-size:1.1rem;color:${color};">${item.price != null ? item.price : '—'}<span style="font-size:.7rem;font-weight:600;color:var(--text-secondary);"> PLN</span></div>
-                            ${item.oldPrice ? `<div style="font-size:.72rem;color:var(--text-secondary);text-decoration:line-through;">${item.oldPrice} PLN</div>` : ''}
-                        </div>
+                <div style="font-size:1rem;font-weight:800;color:var(--text-primary);margin-bottom:.25rem;">${escapeHtml(item.name||'—')}</div>
+                ${item.desc?`<div style="font-size:.78rem;color:var(--text-secondary);margin-bottom:.5rem;line-height:1.4;">${escapeHtml(item.desc).substring(0,80)}${item.desc.length>80?'…':''}</div>`:''}
+                ${items.length?`<ul style="margin:.4rem 0 .6rem 1rem;padding:0;font-size:.76rem;color:var(--text-secondary);">${items.slice(0,3).map(i=>`<li>${escapeHtml(i)}</li>`).join('')}${items.length>3?`<li style="color:var(--accent);">+${items.length-3} więcej</li>`:''}</ul>`:''}
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:.6rem;border-top:1px solid var(--border);">
+                    <div>
+                        <span style="font-size:1.15rem;font-weight:900;color:var(--accent);">${item.price!=null?item.price:'—'} <span style="font-size:.7rem;font-weight:600;color:var(--text-secondary);">PLN</span></span>
+                        ${item.oldPrice?`<span style="font-size:.75rem;color:var(--text-secondary);text-decoration:line-through;margin-left:.4rem;">${item.oldPrice} PLN</span>`:''}
                     </div>
-                    ${item.desc ? `<div style="font-size:.8rem;color:var(--text-secondary);margin-bottom:.6rem;line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${escapeHtml(item.desc)}</div>` : ''}
-                    ${itemsList ? `<div style="display:flex;flex-direction:column;gap:.2rem;margin-bottom:.6rem;">${itemsList}</div>` : ''}
-                    <div style="display:flex;gap:.4rem;margin-top:auto;padding-top:.6rem;border-top:1px solid var(--border);">
-                        <button class="tbl-btn" style="flex:1;justify-content:center;" onclick="editShopItem('${item.id}')"><i class="fa-solid fa-pen"></i> Edytuj</button>
-                        <button class="tbl-btn" onclick="toggleShopItemActive('${item.id}',${!isHidden})" title="${isHidden ? 'Aktywuj' : 'Ukryj'}">
-                            <i class="fa-solid ${isHidden ? 'fa-eye' : 'fa-eye-slash'}"></i>
-                        </button>
+                    <div style="display:flex;gap:.35rem;">
+                        <button class="tbl-btn" onclick="editShopItem('${item.id}')" title="Edytuj"><i class="fa-solid fa-pen"></i></button>
                         <button class="tbl-btn tbl-btn-red" onclick='deleteShopItem("${item.id}","${escapeHtml(item.name||"")}")' title="Usuń"><i class="fa-solid fa-trash"></i></button>
                     </div>
                 </div>
-            </div>`;
-        }).join('');
+            </div>
+        </div>`;
+    }).join('');
+}
+
+let _shopViewMode = 'grid'; // 'grid' | 'table'
+
+window.toggleShopView = function() {
+    _shopViewMode = _shopViewMode === 'grid' ? 'table' : 'grid';
+    const grid = document.getElementById('shop-grid-view');
+    const tbl  = document.getElementById('shop-table-view');
+    const btn  = document.getElementById('shop-view-toggle');
+    if (grid) grid.style.display = _shopViewMode === 'grid' ? 'grid' : 'none';
+    if (tbl)  tbl.style.display  = _shopViewMode === 'table' ? 'block' : 'none';
+    if (btn)  btn.innerHTML = _shopViewMode === 'grid'
+        ? '<i class="fa-solid fa-table-list"></i>'
+        : '<i class="fa-solid fa-table-cells-large"></i>';
+    window.filterShopItems();
+};
+
+let _shopViewMode = 'grid'; // 'grid' | 'table'
+
+window.toggleShopView = function() {
+    _shopViewMode = _shopViewMode === 'grid' ? 'table' : 'grid';
+    const grid = document.getElementById('shop-grid-view');
+    const table = document.getElementById('shop-table-view');
+    const btn = document.getElementById('shop-view-toggle');
+    if (_shopViewMode === 'grid') {
+        if (grid) grid.style.display = 'grid';
+        if (table) table.style.display = 'none';
+        if (btn) btn.innerHTML = '<i class="fa-solid fa-table-cells-large"></i>';
+    } else {
+        if (grid) grid.style.display = 'none';
+        if (table) table.style.display = 'block';
+        if (btn) btn.innerHTML = '<i class="fa-solid fa-list"></i>';
+    }
+    window.filterShopItems();
+};
+
+function renderShopItems(list) {
+    renderShopGrid(list);
+    renderShopTable(list);
+}
+
+let _shopViewMode = 'grid'; // 'grid' | 'table'
+
+window.toggleShopView = function() {
+    _shopViewMode = _shopViewMode === 'grid' ? 'table' : 'grid';
+    const grid = document.getElementById('shop-grid-view');
+    const table = document.getElementById('shop-table-view');
+    const btn = document.getElementById('shop-view-toggle');
+    if (_shopViewMode === 'grid') {
+        if (grid) grid.style.display = 'grid';
+        if (table) table.style.display = 'none';
+        if (btn) btn.innerHTML = '<i class="fa-solid fa-table-list"></i>';
+    } else {
+        if (grid) grid.style.display = 'none';
+        if (table) table.style.display = 'block';
+        if (btn) btn.innerHTML = '<i class="fa-solid fa-table-cells-large"></i>';
+    }
+};
+
+const TYPE_META = {
+    ranga:  { icon: '🏆', color: '#8b5cf6', label: 'Ranga' },
+    zestaw: { icon: '📦', color: '#3b82f6', label: 'Zestaw' },
+    item:   { icon: '⚔️', color: '#10b981', label: 'Item' },
+    klucz:  { icon: '🔑', color: '#f59e0b', label: 'Klucz' },
+};
+
+function renderShopGrid(list) {
+    const grid = document.getElementById('shop-grid-view');
+    if (!grid) return;
+    if (!list.length) {
+        grid.style.display = 'block';
+        grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--text-secondary);">
+            <i class="fa-solid fa-shop" style="font-size:2.5rem;margin-bottom:.75rem;display:block;opacity:.3;"></i>
+            Brak produktów. Kliknij <strong>+ Dodaj produkt</strong> aby zacząć.
+        </div>`;
         return;
     }
+    grid.innerHTML = list.map(item => {
+        const meta = TYPE_META[item.type] || { icon: '🎁', color: '#6b7280', label: item.type || '?' };
+        const active = item.active !== false;
+        const hasMedia = item.mediaUrl;
+        const isVideo = hasMedia && /\.(mp4|webm|mov)/i.test(item.mediaUrl);
+        const mediaHtml = hasMedia
+            ? (isVideo
+                ? `<video src="${escapeHtml(item.mediaUrl)}" muted loop autoplay style="width:100%;height:160px;object-fit:cover;" onerror="this.style.display='none'"></video>`
+                : `<img src="${escapeHtml(item.mediaUrl)}" alt="${escapeHtml(item.name||'')}" style="width:100%;height:160px;object-fit:cover;" onerror="this.style.display='none'">`)
+            : `<div style="width:100%;height:160px;background:linear-gradient(135deg,${meta.color}22,${meta.color}11);display:flex;align-items:center;justify-content:center;font-size:3.5rem;">${meta.icon}</div>`;
 
-    // ── WIDOK TABELI ─────────────────────────────────────────────────────────
-    if (grid) grid.style.display = 'none';
-    if (tableView) tableView.style.display = 'block';
+        const items = (item.itemsText || '').split('\n').filter(Boolean).slice(0, 5);
+        const itemsList = items.length
+            ? `<ul style="padding:0;margin:.5rem 0 0;list-style:none;display:flex;flex-direction:column;gap:.2rem;">
+                ${items.map(i => `<li style="font-size:.78rem;color:var(--text-secondary);display:flex;align-items:center;gap:.35rem;"><i class="fa-solid fa-check" style="color:${meta.color};font-size:.65rem;flex-shrink:0;"></i>${escapeHtml(i)}</li>`).join('')}
+               </ul>` : '';
+
+        return `<div class="shop-card ${active ? '' : 'shop-card-hidden'}" data-id="${item.id}">
+            <div style="position:relative;border-radius:var(--radius-sm) var(--radius-sm) 0 0;overflow:hidden;">
+                ${mediaHtml}
+                <span style="position:absolute;top:.6rem;left:.6rem;background:${meta.color};color:#fff;font-size:.68rem;font-weight:800;padding:.2rem .6rem;border-radius:999px;">${meta.icon} ${meta.label}</span>
+                ${!active ? `<span style="position:absolute;top:.6rem;right:.6rem;background:rgba(0,0,0,.6);color:#fff;font-size:.68rem;font-weight:700;padding:.2rem .6rem;border-radius:999px;"><i class="fa-solid fa-eye-slash"></i> Ukryty</span>` : ''}
+            </div>
+            <div style="padding:1rem;">
+                <div style="font-size:1rem;font-weight:800;color:var(--text-primary);margin-bottom:.25rem;">${escapeHtml(item.name || '—')}</div>
+                ${item.desc ? `<div style="font-size:.8rem;color:var(--text-secondary);line-height:1.5;margin-bottom:.4rem;">${escapeHtml(item.desc)}</div>` : ''}
+                ${itemsList}
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-top:.85rem;padding-top:.75rem;border-top:1px solid var(--border);">
+                    <div>
+                        <span style="font-size:1.3rem;font-weight:900;color:${meta.color};">${item.price != null ? item.price : '—'}</span>
+                        <span style="font-size:.78rem;font-weight:600;color:var(--text-secondary);margin-left:.2rem;">PLN</span>
+                        ${item.oldPrice ? `<div style="font-size:.72rem;color:var(--text-secondary);text-decoration:line-through;">${item.oldPrice} PLN</div>` : ''}
+                    </div>
+                    <div style="display:flex;gap:.4rem;">
+                        <button class="tbl-btn" onclick="editShopItem('${item.id}')" title="Edytuj"><i class="fa-solid fa-pen"></i></button>
+                        <button class="tbl-btn" onclick="toggleShopItemActive('${item.id}',${active})" title="${active ? 'Ukryj' : 'Pokaż'}"><i class="fa-solid fa-${active ? 'eye-slash' : 'eye'}"></i></button>
+                        <button class="tbl-btn tbl-btn-red" onclick='deleteShopItem("${item.id}","${escapeHtml(item.name||"")}")' title="Usuń"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function renderShopTable(list) {
+    const tb = document.getElementById('shop-items-tbody');
     if (!tb) return;
-
+    if (!list.length) {
+        tb.innerHTML = `<tr><td colspan="7" class="table-empty">Brak produktów.</td></tr>`;
+        return;
+    }
     tb.innerHTML = list.map(item => {
-        const color = { ranga:'#8b5cf6', zestaw:'#3b82f6', item:'#10b981', klucz:'#f59e0b' }[item.type] || '#6b7280';
-        const mediaThumb = item.mediaUrl
-            ? (/\.(mp4|webm|mov)/i.test(item.mediaUrl)
-                ? `<span style="color:#3b82f6;font-size:.75rem;"><i class="fa-solid fa-video"></i></span>`
-                : `<img src="${item.mediaUrl}" style="width:36px;height:36px;object-fit:cover;border-radius:6px;" onerror="this.style.display='none'">`)
-            : `<span style="color:var(--text-secondary);font-size:.75rem;">—</span>`;
+        const meta = TYPE_META[item.type] || { icon: '🎁', color: '#6b7280', label: item.type || '?' };
+        const active = item.active !== false;
+        const mediaPreview = item.mediaUrl
+            ? `<img src="${escapeHtml(item.mediaUrl)}" style="width:36px;height:36px;object-fit:cover;border-radius:6px;border:1px solid var(--border);" onerror="this.style.display='none'">`
+            : `<span style="color:var(--text-secondary);font-size:.75rem;">Brak</span>`;
         return `<tr>
-            <td><div style="font-weight:700;">${escapeHtml(item.name||'—')}</div>${item.desc?`<div style="font-size:.72rem;color:var(--text-secondary);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(item.desc)}</div>`:''}</td>
-            <td><span class="badge" style="background:${color}22;color:${color};border:1px solid ${color}44;">${item.type||'—'}</span></td>
-            <td><strong>${item.price??'—'}</strong>${item.price!=null?' PLN':''}<br>${item.oldPrice?`<s style="font-size:.72rem;color:var(--text-secondary);">${item.oldPrice} PLN</s>`:''}</td>
-            <td>${mediaThumb}</td>
-            <td><span class="badge ${item.active===false?'badge-banned':'badge-online'}">${item.active===false?'Ukryty':'Aktywny'}</span></td>
-            <td style="color:var(--text-secondary);">${item.sortOrder??99}</td>
-            <td><div style="display:flex;gap:.3rem;">
-                <button class="tbl-btn" onclick="editShopItem('${item.id}')"><i class="fa-solid fa-pen"></i></button>
-                <button class="tbl-btn" onclick="toggleShopItemActive('${item.id}',${item.active===false})"><i class="fa-solid ${item.active===false?'fa-eye':'fa-eye-slash'}"></i></button>
-                <button class="tbl-btn tbl-btn-red" onclick='deleteShopItem("${item.id}","${escapeHtml(item.name||"")}")'><i class="fa-solid fa-trash"></i></button>
-            </div></td>
+            <td>
+                <div style="font-weight:700;">${escapeHtml(item.name||'—')}</div>
+                ${item.desc ? `<div style="font-size:.72rem;color:var(--text-secondary);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(item.desc)}</div>` : ''}
+            </td>
+            <td><span class="badge" style="background:${meta.color}22;color:${meta.color};border:1px solid ${meta.color}44;">${meta.icon} ${meta.label}</span></td>
+            <td>
+                <span style="font-weight:800;">${item.price != null ? item.price : '—'}</span>
+                <span style="font-size:.72rem;color:var(--text-secondary);"> PLN</span>
+                ${item.oldPrice ? `<div style="font-size:.7rem;color:var(--text-secondary);text-decoration:line-through;">${item.oldPrice} PLN</div>` : ''}
+            </td>
+            <td>${mediaPreview}</td>
+            <td><span class="badge ${active ? 'badge-online' : 'badge-banned'}">${active ? 'Aktywny' : 'Ukryty'}</span></td>
+            <td style="color:var(--text-secondary);font-size:.82rem;">${item.sortOrder ?? 99}</td>
+            <td>
+                <div style="display:flex;gap:.35rem;">
+                    <button class="tbl-btn" onclick="editShopItem('${item.id}')"><i class="fa-solid fa-pen"></i></button>
+                    <button class="tbl-btn" onclick="toggleShopItemActive('${item.id}',${active})"><i class="fa-solid fa-${active ? 'eye-slash' : 'eye'}"></i></button>
+                    <button class="tbl-btn tbl-btn-red" onclick='deleteShopItem("${item.id}","${escapeHtml(item.name||"")}")'><i class="fa-solid fa-trash"></i></button>
+                </div>
+            </td>
         </tr>`;
     }).join('');
 }
 
-window.toggleShopItemActive = async function(id, makeActive) {
-    if (!requirePermission('shop','zarządzanie sklepem')) return;
+window.toggleShopItemActive = async function(id, currentlyActive) {
+    if (!requirePermission('shop', 'zarządzanie sklepem')) return;
     try {
-        await updateDoc(doc(db,'shop_items',id), { active: makeActive, updatedAt: serverTimestamp(), updatedBy: currentUser?.displayName||'Panel' });
-        showToast('success', makeActive ? 'Produkt aktywowany' : 'Produkt ukryty');
+        await updateDoc(doc(db, 'shop_items', id), { active: !currentlyActive, updatedAt: serverTimestamp() });
+        showToast('success', currentlyActive ? 'Produkt ukryty' : 'Produkt aktywny');
         await window.loadShopPage();
-    } catch(e) { showToast('error','Błąd: '+e.message); }
+    } catch(e) { showToast('error', 'Błąd: ' + e.message); }
 };
 window.filterShopItems = function() {
     const type   = document.getElementById('shop-type-filter')?.value   || '';
