@@ -3153,7 +3153,7 @@ window.loadShopPage = async function() {
 
     if (!tb) return;
 
-    tb.innerHTML = `<tr><td colspan="6" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>`;
+    tb.innerHTML = `<tr><td colspan="7" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>`;
 
     try {
 
@@ -4362,11 +4362,12 @@ window.siteNewContest = async function() {
 
 window.loadSitePage = async function() {
 
+    // Zawsze zaczynaj od zakładki Konkurs
+    window.switchSiteTab('contest');
+
     await siteLoadContestList();
 
     await Promise.all([siteLoadContestInfo(), siteLoadEntries(), siteLoadChanges(), siteLoadMedia(), siteLoadProposals()]);
-
-    // Nie ładuj news/poll automatycznie - załadują się przy kliknięciu zakładki
 
 };
 
@@ -5351,54 +5352,11 @@ function _buildVideoEmbed(url) {
     return '<a href="' + escapeHtml(url) + '" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:.4rem;margin-top:.5rem;font-size:.82rem;color:var(--accent-blue);"><i class="fa-solid fa-play-circle"></i> Obejrzyj wideo</a>';
 }
 
-window.openNewsModal = function() {
-    document.getElementById('news-modal-title').textContent = 'Dodaj aktualność';
-    document.getElementById('news-id').value      = '';
-    document.getElementById('news-title').value   = '';
-    document.getElementById('news-content').value = '';
-    document.getElementById('news-video').value   = '';
-    document.getElementById('news-pinned').checked = false;
-    document.getElementById('news-msg').style.display = 'none';
-    document.getElementById('news-modal').classList.add('open');
-};
+;
 
-window.editNews = async function(id) {
-    try {
-        const snap = await getDoc(doc(db, 'news', id));
-        if (!snap.exists()) return;
-        const n = snap.data();
-        document.getElementById('news-modal-title').textContent = 'Edytuj aktualność';
-        document.getElementById('news-id').value      = id;
-        document.getElementById('news-title').value   = n.title   || '';
-        document.getElementById('news-content').value = n.content || '';
-        document.getElementById('news-video').value   = n.video   || '';
-        document.getElementById('news-pinned').checked = !!n.pinned;
-        document.getElementById('news-msg').style.display = 'none';
-        document.getElementById('news-modal').classList.add('open');
-    } catch(ex) { showToast('error', ex.message); }
-};
+;
 
-window.saveNews = async function() {
-    if (!requirePermission('site','zarządzanie stroną')) return;
-    const id      = document.getElementById('news-id').value;
-    const title   = document.getElementById('news-title').value.trim();
-    const content = document.getElementById('news-content').value.trim();
-    const video   = document.getElementById('news-video').value.trim();
-    const pinned  = document.getElementById('news-pinned').checked;
-    if (!title) { _showNewsMsg('error','Podaj tytuł!'); return; }
-    try {
-        const data = { title, content, video, pinned, author: currentUser?.displayName||'Admin', updatedAt: serverTimestamp() };
-        if (id) {
-            await updateDoc(doc(db, 'news', id), data);
-        } else {
-            data.createdAt = serverTimestamp();
-            await addDoc(collection(db, 'news'), data);
-        }
-        showToast('success', id ? 'Aktualność zaktualizowana!' : 'Aktualność dodana!');
-        document.getElementById('news-modal').classList.remove('open');
-        window.loadNewsTab();
-    } catch(ex) { _showNewsMsg('error','Błąd: '+ex.message); }
-};
+;
 
 window.deleteNews = async function(id) {
     if (!confirm('Usunąć tę aktualność?')) return;
@@ -5501,96 +5459,129 @@ window.resetPollVotes = async function() {
 
 // ─── RICH TEXT EDITOR (Aktualności) ───────────────────────────────────────
 
+function _rteGetEditor() {
+    return document.getElementById('news-editor');
+}
+
 function rteCmd(cmd) {
-    document.getElementById('news-editor')?.focus();
+    _rteGetEditor()?.focus();
     document.execCommand(cmd, false, null);
 }
 
 function rteSize(size) {
     if (!size) return;
-    document.getElementById('news-editor')?.focus();
+    _rteGetEditor()?.focus();
     document.execCommand('fontSize', false, size);
 }
 
 function rteFontFamily(font) {
     if (!font) return;
-    document.getElementById('news-editor')?.focus();
+    _rteGetEditor()?.focus();
     document.execCommand('fontName', false, font);
 }
 
 function rteColor(color) {
-    document.getElementById('news-editor')?.focus();
+    _rteGetEditor()?.focus();
     document.execCommand('foreColor', false, color);
 }
 
 function rteBgColor(color) {
-    document.getElementById('news-editor')?.focus();
+    _rteGetEditor()?.focus();
     document.execCommand('hiliteColor', false, color);
 }
 
 function rteInsertLink() {
-    const url = prompt('Podaj adres URL linku:');
+    const url  = prompt('Adres URL linku:');
     if (!url) return;
-    const text = prompt('Tekst linku (lub Enter dla URL):') || url;
-    document.getElementById('news-editor')?.focus();
-    document.execCommand('insertHTML', false, '<a href="' + url + '" target="_blank" rel="noopener">' + text + '</a>');
+    const text = prompt('Tekst linku (Enter = URL):') || url;
+    _rteGetEditor()?.focus();
+    document.execCommand('insertHTML', false,
+        '<a href="' + escapeHtml(url) + '" target="_blank" rel="noopener" style="color:#3b82f6;">' + escapeHtml(text) + '</a>');
 }
 
 function rteInsertImage() {
-    const url = prompt('Podaj URL zdjęcia:');
+    const url = prompt('URL zdjęcia:');
     if (!url) return;
-    document.getElementById('news-editor')?.focus();
-    document.execCommand('insertHTML', false, '<img src="' + url + '" alt="zdjęcie" style="max-width:100%;border-radius:8px;">');
+    _rteGetEditor()?.focus();
+    document.execCommand('insertHTML', false,
+        '<img src="' + escapeHtml(url) + '" alt="zdjęcie" style="max-width:100%;border-radius:8px;margin:.4rem 0;display:block;">');
 }
 
+window.rteUploadFile = async function() {
+    if (!requirePermission('site','zarządzanie stroną')) return;
+    const input = document.createElement('input');
+    input.type   = 'file';
+    input.accept = 'image/*,video/*,.gif,.webp,.png,.jpg,.jpeg,.mp4,.webm';
+    input.onchange = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        showToast('info', 'Wysyłam plik...');
+        try {
+            const form = new FormData();
+            form.append('file', file);
+            form.append('folder', 'news');
+            form.append('admin', currentUser?.displayName || 'Panel');
+            const res  = await fetch(FILE_WORKER_URL + '/upload/news', { method: 'POST', body: form });
+            const data = await res.json().catch(() => null);
+            if (!res.ok || !data?.ok || !data?.file) throw new Error(data?.error || 'Błąd uploadu');
+            const url = data.file.publicUrl || data.file.url || (FILE_WORKER_URL + '/file/' + encodeURIComponent(data.file.fileKey));
+            _rteGetEditor()?.focus();
+            const isVideo = /\.(mp4|webm|mov)/i.test(url);
+            if (isVideo) {
+                document.execCommand('insertHTML', false,
+                    '<video src="' + url + '" controls style="max-width:100%;border-radius:8px;margin:.4rem 0;display:block;"></video>');
+            } else {
+                document.execCommand('insertHTML', false,
+                    '<img src="' + url + '" alt="' + escapeHtml(file.name) + '" style="max-width:100%;border-radius:8px;margin:.4rem 0;display:block;">');
+            }
+            showToast('success', 'Plik dodany do treści.');
+        } catch(ex) {
+            showToast('error', 'Błąd: ' + ex.message);
+        }
+    };
+    input.click();
+};
+
 window.syncNewsContent = function() {
-    const editor  = document.getElementById('news-editor');
-    const hidden  = document.getElementById('news-content');
+    const editor = _rteGetEditor();
+    const hidden = document.getElementById('news-content');
     if (editor && hidden) hidden.value = editor.innerHTML;
 };
 
-// Nadpisz openNewsModal i editNews żeby używały edytora HTML
-
-const _origOpenNewsModal = window.openNewsModal;
 window.openNewsModal = function() {
     document.getElementById('news-modal-title').textContent = 'Dodaj aktualność';
-    document.getElementById('news-id').value      = '';
-    document.getElementById('news-title').value   = '';
-    document.getElementById('news-video').value   = '';
+    document.getElementById('news-id').value       = '';
+    document.getElementById('news-title').value    = '';
+    document.getElementById('news-video').value    = '';
     document.getElementById('news-pinned').checked = false;
     document.getElementById('news-msg').style.display = 'none';
-    const editor = document.getElementById('news-editor');
-    if (editor) editor.innerHTML = '';
+    const editor = _rteGetEditor();
+    if (editor) { editor.innerHTML = ''; editor.focus(); }
     document.getElementById('news-content').value = '';
     document.getElementById('news-modal').classList.add('open');
-    setTimeout(() => editor?.focus(), 100);
 };
 
-const _origEditNews = window.editNews;
 window.editNews = async function(id) {
     try {
         const snap = await getDoc(doc(db, 'news', id));
         if (!snap.exists()) return;
         const n = snap.data();
         document.getElementById('news-modal-title').textContent = 'Edytuj aktualność';
-        document.getElementById('news-id').value      = id;
-        document.getElementById('news-title').value   = n.title   || '';
-        document.getElementById('news-video').value   = n.video   || '';
+        document.getElementById('news-id').value       = id;
+        document.getElementById('news-title').value    = n.title   || '';
+        document.getElementById('news-video').value    = n.video   || '';
         document.getElementById('news-pinned').checked = !!n.pinned;
         document.getElementById('news-msg').style.display = 'none';
-        const editor = document.getElementById('news-editor');
-        // content może być HTML (z edytora) lub plain text (stare wpisy)
+        const editor = _rteGetEditor();
         if (editor) editor.innerHTML = n.content || '';
         document.getElementById('news-content').value = n.content || '';
         document.getElementById('news-modal').classList.add('open');
+        setTimeout(() => editor?.focus(), 100);
     } catch(ex) { showToast('error', ex.message); }
 };
 
-// saveNews odczytuje innerHTML z edytora
-const _origSaveNews = window.saveNews;
 window.saveNews = async function() {
     if (!requirePermission('site','zarządzanie stroną')) return;
-    // Synchronizuj edytor przed zapisem
     syncNewsContent();
     const id      = document.getElementById('news-id').value;
     const title   = document.getElementById('news-title').value.trim();
@@ -5599,7 +5590,9 @@ window.saveNews = async function() {
     const pinned  = document.getElementById('news-pinned').checked;
     if (!title) { _showNewsMsg('error','Podaj tytuł!'); return; }
     try {
-        const data = { title, content, video, pinned, author: currentUser?.displayName||'Admin', updatedAt: serverTimestamp() };
+        const data = { title, content, video, pinned,
+                       author: currentUser?.displayName || 'Admin',
+                       updatedAt: serverTimestamp() };
         if (id) {
             await updateDoc(doc(db, 'news', id), data);
         } else {
@@ -5609,5 +5602,5 @@ window.saveNews = async function() {
         showToast('success', id ? 'Aktualność zaktualizowana!' : 'Aktualność dodana!');
         document.getElementById('news-modal').classList.remove('open');
         window.loadNewsTab();
-    } catch(ex) { _showNewsMsg('error','Błąd: '+ex.message); }
+    } catch(ex) { _showNewsMsg('error','Błąd: ' + ex.message); }
 };
