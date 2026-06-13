@@ -400,6 +400,10 @@ window.addEventListener('adminLogin', async (e) => {
 
 function initPanelUI() {
 
+    // Reset licznika prób logowania po udanym logowaniu
+    localStorage.removeItem('ap_block');
+    localStorage.removeItem('ap_attempts');
+
     document.body.classList.add('auth-ready');
 
     document.getElementById('su-name').textContent   = currentUser.displayName;
@@ -415,7 +419,6 @@ function initPanelUI() {
     updateServerStatus('loading', 'Łączenie...');
 
     loadAll();
-    loadServers();
 
     setTimeout(() => updateServerStatus('online', 'Serwer online'), 1500);
 
@@ -4330,6 +4333,8 @@ window.loadSitePage = async function() {
 
     await Promise.all([siteLoadContestInfo(), siteLoadEntries(), siteLoadChanges(), siteLoadMedia(), siteLoadProposals()]);
 
+    // Nie ładuj news/poll automatycznie - załadują się przy kliknięciu zakładki
+
 };
 
 
@@ -4349,6 +4354,10 @@ window.switchSiteTab = function(tab) {
         p.classList.toggle('sp-active', p.id === 'site-tab-' + tab);
 
     });
+
+    // Ładuj dane przy pierwszym wejściu na zakładkę
+    if (tab === 'news' && typeof window.loadNewsTab === 'function') window.loadNewsTab();
+    if (tab === 'poll' && typeof window.loadPollTab === 'function') window.loadPollTab();
 
 };
 
@@ -5113,196 +5122,346 @@ window.loadInfoPage = async function() {
     if (refreshedEl) refreshedEl.textContent = `Odświeżono: ${new Date().toLocaleTimeString('pl-PL')}`;
 };
 
-// ═══════════════════════════════════════════════════════════════════════════
-// ─── MULTI-SERWER ──────────────────────────────────────────────────────────
-// ═══════════════════════════════════════════════════════════════════════════
 
-let _currentServer = 'default';
-let _allServers    = [];
 
-/**
- * Schemat dokumentu w kolekcji `servers`:
- * { id, name, description, color, online, maxPlayers, pollInterval }
- */
-async function loadServers() {
-    try {
-        const snap = await getDocs(collection(db, 'servers'));
-        _allServers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        _renderServerSelector();
-    } catch (e) {
-        // Brak kolekcji servers — tylko jeden serwer domyślny
-        _allServers = [{ id: 'default', name: 'Serwer główny' }];
-        _renderServerSelector();
-    }
-}
 
-function _renderServerSelector() {
-    const sel = document.getElementById('server-select');
-    if (!sel) return;
-    const saved = localStorage.getItem('critmc_server') || 'default';
-    sel.innerHTML = _allServers.map(s =>
-        `<option value="${s.id}" ${s.id === saved ? 'selected' : ''}>${s.name || s.id}</option>`
-    ).join('');
-    if (_allServers.length <= 1) {
-        sel.closest('.server-selector').style.display = 'none';
-    }
-    _currentServer = saved;
-    _applyServerPrefix();
-}
+// ─── SKLEP: IMPORT / EXPORT ────────────────────────────────────────────────
 
-window.switchServer = function(serverId) {
-    _currentServer = serverId;
-    localStorage.setItem('critmc_server', serverId);
-    _applyServerPrefix();
-    // Przeładuj dane dla nowego serwera
-    loadAll();
-    showToast('info', `Przełączono na: ${_allServers.find(s => s.id === serverId)?.name || serverId}`);
+window.exportShopItems = function() {
+    if (!allShopItems || !allShopItems.length) { showToast('error', 'Brak produktów do eksportu.'); return; }
+    const exportData = allShopItems.map(item => {
+        const copy = Object.assign({}, item);
+        delete copy.id;
+        return copy;
+    });
+    const json = JSON.stringify(exportData, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = 'critmc-shop-' + new Date().toISOString().slice(0,10) + '.json';
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('success', 'Wyeksportowano ' + exportData.length + ' produktów.');
 };
 
-/**
- * Zwraca prefiks kolekcji dla aktywnego serwera.
- * Serwer domyślny: brak prefiksu (wsteczna kompatybilność).
- * Inne: "servers/{id}/" jako subcollection.
- *
- * UWAGA: Zmienia globalne zmienne dla kolekcji używanych w zapytaniach.
- */
-function _applyServerPrefix() {
-    // Aktualizuj kolor kropki
-    const dot = document.getElementById('server-sel-dot');
-    if (dot) {
-        const srv = _allServers.find(s => s.id === _currentServer);
-        dot.style.background = srv?.color || '#10b981';
-    }
-}
+window.importShopItems = function() {
+    if (!requirePermission('shop', 'zarządzanie sklepem')) return;
+    const input = document.createElement('input');
+    input.type  = 'file';
+    input.accept = '.json,application/json';
+    input.onchange = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        try {
+            const text = await file.text();
+            const items = JSON.parse(text);
+            if (!Array.isArray(items)) throw new Error('Plik musi zawierać tablicę produktów (JSON array).');
+            if (!confirm('Importować ' + items.length + ' produktów? Istniejące produkty NIE zostaną usunięte — nowe zostaną dodane obok.')) return;
+            let added = 0, errors = 0;
+            for (const item of items) {
+                try {
+                    const data = Object.assign({}, item);
+                    delete data.id;
+                    data.importedAt  = serverTimestamp();
+                    data.updatedBy   = currentUser?.displayName || 'Import';
+                    data.createdAt   = serverTimestamp();
+                    await addDoc(collection(db, 'shop_items'), data);
+                    added++;
+                } catch { errors++; }
+            }
+            showToast('success', 'Zaimportowano ' + added + ' produktów' + (errors ? ', błędy: ' + errors : '') + '.');
+            await window.loadShopPage();
+        } catch (ex) {
+            showToast('error', 'Błąd importu: ' + ex.message);
+        }
+    };
+    input.click();
+};
 
-/**
- * Pobiera referencję do kolekcji dla aktywnego serwera.
- * Używaj zamiast collection(db, 'players') itp.
- */
-function serverCollection(colName) {
-    if (_currentServer === 'default') {
-        return collection(db, colName);
-    }
-    return collection(db, 'servers', _currentServer, colName);
-}
+// ─── PORADNIK KAR ──────────────────────────────────────────────────────────
 
-// ─── STRONA SERWERÓW ─────────────────────────────────────────────────────────
+let _guideVisible = false;
 
-window.loadServersPage = async function() {
-    const grid = document.getElementById('servers-grid');
-    if (!grid) return;
-    grid.innerHTML = '<div class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</div>';
+window.togglePunishmentGuide = function() {
+    _guideVisible = !_guideVisible;
+    const content = document.getElementById('punishment-guide-content');
+    const btn     = document.getElementById('guide-toggle-btn');
+    if (content) content.style.display = _guideVisible ? 'block' : 'none';
+    if (btn) btn.innerHTML = _guideVisible
+        ? '<i class="fa-solid fa-chevron-up"></i>'
+        : '<i class="fa-solid fa-chevron-down"></i>';
+    if (_guideVisible) loadPunishmentGuide();
+};
 
+async function loadPunishmentGuide() {
+    const container = document.getElementById('punishment-guide-table');
+    if (!container) return;
     try {
-        const snap = await getDocs(collection(db, 'servers'));
-        _allServers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        const snap = await getDoc(doc(db, 'panel_settings', 'punishment_guide'));
+        const rules = snap.exists() ? (snap.data().rules || []) : _defaultGuideRules();
+        _renderPunishmentGuide(rules);
+    } catch(e) {
+        _renderPunishmentGuide(_defaultGuideRules());
+    }
+}
 
-        if (!_allServers.length) {
-            grid.innerHTML = `<div class="table-card" style="padding:2rem;text-align:center;color:var(--text-secondary);">
-                <i class="fa-solid fa-server" style="font-size:2rem;opacity:.3;display:block;margin-bottom:.75rem;"></i>
-                Brak dodanych serwerów. Kliknij <strong>+ Dodaj serwer</strong>.
-            </div>`;
+function _defaultGuideRules() {
+    return [
+        { category: 'Chat',        offense: 'Spam / flood',                punishment: 'warn',          duration: '—',            notes: '1x warn, przy powtórzeniu mute 1h' },
+        { category: 'Chat',        offense: 'Wulgaryzmy',                   punishment: 'mute',          duration: '1h – 1d',      notes: 'Zależy od nasilenia' },
+        { category: 'Chat',        offense: 'Reklama innych serwerów',      punishment: 'ban',           duration: '7d – permanent',notes: 'Permanent przy nagminnym' },
+        { category: 'Zachowanie',  offense: 'Obrażanie graczy',             punishment: 'warn + mute',   duration: '1h',           notes: 'Warn + mute 1h' },
+        { category: 'Zachowanie',  offense: 'Obrażanie administracji',      punishment: 'mute',          duration: '1d – 7d',      notes: '' },
+        { category: 'Zachowanie',  offense: 'Trolling / prowokowanie',      punishment: 'kick / mute',   duration: '1h – 1d',      notes: '' },
+        { category: 'Cheaty',      offense: 'Killaura / bhop / fly',        punishment: 'ban',           duration: '7d – permanent',notes: 'Wymaga screenshara' },
+        { category: 'Cheaty',      offense: 'Xray / ESP',                   punishment: 'ban',           duration: '3d – 14d',     notes: 'Zwrot itemów przy udowodnieniu' },
+        { category: 'Cheaty',      offense: 'Wykorzystywanie bugów',        punishment: 'ban',           duration: '1d – 7d',      notes: 'Zależy od skali' },
+        { category: 'Konto',       offense: 'Konto współdzielone (alt)',     punishment: 'ban',           duration: 'permanent',    notes: 'Ban głównego konta' },
+        { category: 'Konto',       offense: 'Kradzież konta',               punishment: 'ban',           duration: 'permanent',    notes: 'Zgłoś do Zarządzającego' },
+    ];
+}
+
+function _renderPunishmentGuide(rules) {
+    const container = document.getElementById('punishment-guide-table');
+    if (!container) return;
+    const actionColor = { ban:'#ef4444', mute:'#f59e0b', warn:'#f97316', kick:'#6366f1' };
+    let html = '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:.83rem;">'
+        + '<thead><tr style="border-bottom:2px solid var(--border);background:var(--bg);">'
+        + '<th style="text-align:left;padding:.55rem .8rem;font-size:.7rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;white-space:nowrap;">Kategoria</th>'
+        + '<th style="text-align:left;padding:.55rem .8rem;font-size:.7rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;">Przewinienie</th>'
+        + '<th style="text-align:left;padding:.55rem .8rem;font-size:.7rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;">Kara</th>'
+        + '<th style="text-align:left;padding:.55rem .8rem;font-size:.7rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;">Czas</th>'
+        + '<th style="text-align:left;padding:.55rem .8rem;font-size:.7rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;">Uwagi</th>'
+        + '</tr></thead><tbody>';
+    rules.forEach(function(r, i) {
+        var punLow = (r.punishment||'').toLowerCase();
+        var punType = punLow.includes('ban') ? 'ban' : punLow.includes('mute') ? 'mute' : punLow.includes('kick') ? 'kick' : 'warn';
+        var col = actionColor[punType] || '#6b7280';
+        html += '<tr style="border-bottom:1px solid var(--border);' + (i%2===0?'':'background:var(--bg)') + '">'
+            + '<td style="padding:.5rem .8rem;font-weight:600;color:var(--text-secondary);">' + escapeHtml(r.category||'') + '</td>'
+            + '<td style="padding:.5rem .8rem;font-weight:700;">' + escapeHtml(r.offense||'') + '</td>'
+            + '<td style="padding:.5rem .8rem;"><span style="background:' + col + '18;color:' + col + ';border:1px solid ' + col + '33;padding:.15rem .5rem;border-radius:999px;font-size:.72rem;font-weight:700;">' + escapeHtml(r.punishment||'') + '</span></td>'
+            + '<td style="padding:.5rem .8rem;font-family:monospace;font-size:.8rem;">' + escapeHtml(r.duration||'—') + '</td>'
+            + '<td style="padding:.5rem .8rem;color:var(--text-secondary);font-size:.78rem;">' + escapeHtml(r.notes||'') + '</td>'
+            + '</tr>';
+    });
+    html += '</tbody></table></div>';
+    container.innerHTML = html;
+}
+
+window.openGuideEditModal = async function() {
+    if (!hasPermission('all')) { showToast('error', 'Tylko Zarządzający może edytować poradnik.'); return; }
+    try {
+        const snap = await getDoc(doc(db, 'panel_settings', 'punishment_guide'));
+        const rules = snap.exists() ? (snap.data().rules || []) : _defaultGuideRules();
+        const json = JSON.stringify(rules, null, 2);
+        const newJson = prompt('Edytuj zasady kar (JSON array):', json);
+        if (newJson === null) return;
+        const parsed = JSON.parse(newJson);
+        await setDoc(doc(db, 'panel_settings', 'punishment_guide'), {
+            rules: parsed,
+            updatedAt: serverTimestamp(),
+            updatedBy: currentUser?.displayName || 'Panel'
+        });
+        showToast('success', 'Poradnik zaktualizowany.');
+        loadPunishmentGuide();
+    } catch(ex) {
+        showToast('error', 'Błąd: ' + ex.message);
+    }
+};
+
+// ─── AKTUALNOŚCI ───────────────────────────────────────────────────────────
+
+window.loadNewsTab = async function() {
+    const container = document.getElementById('news-list');
+    if (!container) return;
+    container.innerHTML = '<div class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</div>';
+    try {
+        const snap = await getDocs(query(collection(db, 'news'), orderBy('createdAt', 'desc')));
+        const items = snap.docs.map(function(d) { return Object.assign({ id: d.id }, d.data()); });
+        if (!items.length) {
+            container.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-secondary);"><i class="fa-solid fa-newspaper" style="font-size:2rem;opacity:.3;display:block;margin-bottom:.5rem;"></i>Brak aktualności.</div>';
             return;
         }
-
-        grid.innerHTML = _allServers.map(s => {
-            const isActive = _currentServer === s.id;
-            const color    = s.color || '#10b981';
-            return `<div class="table-card" style="padding:1.2rem;border-left:4px solid ${color};position:relative;">
-                ${isActive ? `<span style="position:absolute;top:.6rem;right:.6rem;font-size:.7rem;background:${color}22;color:${color};border:1px solid ${color}44;padding:.15rem .5rem;border-radius:6px;font-weight:700;">AKTYWNY</span>` : ''}
-                <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.9rem;">
-                    <div style="width:38px;height:38px;border-radius:10px;background:${color}22;display:flex;align-items:center;justify-content:center;color:${color};font-size:1.1rem;flex-shrink:0;">
-                        <i class="fa-solid fa-server"></i>
-                    </div>
-                    <div>
-                        <div style="font-weight:800;font-size:.95rem;">${escapeHtml(s.name || s.id)}</div>
-                        <div style="font-size:.75rem;color:var(--text-secondary);">ID: ${escapeHtml(s.id)}</div>
-                    </div>
-                </div>
-                ${s.description ? `<div style="font-size:.82rem;color:var(--text-secondary);margin-bottom:.9rem;">${escapeHtml(s.description)}</div>` : ''}
-                <div style="display:flex;gap:.4rem;flex-wrap:wrap;">
-                    <button class="tbl-btn" onclick="switchServer('${s.id}')">
-                        <i class="fa-solid fa-arrow-right-arrow-left"></i> Przełącz
-                    </button>
-                    <button class="tbl-btn" onclick="editServer('${s.id}')">
-                        <i class="fa-solid fa-pen"></i> Edytuj
-                    </button>
-                    <button class="tbl-btn tbl-btn-red" onclick="deleteServer('${s.id}','${escapeHtml(s.name||s.id)}')">
-                        <i class="fa-solid fa-trash"></i>
-                    </button>
-                </div>
-            </div>`;
+        container.innerHTML = items.map(function(n) {
+            return '<div class="table-card" style="padding:1.2rem;' + (n.pinned ? 'border-left:3px solid var(--accent);' : '') + '">'
+                + '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.75rem;flex-wrap:wrap;">'
+                + '<div style="flex:1;min-width:0;">'
+                + '<div style="font-weight:800;font-size:.95rem;">' + (n.pinned ? '<i class="fa-solid fa-thumbtack" style="color:var(--accent);margin-right:.4rem;font-size:.72rem;"></i>' : '') + escapeHtml(n.title||'Bez tytułu') + '</div>'
+                + '<div style="font-size:.74rem;color:var(--text-secondary);margin-top:.15rem;">' + formatDate(n.createdAt) + ' · ' + escapeHtml(n.author||'—') + '</div>'
+                + '</div>'
+                + '<div style="display:flex;gap:.4rem;flex-shrink:0;">'
+                + '<button class="tbl-btn" onclick="editNews(\'' + n.id + '\')"><i class="fa-solid fa-pen"></i></button>'
+                + '<button class="tbl-btn tbl-btn-red" onclick="deleteNews(\'' + n.id + '\')"><i class="fa-solid fa-trash"></i></button>'
+                + '</div></div>'
+                + (n.content ? '<div style="margin-top:.7rem;font-size:.88rem;line-height:1.5;white-space:pre-wrap;color:var(--text-primary);">' + escapeHtml(n.content) + '</div>' : '')
+                + _buildVideoEmbed(n.video)
+                + '</div>';
         }).join('');
-    } catch (e) {
-        grid.innerHTML = `<div style="color:#ef4444;padding:1rem;">Błąd: ${e.message}</div>`;
+    } catch(ex) {
+        container.innerHTML = '<div style="color:#ef4444;padding:1rem;">Błąd: ' + ex.message + '</div>';
     }
 };
 
-window.openAddServerModal = function() {
-    document.getElementById('srv-id').value        = '';
-    document.getElementById('srv-name').value      = '';
-    document.getElementById('srv-desc').value      = '';
-    document.getElementById('srv-color').value     = '#10b981';
-    document.getElementById('srv-modal-title').textContent = 'Dodaj serwer';
-    document.getElementById('srv-msg').style.display = 'none';
-    document.getElementById('server-modal').classList.add('open');
+function _buildVideoEmbed(url) {
+    if (!url) return '';
+    var ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+    if (ytMatch) {
+        return '<div style="margin-top:.75rem;border-radius:10px;overflow:hidden;position:relative;padding-bottom:56.25%;height:0;">'
+             + '<iframe src="https://www.youtube.com/embed/' + ytMatch[1] + '" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;" allowfullscreen loading="lazy"></iframe>'
+             + '</div>';
+    }
+    if (/\.(mp4|webm|mov)/i.test(url)) {
+        return '<video src="' + escapeHtml(url) + '" controls style="width:100%;border-radius:10px;margin-top:.75rem;max-height:360px;"></video>';
+    }
+    return '<a href="' + escapeHtml(url) + '" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:.4rem;margin-top:.5rem;font-size:.82rem;color:var(--accent-blue);"><i class="fa-solid fa-play-circle"></i> Obejrzyj wideo</a>';
+}
+
+window.openNewsModal = function() {
+    document.getElementById('news-modal-title').textContent = 'Dodaj aktualność';
+    document.getElementById('news-id').value      = '';
+    document.getElementById('news-title').value   = '';
+    document.getElementById('news-content').value = '';
+    document.getElementById('news-video').value   = '';
+    document.getElementById('news-pinned').checked = false;
+    document.getElementById('news-msg').style.display = 'none';
+    document.getElementById('news-modal').classList.add('open');
 };
 
-window.editServer = function(id) {
-    const s = _allServers.find(x => x.id === id);
-    if (!s) return;
-    document.getElementById('srv-id').value        = s.id;
-    document.getElementById('srv-name').value      = s.name || '';
-    document.getElementById('srv-desc').value      = s.description || '';
-    document.getElementById('srv-color').value     = s.color || '#10b981';
-    document.getElementById('srv-modal-title').textContent = 'Edytuj serwer';
-    document.getElementById('srv-msg').style.display = 'none';
-    document.getElementById('server-modal').classList.add('open');
-};
-
-window.saveServer = async function() {
-    if (!requirePermission('all', 'zarządzanie serwerami')) return;
-    const id    = document.getElementById('srv-id').value.trim();
-    const name  = document.getElementById('srv-name').value.trim();
-    const desc  = document.getElementById('srv-desc').value.trim();
-    const color = document.getElementById('srv-color').value;
-
-    if (!id) { _showSrvMsg('error', 'Podaj ID serwera!'); return; }
-    if (!name) { _showSrvMsg('error', 'Podaj nazwę serwera!'); return; }
-
+window.editNews = async function(id) {
     try {
-        await setDoc(doc(db, 'servers', id), { name, description: desc, color, updatedAt: serverTimestamp() }, { merge: true });
-        showToast('success', `Serwer "${name}" zapisany.`);
-        document.getElementById('server-modal').classList.remove('open');
-        await loadServers();
-        await window.loadServersPage();
-    } catch (e) {
-        _showSrvMsg('error', 'Błąd: ' + e.message);
-    }
+        const snap = await getDoc(doc(db, 'news', id));
+        if (!snap.exists()) return;
+        const n = snap.data();
+        document.getElementById('news-modal-title').textContent = 'Edytuj aktualność';
+        document.getElementById('news-id').value      = id;
+        document.getElementById('news-title').value   = n.title   || '';
+        document.getElementById('news-content').value = n.content || '';
+        document.getElementById('news-video').value   = n.video   || '';
+        document.getElementById('news-pinned').checked = !!n.pinned;
+        document.getElementById('news-msg').style.display = 'none';
+        document.getElementById('news-modal').classList.add('open');
+    } catch(ex) { showToast('error', ex.message); }
 };
 
-window.deleteServer = async function(id, name) {
-    if (!requirePermission('all', 'zarządzanie serwerami')) return;
-    if (id === 'default') { showToast('error', 'Nie można usunąć serwera domyślnego!'); return; }
-    if (!confirm(`Usunąć serwer "${name}"? Dane graczy na tym serwerze NIE zostaną usunięte.`)) return;
+window.saveNews = async function() {
+    if (!requirePermission('site','zarządzanie stroną')) return;
+    const id      = document.getElementById('news-id').value;
+    const title   = document.getElementById('news-title').value.trim();
+    const content = document.getElementById('news-content').value.trim();
+    const video   = document.getElementById('news-video').value.trim();
+    const pinned  = document.getElementById('news-pinned').checked;
+    if (!title) { _showNewsMsg('error','Podaj tytuł!'); return; }
     try {
-        await deleteDoc(doc(db, 'servers', id));
-        showToast('success', `Serwer "${name}" usunięty.`);
-        if (_currentServer === id) window.switchServer('default');
-        await loadServers();
-        await window.loadServersPage();
-    } catch (e) {
-        showToast('error', 'Błąd: ' + e.message);
-    }
+        const data = { title, content, video, pinned, author: currentUser?.displayName||'Admin', updatedAt: serverTimestamp() };
+        if (id) {
+            await updateDoc(doc(db, 'news', id), data);
+        } else {
+            data.createdAt = serverTimestamp();
+            await addDoc(collection(db, 'news'), data);
+        }
+        showToast('success', id ? 'Aktualność zaktualizowana!' : 'Aktualność dodana!');
+        document.getElementById('news-modal').classList.remove('open');
+        window.loadNewsTab();
+    } catch(ex) { _showNewsMsg('error','Błąd: '+ex.message); }
 };
 
-function _showSrvMsg(type, text) {
-    const el = document.getElementById('srv-msg');
+window.deleteNews = async function(id) {
+    if (!confirm('Usunąć tę aktualność?')) return;
+    try {
+        await deleteDoc(doc(db, 'news', id));
+        showToast('success','Aktualność usunięta.');
+        window.loadNewsTab();
+    } catch(ex) { showToast('error',ex.message); }
+};
+
+function _showNewsMsg(type, text) {
+    const el = document.getElementById('news-msg');
     if (!el) return;
-    el.className = `modal-msg ${type}`;
+    el.className = 'modal-msg ' + type;
     el.textContent = text;
     el.style.display = 'block';
 }
 
-// Wywołaj loadServers przy starcie (po initPanelUI)
-const _origInitPanelUI = window._initPanelUI_orig;
+// ─── ANKIETA (1 głos / IP — limit przez Cloudflare Worker) ────────────────
+
+window.loadPollTab = async function() {
+    const results = document.getElementById('poll-results');
+    try {
+        const snap = await getDoc(doc(db, 'site_poll', 'current'));
+        if (!snap.exists()) {
+            if (results) results.innerHTML = '<div style="color:var(--text-secondary);text-align:center;padding:1.5rem;">Brak aktywnej ankiety.</div>';
+            return;
+        }
+        const p = snap.data();
+        const q = document.getElementById('poll-question');
+        const o = document.getElementById('poll-options');
+        const a = document.getElementById('poll-active');
+        if (q) q.value = p.question || '';
+        if (o) o.value = (p.options||[]).map(function(opt){ return opt.label||opt; }).join('\n');
+        if (a) a.checked = p.active !== false;
+        _renderPollResults(p);
+    } catch(ex) { console.error('loadPollTab:', ex); }
+};
+
+function _renderPollResults(p) {
+    const container = document.getElementById('poll-results');
+    if (!container) return;
+    const options = p.options || [];
+    const total   = options.reduce(function(s,o){ return s + (o.votes||0); }, 0);
+    if (!options.length) { container.innerHTML = '<div style="color:var(--text-secondary);">Brak opcji.</div>'; return; }
+    const colors = ['#3b82f6','#10b981','#8b5cf6','#f59e0b','#ef4444','#f97316'];
+    container.innerHTML = options.map(function(o, i) {
+        const label = o.label||o;
+        const votes = o.votes||0;
+        const pct   = total > 0 ? Math.round(votes/total*100) : 0;
+        const col   = colors[i % colors.length];
+        return '<div style="margin-bottom:.85rem;">'
+            + '<div style="display:flex;justify-content:space-between;margin-bottom:.3rem;">'
+            + '<span style="font-size:.88rem;font-weight:700;">' + escapeHtml(label) + '</span>'
+            + '<span style="font-size:.82rem;color:var(--text-secondary);">' + votes + ' głosów (' + pct + '%)</span>'
+            + '</div>'
+            + '<div style="height:10px;background:var(--border);border-radius:999px;overflow:hidden;">'
+            + '<div style="height:100%;width:' + pct + '%;background:' + col + ';border-radius:999px;transition:width .5s ease;"></div>'
+            + '</div></div>';
+    }).join('') + '<div style="margin-top:.75rem;font-size:.78rem;color:var(--text-secondary);">Łącznie głosów: ' + total + ' · Limit: 1 głos / IP</div>';
+}
+
+window.savePoll = async function() {
+    if (!requirePermission('site','zarządzanie stroną')) return;
+    const question = (document.getElementById('poll-question')?.value||'').trim();
+    const optLines = (document.getElementById('poll-options')?.value||'').split('\n').map(function(l){return l.trim();}).filter(Boolean);
+    const active   = document.getElementById('poll-active')?.checked ?? true;
+    const pollMsg  = document.getElementById('poll-msg');
+    if (!question) { if(pollMsg){pollMsg.style.color='#ef4444';pollMsg.textContent='Podaj pytanie!';} return; }
+    if (optLines.length < 2) { if(pollMsg){pollMsg.style.color='#ef4444';pollMsg.textContent='Dodaj min. 2 opcje!';} return; }
+    try {
+        const existing = await getDoc(doc(db, 'site_poll', 'current'));
+        const exOpts   = existing.exists() ? (existing.data().options||[]) : [];
+        const options  = optLines.map(function(label) {
+            const ex = exOpts.find(function(o){ return (o.label||o)===label; });
+            return { label, votes: ex ? (ex.votes||0) : 0 };
+        });
+        await setDoc(doc(db, 'site_poll', 'current'), {
+            question, options, active,
+            updatedAt: serverTimestamp(),
+            updatedBy: currentUser?.displayName||'Panel'
+        });
+        if (pollMsg) { pollMsg.style.color='#10b981'; pollMsg.textContent='✓ Zapisano!'; setTimeout(function(){pollMsg.textContent='';},2000); }
+        window.loadPollTab();
+    } catch(ex) { if(pollMsg){pollMsg.style.color='#ef4444';pollMsg.textContent='Błąd: '+ex.message;} }
+};
+
+window.resetPollVotes = async function() {
+    if (!confirm('Zresetować wszystkie głosy? Tej operacji nie można cofnąć.')) return;
+    try {
+        const snap = await getDoc(doc(db, 'site_poll', 'current'));
+        if (!snap.exists()) return;
+        const p = snap.data();
+        const options = (p.options||[]).map(function(o){ return { label: o.label||o, votes: 0 }; });
+        await updateDoc(doc(db, 'site_poll', 'current'), { options, votedIPs: [], updatedAt: serverTimestamp() });
+        showToast('success','Głosy zresetowane.');
+        window.loadPollTab();
+    } catch(ex) { showToast('error',ex.message); }
+};

@@ -119,10 +119,6 @@
                 </button>
 
                 <div class="nav-section-label" style="margin-top:1.5rem;">System</div>
-                <button class="nav-btn" data-page="servers" onclick="switchPage('servers');loadServersPage();">
-                    <i class="fa-solid fa-server"></i>
-                    <span>Serwery</span>
-                </button>
                 <button class="nav-btn" data-page="info" onclick="switchPage('info');loadInfoPage();">
                     <i class="fa-solid fa-circle-info"></i>
                     <span>Informacje</span>
@@ -153,14 +149,6 @@
                 </button>
                 <div class="topbar-title" id="topbar-title">Gracze</div>
                 <div class="topbar-right">
-                    <!-- Selektor serwera -->
-                    <div class="server-selector" title="Wybierz aktywny serwer">
-                        <span class="server-dot" id="server-sel-dot"></span>
-                        <select id="server-select" onchange="switchServer(this.value)" style="max-width:130px;">
-                            <option value="default">🌐 Serwer główny</option>
-                        </select>
-                        <i class="fa-solid fa-chevron-down" style="font-size:.65rem;color:var(--text-secondary);"></i>
-                    </div>
                     <div class="server-status" id="server-status">
                         <span class="status-dot offline"></span>
                         <span id="status-text">Łączenie...</span>
@@ -414,7 +402,28 @@
                 </div>
             </div>
 
-            <!-- ===== STRONA: LOGI ===== -->
+                        <!-- Poradnik kar -->
+            <div id="punishment-guide-section" style="padding:0 1.5rem 1.5rem;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.8rem;flex-wrap:wrap;gap:.5rem;">
+                    <div style="font-size:.88rem;font-weight:700;color:var(--text-primary);">
+                        <i class="fa-solid fa-book-open" style="color:var(--accent-blue);margin-right:.4rem;"></i>Poradnik kar
+                        <span style="font-size:.73rem;font-weight:400;color:var(--text-secondary);">(kliknij aby rozwinąć)</span>
+                    </div>
+                    <button class="tbl-btn" onclick="togglePunishmentGuide()" id="guide-toggle-btn"><i class="fa-solid fa-chevron-down"></i></button>
+                </div>
+                <div id="punishment-guide-content" style="display:none;">
+                    <div class="table-card" style="overflow:hidden;">
+                        <div style="padding:.75rem 1.2rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+                            <div style="font-size:.72rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;"><i class="fa-solid fa-gavel" style="margin-right:.4rem;"></i>Tabela kar</div>
+                            <button class="tbl-btn" onclick="openGuideEditModal()" style="font-size:.73rem;"><i class="fa-solid fa-pen"></i> Edytuj</button>
+                        </div>
+                        <div id="punishment-guide-table" style="padding:.5rem 0;">
+                            <div style="text-align:center;padding:1.5rem;color:var(--text-secondary);font-size:.88rem;"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+<!-- ===== STRONA: LOGI ===== -->
             <div id="page-logs" class="page">
                 <div class="page-header">
                     <h1>Logi Akcji</h1>
@@ -778,6 +787,10 @@
                     <button class="site-tab-btn" data-site-tab="changes" onclick="switchSiteTab('changes')"><i class="fa-solid fa-list-check"></i> zmiany</button>
                     <button class="site-tab-btn" data-site-tab="media" onclick="switchSiteTab('media')"><i class="fa-solid fa-photo-film"></i> Media</button>
                     <button class="site-tab-btn" data-site-tab="proposals" onclick="switchSiteTab('proposals')"><i class="fa-solid fa-lightbulb"></i> Propozycje</button>
+                    <button class="site-tab-btn" data-site-tab="news" onclick="switchSiteTab('news')"><i class="fa-solid fa-newspaper"></i> Aktualności</button>
+                    <button class="site-tab-btn" data-site-tab="poll" onclick="switchSiteTab('poll')"><i class="fa-solid fa-square-poll-horizontal"></i> Ankieta</button>
+                    <button class="site-tab-btn" data-site-tab="news" onclick="switchSiteTab('news')"><i class="fa-solid fa-newspaper"></i> Aktualności</button>
+                    <button class="site-tab-btn" data-site-tab="poll" onclick="switchSiteTab('poll')"><i class="fa-solid fa-square-poll-horizontal"></i> Ankieta</button>
                 </div>
 
                 <!-- Konkurs -->
@@ -896,26 +909,62 @@
                             <table class="data-table">
                                 <thead><tr><th>Trełć</th><th>TAK</th><th>NIE</th><th>Data</th><th>Akcje</th></tr></thead>
                                 <tbody id="site-proposals-tbody">
-                                    <tr><td colspan="5" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> łŁadowanie...</td></tr>
+                                    <tr><td colspan="5" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>
                                 </tbody>
                             </table>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- ===== STRONA: SERWERY ===== -->
-            <div id="page-servers" class="page">
-                <div class="page-header">
-                    <h1>Serwery</h1>
-                    <p>Zarządzaj wieloma serwerami Minecraft w jednym panelu</p>
+                <!-- ===== AKTUALNOŚCI ===== -->
+                <div id="site-tab-news" class="site-tab-panel">
+                    <div style="display:flex;justify-content:flex-end;margin-bottom:1rem;">
+                        <button class="modal-submit-btn" style="width:auto;padding:.6rem 1.4rem;" onclick="openNewsModal()">
+                            <i class="fa-solid fa-plus"></i> Dodaj aktualność
+                        </button>
+                    </div>
+                    <div id="news-list" style="display:flex;flex-direction:column;gap:.8rem;">
+                        <div class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</div>
+                    </div>
                 </div>
-                <div style="display:flex;justify-content:flex-end;margin-bottom:1rem;">
-                    <button class="modal-submit-btn" style="width:auto;padding:.6rem 1.4rem;" onclick="openAddServerModal()">
-                        <i class="fa-solid fa-plus"></i> Dodaj serwer
-                    </button>
+
+                <!-- ===== ANKIETA ===== -->
+                <div id="site-tab-poll" class="site-tab-panel">
+                    <div class="table-card" style="padding:1.4rem;margin-bottom:1rem;">
+                        <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.9rem;">
+                            <i class="fa-solid fa-square-poll-horizontal" style="color:#8b5cf6;margin-right:.4rem;"></i>Utwórz / edytuj ankietę
+                        </div>
+                        <div style="display:flex;flex-direction:column;gap:.7rem;">
+                            <div>
+                                <label style="font-size:.75rem;font-weight:700;color:var(--text-secondary);display:block;margin-bottom:.3rem;">Pytanie ankiety</label>
+                                <input type="text" id="poll-question" placeholder="np. Który tryb gry powinniśmy dodać?" style="width:100%;padding:.65rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                            </div>
+                            <div>
+                                <label style="font-size:.75rem;font-weight:700;color:var(--text-secondary);display:block;margin-bottom:.3rem;">Opcje odpowiedzi <span style="font-weight:400;">(jedna na linię)</span></label>
+                                <textarea id="poll-options" rows="4" placeholder="Survival&#10;Skyblock&#10;Bedwars" style="width:100%;padding:.65rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea>
+                            </div>
+                            <label style="display:flex;align-items:center;gap:.5rem;font-size:.88rem;font-weight:600;cursor:pointer;">
+                                <input type="checkbox" id="poll-active" checked> Ankieta aktywna (widoczna na stronie)
+                            </label>
+                            <div style="display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;">
+                                <button class="modal-submit-btn" style="width:auto;padding:.65rem 1.4rem;" onclick="savePoll()">
+                                    <i class="fa-solid fa-floppy-disk"></i> Zapisz ankietę
+                                </button>
+                                <button class="tbl-btn" onclick="resetPollVotes()">
+                                    <i class="fa-solid fa-rotate-left"></i> Zresetuj głosy
+                                </button>
+                                <span id="poll-msg" style="font-size:.85rem;font-weight:600;"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="table-card" style="padding:1.2rem;">
+                        <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.9rem;">Wyniki głosowania (real-time)</div>
+                        <div id="poll-results">
+                            <div style="color:var(--text-secondary);text-align:center;padding:1.5rem;">Brak danych.</div>
+                        </div>
+                    </div>
                 </div>
-                <div id="servers-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem;"></div>
+
             </div>
 
             <!-- ===== STRONA: INFORMACJE ===== -->
@@ -1514,7 +1563,6 @@
                 site:      'Zarządzanie stroną',
                 shop:      'Sklep',
                 files:     'Pliki',
-                servers:   'Serwery',
                 info:      'Informacje systemowe'
             };
             document.getElementById('topbar-title').textContent = titles[pageName] || pageName;
@@ -1681,40 +1729,41 @@
         });
     </script>
 
-    <!-- ===== MODAL: SERWER ===== -->
-    <div class="modal-overlay" id="server-modal" onclick="closeModal(event)">
-        <div class="modal-box" style="max-width:480px;">
+    <!-- ===== MODAL: AKTUALNOŚĆ ===== -->
+    <div class="modal-overlay" id="news-modal" onclick="closeModal(event)">
+        <div class="modal-box" style="max-width:600px;">
             <div class="modal-header">
-                <div class="modal-title" id="srv-modal-title">Dodaj serwer</div>
-                <button class="modal-close" onclick="document.getElementById('server-modal').classList.remove('open')"><i class="fa-solid fa-xmark"></i></button>
+                <div class="modal-title" id="news-modal-title">Dodaj aktualność</div>
+                <button class="modal-close" onclick="document.getElementById('news-modal').classList.remove('open')"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="modal-body">
+                <input type="hidden" id="news-id">
                 <div class="modal-field">
-                    <label>ID serwera <span style="color:#999;font-weight:400;">(niezmienne, np. survival, skyblock)</span></label>
-                    <input type="text" id="srv-id" placeholder="np. survival" pattern="[a-zA-Z0-9_-]+" style="font-family:monospace;">
+                    <label>Tytuł *</label>
+                    <input type="text" id="news-title" placeholder="Tytuł aktualności...">
                 </div>
                 <div class="modal-field">
-                    <label>Nazwa wyświetlana</label>
-                    <input type="text" id="srv-name" placeholder="np. Serwer Survival">
+                    <label>Treść</label>
+                    <textarea id="news-content" rows="5" placeholder="Treść aktualności..." style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea>
                 </div>
                 <div class="modal-field">
-                    <label>Opis <span style="color:#999;font-weight:400;">(opcjonalny)</span></label>
-                    <textarea id="srv-desc" rows="2" placeholder="Krótki opis serwera..." style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea>
+                    <label>Link do filmiku <span style="color:#999;font-weight:400;">(YouTube URL lub link .mp4 — opcjonalny)</span></label>
+                    <input type="text" id="news-video" placeholder="https://youtube.com/watch?v=... lub https://...mp4">
+                    <div style="font-size:.75rem;color:var(--text-secondary);margin-top:.3rem;">YouTube zostanie osadzony jako odtwarzacz. MP4 jako natywne wideo.</div>
                 </div>
                 <div class="modal-field">
-                    <label>Kolor identyfikacyjny</label>
-                    <div style="display:flex;align-items:center;gap:.75rem;">
-                        <input type="color" id="srv-color" value="#10b981" style="width:44px;height:36px;border:1.5px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;padding:2px;">
-                        <span style="font-size:.82rem;color:var(--text-secondary);">Kolor paska i kropki serwera</span>
-                    </div>
+                    <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;">
+                        <input type="checkbox" id="news-pinned"> Przypnij na górze listy
+                    </label>
                 </div>
-                <div id="srv-msg" class="modal-msg" style="display:none;"></div>
-                <button class="modal-submit-btn" onclick="saveServer()">
-                    <i class="fa-solid fa-floppy-disk"></i> Zapisz serwer
+                <div id="news-msg" class="modal-msg" style="display:none;"></div>
+                <button class="modal-submit-btn" onclick="saveNews()">
+                    <i class="fa-solid fa-floppy-disk"></i> Zapisz aktualność
                 </button>
             </div>
         </div>
     </div>
+
 </body>
 </html>
 
