@@ -393,28 +393,29 @@
                         <div id="ap-players-list" style="max-height:460px;overflow-y:auto;"></div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Poradnik kar -->
-            <div id="punishment-guide-section" style="margin-top:1.5rem;">
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.8rem;flex-wrap:wrap;gap:.5rem;">
-                    <div style="font-size:.88rem;font-weight:700;color:var(--text-primary);">
-                        <i class="fa-solid fa-book-open" style="color:var(--accent-blue);margin-right:.4rem;"></i>Poradnik kar
-                        <span style="font-size:.73rem;font-weight:400;color:var(--text-secondary);">(kliknij aby rozwinąć)</span>
-                    </div>
-                    <button class="tbl-btn" onclick="togglePunishmentGuide()" id="guide-toggle-btn"><i class="fa-solid fa-chevron-down"></i></button>
-                </div>
-                <div id="punishment-guide-content" style="display:none;">
-                    <div class="table-card" style="overflow:hidden;">
-                        <div style="padding:.75rem 1.2rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
-                            <div style="font-size:.72rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;"><i class="fa-solid fa-gavel" style="margin-right:.4rem;"></i>Tabela kar</div>
-                            <button class="tbl-btn" onclick="openGuideEditModal()" style="font-size:.73rem;"><i class="fa-solid fa-pen"></i> Edytuj</button>
+                <!-- Poradnik kar — tylko na tej stronie -->
+                <div id="punishment-guide-section" style="margin-top:1.5rem;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.8rem;flex-wrap:wrap;gap:.5rem;">
+                        <div style="font-size:.88rem;font-weight:700;color:var(--text-primary);">
+                            <i class="fa-solid fa-book-open" style="color:var(--accent-blue);margin-right:.4rem;"></i>Poradnik kar
+                            <span style="font-size:.73rem;font-weight:400;color:var(--text-secondary);">(kliknij aby rozwinąć)</span>
                         </div>
-                        <div id="punishment-guide-table" style="padding:.5rem 0;">
-                            <div style="text-align:center;padding:1.5rem;color:var(--text-secondary);font-size:.88rem;"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</div>
+                        <button class="tbl-btn" onclick="togglePunishmentGuide()" id="guide-toggle-btn"><i class="fa-solid fa-chevron-down"></i></button>
+                    </div>
+                    <div id="punishment-guide-content" style="display:none;">
+                        <div class="table-card" style="overflow:hidden;">
+                            <div style="padding:.75rem 1.2rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+                                <div style="font-size:.72rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;"><i class="fa-solid fa-gavel" style="margin-right:.4rem;"></i>Tabela kar</div>
+                                <button class="tbl-btn" onclick="openGuideEditModal()" style="font-size:.73rem;"><i class="fa-solid fa-pen"></i> Edytuj</button>
+                            </div>
+                            <div id="punishment-guide-table" style="padding:.5rem 0;">
+                                <div style="text-align:center;padding:1.5rem;color:var(--text-secondary);font-size:.88rem;"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</div>
+                            </div>
                         </div>
                     </div>
                 </div>
+
             </div>
 
             <!-- ===== STRONA: LOGI ===== -->

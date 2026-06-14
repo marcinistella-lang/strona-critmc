@@ -3150,32 +3150,24 @@ window.resetRolePermissions = async function(role) {
 var _shopView = 'grid'; // domyślny widok sklepu
 
 window.loadShopPage = async function() {
-
-    // Pokaż ładowanie w obu widokach
     const tb   = document.getElementById('shop-items-tbody');
     const grid = document.getElementById('shop-grid-view');
-    if (tb)   tb.innerHTML   = '<tr><td colspan="7" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>';
-    if (grid) grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--text-secondary);"><i class="fa-solid fa-spinner fa-spin fa-2x"></i><div style="margin-top:.75rem;font-size:.9rem;">Ładowanie produktów...</div></div>';
-
+    if (tb)   tb.innerHTML = '<tr><td colspan="7" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>';
+    if (grid) grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--text-secondary);"><i class="fa-solid fa-spinner fa-spin fa-2x"></i><div style="margin-top:.75rem;">Ładowanie produktów...</div></div>';
     try {
-
+        console.log('[CritMC Shop] Pobieranie z shop_items...');
         const snap = await getDocs(collection(db, 'shop_items'));
-
-        allShopItems = snap.docs.map(d => ({ id: d.id, ...d.data() }))
-
-            .sort((a, b) => (a.sortOrder || 99) - (b.sortOrder || 99));
-
+        console.log('[CritMC Shop] Dokumentów:', snap.docs.length, snap.empty ? '(PUSTA KOLEKCJA)' : '');
+        allShopItems = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (a.sortOrder || 99) - (b.sortOrder || 99));
         window.filterShopItems();
-
     } catch (e) {
-
-        if (tb)   tb.innerHTML   = `<tr><td colspan="7" class="table-empty" style="color:#ef4444;"><i class="fa-solid fa-circle-exclamation"></i> Błąd: ${e.message}</td></tr>`;
-        if (grid) grid.innerHTML = `<div style="grid-column:1/-1;padding:2rem;text-align:center;color:#ef4444;font-size:.9rem;"><i class="fa-solid fa-circle-exclamation"></i> Błąd ładowania: ${e.message}</div>`;
-        console.error('loadShopPage:', e);
-
+        console.error('[CritMC Shop] BŁĄD:', e.code, e.message);
+        const errHtml = '<i class="fa-solid fa-circle-exclamation"></i> Błąd: ' + e.message;
+        if (tb)   tb.innerHTML = '<tr><td colspan="7" class="table-empty" style="color:#ef4444;">' + errHtml + '</td></tr>';
+        if (grid) grid.innerHTML = '<div style="grid-column:1/-1;padding:2rem;text-align:center;color:#ef4444;">' + errHtml + '</div>';
     }
-
 };
+
 
 
 
