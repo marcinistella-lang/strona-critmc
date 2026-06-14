@@ -1009,22 +1009,33 @@
         }
 
         window.castPollVote = async function(optionLabel) {
-            const voterKey = 'poll_' + (Math.random().toString(36).slice(2)) + '_' + Date.now();
-            localStorage.setItem('critmc_poll_voted', voterKey);
-            try {
-                const ref = doc(db2, 'site_poll', 'current');
-                const snap = await getDoc(ref);
-                if (!snap.exists()) return;
-                const p = snap.data();
-                const voted = p.votedIPs || [];
-                if (voted.includes(voterKey)) { await loadHomePoll(); return; }
-                const options = (p.options || []).map(function(o) {
-                    if ((o.label||o) === optionLabel) return { label: o.label||o, votes: (o.votes||0)+1 };
-                    return o;
-                });
-                await updateDoc(ref, { options: options, votedIPs: [...voted, voterKey] });
+            // Sprawdź lokalnie czy głosowano (szybka blokada)
+            if (localStorage.getItem('critmc_poll_voted_current')) {
                 await loadHomePoll();
-            } catch(e) { console.error('vote:', e); }
+                return;
+            }
+            const workerUrl = 'https://critmc-b2-files.marcinistella.workers.dev';
+            try {
+                const res = await fetch(workerUrl + '/poll/vote', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        option: optionLabel,
+                        pollId: 'current',
+                        projectId: 'stronacritmcpl',
+                        apiKey: 'AIzaSyBdwzCGhUtqGm0Ggfmrl2MC8_u10c_AuMQ'
+                    })
+                });
+                const data = await res.json().catch(() => null);
+                if (data && data.ok) {
+                    localStorage.setItem('critmc_poll_voted_current', '1');
+                } else if (data && data.error === 'already_voted') {
+                    localStorage.setItem('critmc_poll_voted_current', '1');
+                }
+                await loadHomePoll();
+            } catch(e) {
+                console.error('castPollVote:', e);
+            }
         };
 
         // ─── INICJALIZACJA ────────────────────────────────────────────────

@@ -1,4 +1,4 @@
-﻿import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
+﻿﻿import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
 
 import {
 
@@ -3147,13 +3147,15 @@ window.resetRolePermissions = async function(role) {
     }
 };
 
+var _shopView = 'grid'; // domyślny widok sklepu
+
 window.loadShopPage = async function() {
 
-    const tb = document.getElementById('shop-items-tbody');
-
-    if (!tb) return;
-
-    tb.innerHTML = `<tr><td colspan="7" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>`;
+    // Pokaż ładowanie w obu widokach
+    const tb   = document.getElementById('shop-items-tbody');
+    const grid = document.getElementById('shop-grid-view');
+    if (tb)   tb.innerHTML   = '<tr><td colspan="7" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>';
+    if (grid) grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--text-secondary);"><i class="fa-solid fa-spinner fa-spin fa-2x"></i><div style="margin-top:.75rem;font-size:.9rem;">Ładowanie produktów...</div></div>';
 
     try {
 
@@ -3167,7 +3169,9 @@ window.loadShopPage = async function() {
 
     } catch (e) {
 
-        tb.innerHTML = `<tr><td colspan="6" class="table-empty" style="color:#ef4444;">Błąd: ${e.message}</td></tr>`;
+        if (tb)   tb.innerHTML   = `<tr><td colspan="7" class="table-empty" style="color:#ef4444;"><i class="fa-solid fa-circle-exclamation"></i> Błąd: ${e.message}</td></tr>`;
+        if (grid) grid.innerHTML = `<div style="grid-column:1/-1;padding:2rem;text-align:center;color:#ef4444;font-size:.9rem;"><i class="fa-solid fa-circle-exclamation"></i> Błąd ładowania: ${e.message}</div>`;
+        console.error('loadShopPage:', e);
 
     }
 
@@ -3178,64 +3182,77 @@ window.loadShopPage = async function() {
 function renderShopGrid(list) {
     const grid = document.getElementById('shop-grid-view');
     if (!grid) return;
-    if (!list.length) {
-        grid.innerHTML = '<div class="table-card" style="padding:3rem;text-align:center;color:var(--text-secondary);grid-column:1/-1;"><i class="fa-solid fa-shop" style="font-size:2.5rem;opacity:.3;display:block;margin-bottom:.75rem;"></i><div style="font-weight:700;">Brak produktów</div><div style="font-size:.85rem;margin-top:.3rem;">Kliknij <strong>+ Dodaj produkt</strong> aby dodać pierwszy.</div></div>';
+
+    if (!list || !list.length) {
+        grid.innerHTML = '<div style="grid-column:1/-1;padding:3rem;text-align:center;color:var(--text-secondary);">'
+            + '<i class="fa-solid fa-shop" style="font-size:2.5rem;opacity:.3;display:block;margin-bottom:.75rem;"></i>'
+            + '<div style="font-weight:700;font-size:.95rem;">Brak produktów sklepu</div>'
+            + '<div style="font-size:.85rem;margin-top:.3rem;">Kliknij <strong>+ Dodaj produkt</strong> aby dodać pierwszy.</div>'
+            + '</div>';
         return;
     }
-    const typeCfg = {
-        ranga:  { icon: '\u{1F451}', color: '#8b5cf6', bg: 'rgba(139,92,246,.08)', border: 'rgba(139,92,246,.2)' },
-        zestaw: { icon: '\u{1F4E6}', color: '#3b82f6', bg: 'rgba(59,130,246,.08)',  border: 'rgba(59,130,246,.2)' },
-        item:   { icon: '\u2694\uFE0F',  color: '#10b981', bg: 'rgba(16,185,129,.08)', border: 'rgba(16,185,129,.2)' },
-        klucz:  { icon: '\u{1F511}', color: '#f59e0b', bg: 'rgba(245,158,11,.08)',  border: 'rgba(245,158,11,.2)' },
-    };
-    grid.innerHTML = list.map(item => {
-        const cfg    = typeCfg[(item.type||'').toLowerCase()] || { icon: '\u{1F6D2}', color: '#6b7280', bg: 'rgba(107,114,128,.08)', border: 'rgba(107,114,128,.2)' };
-        const hidden = item.active === false;
-        let mediaHtml;
+
+    var typeColors = { ranga:'#8b5cf6', zestaw:'#3b82f6', item:'#10b981', klucz:'#f59e0b' };
+    var typeIcons  = { ranga:'&#x1F451;', zestaw:'&#x1F4E6;', item:'&#x2694;&#xFE0F;', klucz:'&#x1F511;' };
+    var typeBg     = { ranga:'rgba(139,92,246,.08)', zestaw:'rgba(59,130,246,.08)', item:'rgba(16,185,129,.08)', klucz:'rgba(245,158,11,.08)' };
+    var typeBorder = { ranga:'rgba(139,92,246,.25)', zestaw:'rgba(59,130,246,.25)', item:'rgba(16,185,129,.25)', klucz:'rgba(245,158,11,.25)' };
+
+    grid.innerHTML = list.map(function(item) {
+        var type   = (item.type || '').toLowerCase();
+        var color  = typeColors[type]  || '#6b7280';
+        var icon   = typeIcons[type]   || '&#x1F6D2;';
+        var bg     = typeBg[type]      || 'rgba(107,114,128,.08)';
+        var border = typeBorder[type]  || 'rgba(107,114,128,.2)';
+        var hidden = item.active === false;
+
+        var mediaHtml = '';
         if (item.mediaUrl) {
-            const isVideo = /\.(mp4|webm|mov)/i.test(item.mediaUrl);
-            if (isVideo) {
+            if (/\.(mp4|webm|mov)/i.test(item.mediaUrl)) {
                 mediaHtml = '<video src="' + escapeHtml(item.mediaUrl) + '" muted loop autoplay playsinline style="width:100%;height:160px;object-fit:cover;"></video>';
             } else {
-                mediaHtml = '<img src="' + escapeHtml(item.mediaUrl) + '" alt="' + escapeHtml(item.name||'') + '" style="width:100%;height:160px;object-fit:cover;" onerror="this.style.display=\'none\'">'
-                          + '<div class="shop-card-icon-fallback" style="display:none;width:100%;height:160px;background:' + cfg.bg + ';align-items:center;justify-content:center;font-size:3rem;">' + cfg.icon + '</div>';
+                mediaHtml = '<img src="' + escapeHtml(item.mediaUrl) + '" alt="media" style="width:100%;height:160px;object-fit:cover;" onerror="this.parentNode.innerHTML=\'<div style=&quot;width:100%;height:160px;background:' + bg + ';display:flex;align-items:center;justify-content:center;font-size:3rem;&quot;>' + icon + '</div>\'">';
             }
         } else {
-            mediaHtml = '<div style="width:100%;height:160px;background:' + cfg.bg + ';display:flex;align-items:center;justify-content:center;font-size:3.5rem;">' + cfg.icon + '</div>';
+            mediaHtml = '<div style="width:100%;height:160px;background:' + bg + ';display:flex;align-items:center;justify-content:center;font-size:3rem;">' + icon + '</div>';
         }
-        const rawItems = (item.itemsText || '').split('\n').filter(Boolean);
-        const showItems = rawItems.slice(0, 4);
-        const moreCount = rawItems.length - showItems.length;
-        const itemsHtml = showItems.length
-            ? '<div style="display:flex;flex-direction:column;gap:.2rem;margin-top:.5rem;">'
-              + showItems.map(it => '<div style="font-size:.76rem;color:var(--text-secondary);display:flex;align-items:center;gap:.35rem;"><i class="fa-solid fa-check" style="color:' + cfg.color + ';font-size:.6rem;flex-shrink:0;"></i>' + escapeHtml(it) + '</div>').join('')
-              + (moreCount > 0 ? '<div style="font-size:.72rem;color:var(--text-secondary);margin-top:.1rem;">+' + moreCount + ' więcej...</div>' : '')
-              + '</div>'
-            : '';
-        const priceHtml = item.price != null
-            ? '<span style="font-size:1.25rem;font-weight:900;color:' + cfg.color + ';">' + item.price + '</span>'
-              + '<span style="font-size:.78rem;font-weight:600;color:var(--text-secondary);"> PLN</span>'
-              + (item.oldPrice ? '<span style="font-size:.78rem;color:var(--text-secondary);text-decoration:line-through;margin-left:.3rem;">' + item.oldPrice + ' PLN</span>' : '')
+
+        var rawItems = (item.itemsText || '').split('\n').filter(function(l){ return l.trim(); });
+        var showItems = rawItems.slice(0,4);
+        var moreCount = rawItems.length - showItems.length;
+        var itemsHtml = '';
+        if (showItems.length) {
+            itemsHtml = '<div style="display:flex;flex-direction:column;gap:.2rem;margin-top:.4rem;">'
+                + showItems.map(function(it){ return '<div style="font-size:.75rem;color:var(--text-secondary);display:flex;align-items:center;gap:.3rem;">'
+                    + '<i class="fa-solid fa-check" style="color:' + color + ';font-size:.6rem;flex-shrink:0;"></i>' + escapeHtml(it) + '</div>'; }).join('')
+                + (moreCount > 0 ? '<div style="font-size:.72rem;color:var(--text-secondary);">+' + moreCount + ' więcej...</div>' : '')
+                + '</div>';
+        }
+
+        var priceHtml = (item.price != null)
+            ? '<span style="font-size:1.2rem;font-weight:900;color:' + color + ';">' + item.price + '</span>'
+              + ' <span style="font-size:.75rem;color:var(--text-secondary);font-weight:600;">PLN</span>'
+              + (item.oldPrice ? ' <span style="font-size:.75rem;color:var(--text-secondary);text-decoration:line-through;">' + item.oldPrice + ' PLN</span>' : '')
             : '<span style="color:var(--text-secondary);">—</span>';
 
-        return '<div class="shop-product-card" style="border-color:' + cfg.border + ';">'
-             + '<div style="position:relative;overflow:hidden;">'
-             + mediaHtml
-             + '<span class="badge" style="position:absolute;top:.5rem;left:.5rem;background:' + cfg.bg + ';color:' + cfg.color + ';border:1px solid ' + cfg.border + ';">' + cfg.icon + ' ' + (item.type||'—') + '</span>'
-             + (hidden ? '<div class="card-status-hidden"><i class="fa-solid fa-eye-slash" style="margin-right:.4rem;"></i>Ukryty</div>' : '')
-             + '</div>'
-             + '<div class="card-body">'
-             + '<div class="card-name">' + escapeHtml(item.name||'—') + '</div>'
-             + (item.desc ? '<div class="card-desc">' + escapeHtml(item.desc) + '</div>' : '')
-             + itemsHtml
-             + '<div style="display:flex;align-items:baseline;gap:.3rem;margin-top:auto;padding-top:.5rem;">' + priceHtml + '</div>'
-             + '</div>'
-             + '<div class="card-footer">'
-             + '<button class="tbl-btn" style="flex:1;justify-content:center;" onclick="editShopItem(\'' + item.id + '\')"><i class="fa-solid fa-pen"></i> Edytuj</button>'
-             + '<button class="tbl-btn" onclick="toggleShopItemActive(\'' + item.id + '\',' + !hidden + ')" title="' + (hidden ? 'Aktywuj' : 'Ukryj') + '"><i class="fa-solid fa-' + (hidden ? 'eye' : 'eye-slash') + '"></i></button>'
-             + '<button class="tbl-btn tbl-btn-red" onclick="deleteShopItem(\'' + item.id + '\',\'' + escapeHtml(item.name||'') + '\')"><i class="fa-solid fa-trash"></i></button>'
-             + '</div>'
-             + '</div>';
+        return '<div class="shop-product-card" style="border-color:' + border + ';">'
+            + '<div style="position:relative;overflow:hidden;">'
+            + mediaHtml
+            + '<span class="badge" style="position:absolute;top:.5rem;left:.5rem;background:' + bg + ';color:' + color + ';border:1px solid ' + border + ';">' + icon + ' ' + (item.type || '—') + '</span>'
+            + (hidden ? '<div class="card-status-hidden"><i class="fa-solid fa-eye-slash" style="margin-right:.3rem;"></i>Ukryty</div>' : '')
+            + '</div>'
+            + '<div class="card-body">'
+            + '<div class="card-name">' + escapeHtml(item.name || '—') + '</div>'
+            + (item.desc ? '<div class="card-desc">' + escapeHtml(item.desc) + '</div>' : '')
+            + itemsHtml
+            + '<div style="display:flex;align-items:baseline;gap:.3rem;margin-top:auto;padding-top:.5rem;">' + priceHtml + '</div>'
+            + '</div>'
+            + '<div class="card-footer">'
+            + '<button class="tbl-btn" style="flex:1;justify-content:center;" onclick="editShopItem(\'' + item.id + '\')"><i class="fa-solid fa-pen"></i> Edytuj</button>'
+            + '<button class="tbl-btn" onclick="toggleShopItemActive(\'' + item.id + '\',' + (!hidden) + ')" title="' + (hidden ? 'Aktywuj' : 'Ukryj') + '">'
+            + '<i class="fa-solid fa-' + (hidden ? 'eye' : 'eye-slash') + '"></i></button>'
+            + '<button class="tbl-btn tbl-btn-red" onclick="deleteShopItem(\'' + item.id + '\',\'' + escapeHtml(item.name||'') + '\')"><i class="fa-solid fa-trash"></i></button>'
+            + '</div>'
+            + '</div>';
     }).join('');
 }
 
@@ -3245,22 +3262,23 @@ window.toggleShopItemActive = async function(id, newActive) {
         await updateDoc(doc(db, 'shop_items', id), { active: newActive, updatedAt: serverTimestamp() });
         showToast('success', newActive ? 'Produkt aktywowany' : 'Produkt ukryty');
         await window.loadShopPage();
-    } catch(e) { showToast('error', 'Błąd: '+e.message); }
+    } catch(e) { showToast('error', 'Błąd: ' + e.message); }
 };
 
 window.toggleShopView = function() {
     _shopView = (_shopView === 'grid') ? 'table' : 'grid';
-    const gridEl  = document.getElementById('shop-grid-view');
-    const tableEl = document.getElementById('shop-table-view');
-    const btn     = document.getElementById('shop-view-toggle');
-    if (gridEl)  gridEl.style.display  = _shopView === 'grid'  ? '' : 'none';
-    if (tableEl) tableEl.style.display = _shopView === 'table' ? '' : 'none';
-    if (btn) btn.innerHTML = _shopView === 'grid'
+    var gridEl  = document.getElementById('shop-grid-view');
+    var tableEl = document.getElementById('shop-table-view');
+    var btn     = document.getElementById('shop-view-toggle');
+    if (gridEl)  gridEl.style.display  = (_shopView === 'grid')  ? '' : 'none';
+    if (tableEl) tableEl.style.display = (_shopView === 'table') ? '' : 'none';
+    if (btn) btn.innerHTML = (_shopView === 'grid')
         ? '<i class="fa-solid fa-table-list"></i>'
         : '<i class="fa-solid fa-table-cells-large"></i>';
 };
 
-let _shopView = 'grid';
+
+
 
 
 

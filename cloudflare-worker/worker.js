@@ -67,9 +67,98 @@ export default {
             return handleDelete(url, env);
         }
 
+        // POST /poll/vote — głosowanie z blokadą IP
+        if (method === 'POST' && url.pathname === '/poll/vote') {
+            return handlePollVote(request, env);
+        }
+
         return json({ ok: false, error: 'Not found' }, 404, env);
     }
 };
+
+// ─── POLL VOTE (IP-based, przez KV lub R2 metadata) ──────────────────────
+async function handlePollVote(request, env) {
+    // Pobierz IP z nagłówków Cloudflare
+    const ip = request.headers.get('CF-Connecting-IP')
+            || request.headers.get('X-Forwarded-For')?.split(',')[0]?.trim()
+            || 'unknown';
+
+    let body;
+    try { body = await request.json(); }
+    catch { return json({ ok: false, error: 'Wymagany JSON' }, 400, env); }
+
+    const { option, pollId = 'current', projectId, apiKey } = body;
+    if (!option) return json({ ok: false, error: 'Brak opcji' }, 400, env);
+    if (!projectId || !apiKey) return json({ ok: false, error: 'Brak konfiguracji Firebase' }, 400, env);
+
+    // Sprawdź w KV czy IP już głosowało (opcjonalne - jeśli KV podpięte)
+    const voteKey = `poll_${pollId}_${ip}`;
+    if (env.KV) {
+        const existing = await env.KV.get(voteKey);
+        if (existing) return json({ ok: false, error: 'already_voted', voted: true }, 200, env);
+    }
+
+    // Pobierz ankietę z Firestore REST API
+    const fsBase = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/site_poll/${pollId}?key=${apiKey}`;
+    const getRes = await fetch(fsBase);
+    if (!getRes.ok) return json({ ok: false, error: 'Błąd odczytu ankiety' }, 500, env);
+    const pollDoc = await getRes.json();
+
+    if (!pollDoc.fields) return json({ ok: false, error: 'Ankieta nie istnieje' }, 404, env);
+
+    // Sprawdź votedIPs
+    const votedIPs = pollDoc.fields.votedIPs?.arrayValue?.values?.map(v => v.stringValue) || [];
+    if (votedIPs.includes(ip)) {
+        return json({ ok: false, error: 'already_voted', voted: true }, 200, env);
+    }
+
+    // Zaktualizuj głosy przez Firestore Commit API
+    const commitUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents:commit?key=${apiKey}`;
+    const options = pollDoc.fields.options?.arrayValue?.values || [];
+    const newOptions = options.map(o => {
+        const label = o.mapValue?.fields?.label?.stringValue || '';
+        const votes = parseInt(o.mapValue?.fields?.votes?.integerValue || '0');
+        if (label === option) {
+            return { mapValue: { fields: { label: { stringValue: label }, votes: { integerValue: String(votes + 1) } } } };
+        }
+        return o;
+    });
+
+    const newVotedIPs = [...votedIPs, ip];
+    const docPath = `projects/${projectId}/databases/(default)/documents/site_poll/${pollId}`;
+
+    const commitBody = {
+        writes: [{
+            update: {
+                name: docPath,
+                fields: {
+                    ...pollDoc.fields,
+                    options: { arrayValue: { values: newOptions } },
+                    votedIPs: { arrayValue: { values: newVotedIPs.map(i => ({ stringValue: i })) } }
+                }
+            },
+            updateMask: { fieldPaths: ['options', 'votedIPs'] }
+        }]
+    };
+
+    const commitRes = await fetch(commitUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(commitBody)
+    });
+
+    if (!commitRes.ok) {
+        const err = await commitRes.text();
+        return json({ ok: false, error: 'Błąd zapisu głosu: ' + err }, 500, env);
+    }
+
+    // Zapisz w KV żeby szybciej blokować (opcjonalne)
+    if (env.KV) {
+        await env.KV.put(voteKey, '1', { expirationTtl: 60 * 60 * 24 * 365 }); // 1 rok
+    }
+
+    return json({ ok: true, voted: true }, 200, env);
+}
 
 // ─── UPLOAD ───────────────────────────────────────────────────────────────
 async function handleUpload(request, env, folder) {

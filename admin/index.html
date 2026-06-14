@@ -395,8 +395,8 @@
                 </div>
             </div>
 
-                        <!-- Poradnik kar -->
-            <div id="punishment-guide-section" style="padding:0 1.5rem 1.5rem;">
+            <!-- Poradnik kar -->
+            <div id="punishment-guide-section" style="margin-top:1.5rem;">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.8rem;flex-wrap:wrap;gap:.5rem;">
                     <div style="font-size:.88rem;font-weight:700;color:var(--text-primary);">
                         <i class="fa-solid fa-book-open" style="color:var(--accent-blue);margin-right:.4rem;"></i>Poradnik kar
@@ -416,7 +416,8 @@
                     </div>
                 </div>
             </div>
-<!-- ===== STRONA: LOGI ===== -->
+
+            <!-- ===== STRONA: LOGI ===== -->
             <div id="page-logs" class="page">
                 <div class="page-header">
                     <h1>Logi Akcji</h1>
@@ -1740,13 +1741,13 @@
                     <div style="border:1.5px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;">
                         <div id="news-editor-toolbar" style="display:flex;gap:.2rem;padding:.45rem .6rem;background:var(--bg);border-bottom:1px solid var(--border);flex-wrap:wrap;align-items:center;">
                             <!-- Formatowanie -->
-                            <button type="button" class="rte-btn" onclick="rteCmd('bold')" title="Pogrubienie"><i class="fa-solid fa-bold"></i></button>
-                            <button type="button" class="rte-btn" onclick="rteCmd('italic')" title="Kursywa"><i class="fa-solid fa-italic"></i></button>
-                            <button type="button" class="rte-btn" onclick="rteCmd('underline')" title="Podkreślenie"><i class="fa-solid fa-underline"></i></button>
-                            <button type="button" class="rte-btn" onclick="rteCmd('strikeThrough')" title="Przekreślenie"><i class="fa-solid fa-strikethrough"></i></button>
+                            <button type="button" class="rte-btn" onmousedown="event.preventDefault()" onclick="rteCmd('bold')" title="Pogrubienie"><i class="fa-solid fa-bold"></i></button>
+                            <button type="button" class="rte-btn" onmousedown="event.preventDefault()" onclick="rteCmd('italic')" title="Kursywa"><i class="fa-solid fa-italic"></i></button>
+                            <button type="button" class="rte-btn" onmousedown="event.preventDefault()" onclick="rteCmd('underline')" title="Podkreślenie"><i class="fa-solid fa-underline"></i></button>
+                            <button type="button" class="rte-btn" onmousedown="event.preventDefault()" onclick="rteCmd('strikeThrough')" title="Przekreślenie"><i class="fa-solid fa-strikethrough"></i></button>
                             <div style="width:1px;height:20px;background:var(--border);margin:0 .3rem;flex-shrink:0;"></div>
                             <!-- Rozmiar -->
-                            <select onchange="rteSize(this.value)" title="Rozmiar czcionki" style="padding:.2rem .4rem;border:1px solid var(--border);border-radius:4px;font-size:.78rem;background:var(--bg-card);color:var(--text-primary);outline:none;cursor:pointer;">
+                            <select onmousedown="event.stopPropagation()" onchange="rteSize(this.value)" title="Rozmiar czcionki" style="padding:.2rem .4rem;border:1px solid var(--border);border-radius:4px;font-size:.78rem;background:var(--bg-card);color:var(--text-primary);outline:none;cursor:pointer;">
                                 <option value="">Rozmiar</option>
                                 <option value="1">Mały</option>
                                 <option value="3" selected>Normalny</option>
@@ -1776,20 +1777,20 @@
                             </label>
                             <div style="width:1px;height:20px;background:var(--border);margin:0 .3rem;flex-shrink:0;"></div>
                             <!-- Wyrównanie -->
-                            <button type="button" class="rte-btn" onclick="rteCmd('justifyLeft')" title="Do lewej"><i class="fa-solid fa-align-left"></i></button>
-                            <button type="button" class="rte-btn" onclick="rteCmd('justifyCenter')" title="Wyśrodkuj"><i class="fa-solid fa-align-center"></i></button>
-                            <button type="button" class="rte-btn" onclick="rteCmd('justifyRight')" title="Do prawej"><i class="fa-solid fa-align-right"></i></button>
+                            <button type="button" class="rte-btn" onmousedown="event.preventDefault()" onclick="rteCmd('justifyLeft')" title="Do lewej"><i class="fa-solid fa-align-left"></i></button>
+                            <button type="button" class="rte-btn" onmousedown="event.preventDefault()" onclick="rteCmd('justifyCenter')" title="Wyśrodkuj"><i class="fa-solid fa-align-center"></i></button>
+                            <button type="button" class="rte-btn" onmousedown="event.preventDefault()" onclick="rteCmd('justifyRight')" title="Do prawej"><i class="fa-solid fa-align-right"></i></button>
                             <div style="width:1px;height:20px;background:var(--border);margin:0 .3rem;flex-shrink:0;"></div>
                             <!-- Lista -->
-                            <button type="button" class="rte-btn" onclick="rteCmd('insertUnorderedList')" title="Lista"><i class="fa-solid fa-list-ul"></i></button>
+                            <button type="button" class="rte-btn" onmousedown="event.preventDefault()" onclick="rteCmd('insertUnorderedList')" title="Lista"><i class="fa-solid fa-list-ul"></i></button>
                             <!-- Link -->
-                            <button type="button" class="rte-btn" onclick="rteInsertLink()" title="Wstaw link"><i class="fa-solid fa-link"></i></button>
+                            <button type="button" class="rte-btn" onmousedown="event.preventDefault()" onclick="rteInsertLink()" title="Wstaw link"><i class="fa-solid fa-link"></i></button>
                             <!-- Zdjęcie -->
-                            <button type="button" class="rte-btn" onclick="rteInsertImage()" title="Wstaw zdjęcie (URL)"><i class="fa-solid fa-image"></i></button>
+                            <button type="button" class="rte-btn" onmousedown="event.preventDefault()" onclick="rteInsertImage()" title="Wstaw zdjęcie (URL)"><i class="fa-solid fa-image"></i></button>
                             <!-- Wyczyść formatowanie -->
-                            <button type="button" class="rte-btn" onclick="rteCmd('removeFormat')" title="Wyczyść formatowanie" style="margin-left:auto;"><i class="fa-solid fa-eraser"></i></button>
+                            <button type="button" class="rte-btn" onmousedown="event.preventDefault()" onclick="rteCmd('removeFormat')" title="Wyczyść formatowanie" style="margin-left:auto;"><i class="fa-solid fa-eraser"></i></button>
                             <!-- Upload pliku/zdjęcia -->
-                            <button type="button" class="rte-btn" onclick="rteUploadFile()" title="Wgraj plik / zdjęcie / wideo" style="color:#10b981;border-color:rgba(16,185,129,.3);background:rgba(16,185,129,.08);"><i class="fa-solid fa-cloud-arrow-up"></i></button>
+                            <button type="button" class="rte-btn" onmousedown="event.preventDefault()" onclick="rteUploadFile()" title="Wgraj plik / zdjęcie / wideo" style="color:#10b981;border-color:rgba(16,185,129,.3);background:rgba(16,185,129,.08);"><i class="fa-solid fa-cloud-arrow-up"></i></button>
                         </div>
                         <!-- Edytor contenteditable -->
                         <div id="news-editor"
