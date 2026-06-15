@@ -410,6 +410,12 @@ body {
     display: flex;
     flex-direction: column;
     min-height: 100vh;
+    overflow-x: hidden;
+    min-width: 0;
+}
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
 }
 
 /* TOPBAR */
@@ -507,10 +513,7 @@ body {
     display: block;
 }
 
-.main-content {
-    overflow-x: hidden;
-    min-width: 0;
-}
+/* Duplikat animacji usunięty - jest już w .page { animation: pageIn... } */
 
 @keyframes pageIn {
     from { opacity: 0; transform: translateY(8px); }
@@ -1368,10 +1371,7 @@ select:focus {
     outline: none;
 }
 
-/* Animacja fade dla stron */
-.page.active {
-    animation: pageIn 0.18s ease forwards;
-}
+/* Animacja fade - przeniesiona do .page { animation: ... } */
 
 /* Badge dla graczy online — pulsowanie */
 .badge-online i.fa-circle {
