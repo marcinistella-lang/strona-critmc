@@ -3155,16 +3155,28 @@ window.loadShopPage = async function() {
     if (tb)   tb.innerHTML = '<tr><td colspan="7" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>';
     if (grid) grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--text-secondary);"><i class="fa-solid fa-spinner fa-spin fa-2x"></i><div style="margin-top:.75rem;">Ładowanie produktów...</div></div>';
     try {
-        console.log('[CritMC Shop] Pobieranie z shop_items...');
         const snap = await getDocs(collection(db, 'shop_items'));
-        console.log('[CritMC Shop] Dokumentów:', snap.docs.length, snap.empty ? '(PUSTA KOLEKCJA)' : '');
         allShopItems = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (a.sortOrder || 99) - (b.sortOrder || 99));
-        window.filterShopItems();
+        if (!allShopItems.length) {
+            const emptyMsg = '<div style="grid-column:1/-1;padding:3rem;text-align:center;color:var(--text-secondary);">'
+                + '<i class="fa-solid fa-shop" style="font-size:2.5rem;opacity:.3;display:block;margin-bottom:.75rem;"></i>'
+                + '<div style="font-weight:700;font-size:.95rem;">Brak produktów sklepu</div>'
+                + '<div style="font-size:.85rem;margin-top:.3rem;">Kliknij <strong>+ Dodaj produkt</strong> aby dodać pierwszy.</div>'
+                + '</div>';
+            if (grid) grid.innerHTML = emptyMsg;
+            if (tb)   tb.innerHTML = '<tr><td colspan="7" class="table-empty">Brak produktów. Kliknij + Dodaj produkt.</td></tr>';
+        } else {
+            window.filterShopItems();
+        }
     } catch (e) {
         console.error('[CritMC Shop] BŁĄD:', e.code, e.message);
-        const errHtml = '<i class="fa-solid fa-circle-exclamation"></i> Błąd: ' + e.message;
+        const isPermission = e.code === 'permission-denied';
+        const msg = isPermission
+            ? 'Brak uprawnień Firestore. Sprawdź Security Rules dla kolekcji shop_items.'
+            : 'Błąd: ' + e.message;
+        const errHtml = '<i class="fa-solid fa-circle-exclamation" style="margin-right:.4rem;"></i>' + msg;
         if (tb)   tb.innerHTML = '<tr><td colspan="7" class="table-empty" style="color:#ef4444;">' + errHtml + '</td></tr>';
-        if (grid) grid.innerHTML = '<div style="grid-column:1/-1;padding:2rem;text-align:center;color:#ef4444;">' + errHtml + '</div>';
+        if (grid) grid.innerHTML = '<div style="grid-column:1/-1;padding:2rem;text-align:center;color:#ef4444;font-size:.88rem;">' + errHtml + '</div>';
     }
 };
 
@@ -5107,7 +5119,7 @@ window.loadInfoPage = async function() {
     // ── Sesja ────────────────────────────────────────────────────────────────
     _setEl('info-s-user',       currentUser?.displayName || '—');
     _setEl('info-s-role',       currentUser?.role || '—');
-    _setEl('info-s-login-time', new Date(Date.now() - _panelStartTime < 1000 ? Date.now() : Date.now() - (Date.now() - _panelStartTime)).toLocaleTimeString('pl-PL'));
+    _setEl('info-s-login-time', new Date(_panelStartTime).toLocaleTimeString('pl-PL'));
     _setEl('info-s-browser',    navigator.userAgent.split(') ').pop().split(' ')[0] || navigator.userAgent.substring(0,60));
     _setEl('info-s-res',        `${window.screen.width}×${window.screen.height} (viewport: ${window.innerWidth}×${window.innerHeight})`);
     _setEl('info-s-tz',         Intl.DateTimeFormat().resolvedOptions().timeZone);

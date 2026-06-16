@@ -2,6 +2,10 @@
    CritMC Admin Panel â€” Light Theme
    ============================================================================= */
 
+/* Site tab panels — ukryte domyślnie, widoczne tylko z klasą sp-active */
+.site-tab-panel           { display: none !important; }
+.site-tab-panel.sp-active { display: block !important; }
+
 :root {
     --bg: #f0f2f5;
     --bg-card: #ffffff;
