@@ -1497,13 +1497,16 @@ window.openNewsModal = function() {
     document.getElementById('news-modal-title').textContent = 'Dodaj aktualność';
     document.getElementById('news-id').value = '';
     document.getElementById('news-title').value = '';
+    document.getElementById('news-content').value = '';
     document.getElementById('news-video').value = '';
     document.getElementById('news-pinned').checked = false;
     document.getElementById('news-msg').style.display = 'none';
-    const editor = document.getElementById('news-editor');
-    if (editor) { editor.innerHTML = ''; editor.focus(); }
-    document.getElementById('news-content').value = '';
+    const preview = document.getElementById('news-preview');
+    if (preview) preview.style.display = 'none';
+    const status = document.getElementById('news-upload-status');
+    if (status) status.textContent = '';
     document.getElementById('news-modal').classList.add('open');
+    setTimeout(() => document.getElementById('news-content')?.focus(), 100);
 };
 
 window.editNews = async function(id) {
@@ -1511,22 +1514,22 @@ window.editNews = async function(id) {
         const snap = await getDoc(doc(db,'news',id)); if (!snap.exists()) return;
         const n = snap.data();
         document.getElementById('news-modal-title').textContent = 'Edytuj aktualność';
-        document.getElementById('news-id').value = id;
+        document.getElementById('news-id').value    = id;
         document.getElementById('news-title').value = n.title||'';
+        document.getElementById('news-content').value = n.content||'';
         document.getElementById('news-video').value = n.video||'';
         document.getElementById('news-pinned').checked = !!n.pinned;
         document.getElementById('news-msg').style.display = 'none';
-        const editor = document.getElementById('news-editor');
-        if (editor) editor.innerHTML = n.content||'';
-        document.getElementById('news-content').value = n.content||'';
+        const preview = document.getElementById('news-preview');
+        if (preview) preview.style.display = 'none';
+        const status = document.getElementById('news-upload-status');
+        if (status) status.textContent = '';
         document.getElementById('news-modal').classList.add('open');
     } catch(e) { showToast('error',e.message); }
 };
 
 window.saveNews = async function() {
     if (!requirePermission('site','zarządzanie stroną')) return;
-    const editor = document.getElementById('news-editor');
-    if (editor) document.getElementById('news-content').value = editor.innerHTML;
     const id      = document.getElementById('news-id').value;
     const title   = document.getElementById('news-title').value.trim();
     const content = document.getElementById('news-content').value.trim();
@@ -1535,9 +1538,9 @@ window.saveNews = async function() {
     if (!title) { _showNewsMsg('error','Podaj tytuł!'); return; }
     try {
         const data = { title, content, video, pinned, author: currentUser?.displayName||'Admin', updatedAt: serverTimestamp() };
-        if (id) { await updateDoc(doc(db,'news',id),data); }
-        else { data.createdAt = serverTimestamp(); await addDoc(collection(db,'news'),data); }
-        showToast('success', id?'Aktualność zaktualizowana!':'Aktualność dodana!');
+        if (id) { await updateDoc(doc(db,'news',id), data); }
+        else { data.createdAt = serverTimestamp(); await addDoc(collection(db,'news'), data); }
+        showToast('success', id ? 'Aktualność zaktualizowana!' : 'Aktualność dodana!');
         document.getElementById('news-modal').classList.remove('open');
         window.loadNewsTab();
     } catch(e) { _showNewsMsg('error','Błąd: '+e.message); }
@@ -1606,46 +1609,134 @@ window.resetPollVotes = async function() {
     } catch(e) { showToast('error',e.message); }
 };
 
-// ─── RICH TEXT EDITOR ─────────────────────────────────────────────────────────
-function _rteGetEditor() { return document.getElementById('news-editor'); }
-function rteCmd(cmd) { _rteGetEditor()?.focus(); document.execCommand(cmd,false,null); }
-function rteSize(size) { if(!size)return; _rteGetEditor()?.focus(); document.execCommand('fontSize',false,size); }
-function rteFontFamily(font) { if(!font)return; _rteGetEditor()?.focus(); document.execCommand('fontName',false,font); }
-function rteColor(color) { _rteGetEditor()?.focus(); document.execCommand('foreColor',false,color); }
+// ─── RICH TEXT EDITOR (textarea-based) ───────────────────────────────────────
+function _rteGetEditor() { return document.getElementById('news-content'); }
+
+function _rteGetPos() {
+    const ta = _rteGetEditor();
+    if (!ta) return { start: 0, end: 0, value: '' };
+    return { start: ta.selectionStart, end: ta.selectionEnd, value: ta.value };
+}
+
+function rteWrap(before, after) {
+    const ta = _rteGetEditor(); if (!ta) return;
+    const start = ta.selectionStart, end = ta.selectionEnd;
+    const selected = ta.value.substring(start, end) || 'tekst';
+    const newText = before + selected + after;
+    ta.setRangeText(newText, start, end, 'end');
+    ta.focus();
+    // Ustaw kursor w środku jeśli nie było zaznaczenia
+    if (start === end) {
+        const pos = start + before.length;
+        ta.setSelectionRange(pos, pos + 5);
+    }
+}
+
+function rteInsertText(text) {
+    const ta = _rteGetEditor(); if (!ta) return;
+    const pos = ta.selectionStart;
+    // Jeśli jesteśmy w środku linii, dodaj nową linię przed
+    const before = ta.value.substring(0, pos);
+    const after  = ta.value.substring(pos);
+    const prefix = (before.length > 0 && !before.endsWith('\n')) ? '\n' : '';
+    ta.setRangeText(prefix + text, pos, pos, 'end');
+    ta.focus();
+}
+
 function rteInsertLink() {
-    const url=prompt('Adres URL linku:'); if(!url)return;
-    const text=prompt('Tekst linku:')||url;
-    _rteGetEditor()?.focus();
-    document.execCommand('insertHTML',false,'<a href="'+url+'" target="_blank" rel="noopener" style="color:#3b82f6;">'+text+'</a>');
+    const url  = prompt('Adres URL linku:'); if (!url) return;
+    const text = prompt('Tekst linku:') || url;
+    const ta   = _rteGetEditor(); if (!ta) return;
+    const pos  = ta.selectionStart;
+    const html = '<a href="' + url + '" target="_blank">' + text + '</a>';
+    ta.setRangeText(html, pos, ta.selectionEnd, 'end');
+    ta.focus();
 }
-function rteInsertImage() {
-    const url=prompt('URL zdjęcia:'); if(!url)return;
-    _rteGetEditor()?.focus();
-    document.execCommand('insertHTML',false,'<img src="'+url+'" alt="zdjęcie" style="max-width:100%;border-radius:8px;">');
+
+function rteInsertImageUrl() {
+    const url = prompt('URL zdjęcia:'); if (!url) return;
+    const ta  = _rteGetEditor(); if (!ta) return;
+    const pos = ta.selectionStart;
+    const html = '\n<img src="' + url + '" alt="zdjęcie" style="max-width:100%;border-radius:8px;">\n';
+    ta.setRangeText(html, pos, ta.selectionEnd, 'end');
+    ta.focus();
 }
+
 window.rteUploadFile = async function() {
     if (!requirePermission('site','zarządzanie stroną')) return;
-    const input=document.createElement('input'); input.type='file'; input.accept='image/*,video/*,.gif,.png,.jpg,.jpeg,.mp4,.webm';
+    const input = document.createElement('input');
+    input.type  = 'file';
+    input.accept = 'image/*,video/*,.gif,.png,.jpg,.jpeg,.mp4,.webm';
     input.onchange = async(e) => {
-        const file=e.target.files?.[0]; if(!file)return;
-        showToast('info','Wysyłam plik...');
-        try {
-            const form=new FormData(); form.append('file',file); form.append('folder','news'); form.append('admin',currentUser?.displayName||'Panel');
-            const res=await fetch(FILE_WORKER_URL+'/upload/news',{method:'POST',body:form});
-            const data=await res.json().catch(()=>null);
-            if(!res.ok||!data?.ok||!data?.file)throw new Error(data?.error||'Błąd uploadu');
-            const url=data.file.publicUrl||data.file.url||(FILE_WORKER_URL+'/file/'+encodeURIComponent(data.file.fileKey));
-            _rteGetEditor()?.focus();
-            const isVideo=/\.(mp4|webm|mov)/i.test(url);
-            document.execCommand('insertHTML',false,isVideo?'<video src="'+url+'" controls style="max-width:100%;border-radius:8px;margin:.4rem 0;display:block;"></video>':'<img src="'+url+'" alt="'+escapeHtml(file.name)+'" style="max-width:100%;border-radius:8px;margin:.4rem 0;display:block;">');
-            showToast('success','Plik dodany.');
-        } catch(ex) { showToast('error','Błąd: '+ex.message); }
-    }; input.click();
+        const file = e.target.files?.[0]; if (!file) return;
+        await _uploadAndInsertFile(file);
+    };
+    input.click();
 };
-window.syncNewsContent = function() {
-    const editor=_rteGetEditor(); const hidden=document.getElementById('news-content');
-    if(editor&&hidden)hidden.value=editor.innerHTML;
+
+window.newsHandleFiles = async function(input) {
+    const files = Array.from(input.files || []);
+    if (!files.length) return;
+    const statusEl = document.getElementById('news-upload-status');
+    if (statusEl) statusEl.textContent = 'Wysyłam ' + files.length + ' plik(ów)...';
+    let ok = 0, fail = 0;
+    for (const file of files) {
+        const success = await _uploadAndInsertFile(file);
+        if (success) ok++; else fail++;
+    }
+    if (statusEl) statusEl.textContent = 'Wgrano: ' + ok + (fail ? ', błędy: ' + fail : '') + '. Linki wstawione do treści.';
+    input.value = '';
 };
+
+async function _uploadAndInsertFile(file) {
+    try {
+        showToast('info', 'Wysyłam: ' + file.name);
+        const form = new FormData();
+        form.append('file', file); form.append('folder', 'news'); form.append('admin', currentUser?.displayName||'Panel');
+        const res  = await fetch(FILE_WORKER_URL + '/upload/news', { method: 'POST', body: form });
+        const data = await res.json().catch(() => null);
+        if (!res.ok || !data?.ok || !data?.file) throw new Error(data?.error || 'Błąd uploadu');
+        const url = data.file.publicUrl || data.file.url || (FILE_WORKER_URL + '/file/' + encodeURIComponent(data.file.fileKey));
+        const ta  = _rteGetEditor(); if (!ta) return true;
+        const pos = ta.selectionStart;
+        const isVideo = /\.(mp4|webm|mov)/i.test(url);
+        const isImage = /\.(png|jpg|jpeg|gif|webp)/i.test(url);
+        let html;
+        if (isVideo) html = '\n<video src="' + url + '" controls style="max-width:100%;border-radius:8px;"></video>\n';
+        else if (isImage) html = '\n<img src="' + url + '" alt="' + escapeHtml(file.name) + '" style="max-width:100%;border-radius:8px;">\n';
+        else html = '\n<a href="' + url + '" target="_blank">' + escapeHtml(file.name) + '</a>\n';
+        ta.setRangeText(html, pos, ta.selectionEnd, 'end');
+        showToast('success', 'Wgrano: ' + file.name);
+        return true;
+    } catch(ex) {
+        showToast('error', 'Błąd uploadu ' + file.name + ': ' + ex.message);
+        return false;
+    }
+}
+
+window.toggleNewsPreview = function() {
+    const ta      = document.getElementById('news-content');
+    const preview = document.getElementById('news-preview');
+    const btn     = document.getElementById('news-preview-btn');
+    if (!preview || !ta) return;
+    const showing = preview.style.display !== 'none';
+    if (showing) {
+        preview.style.display = 'none';
+        if (btn) btn.innerHTML = '<i class="fa-solid fa-eye"></i> Podgląd';
+    } else {
+        preview.style.display = 'block';
+        preview.innerHTML = ta.value || '<em style="color:var(--text-secondary);">Brak treści</em>';
+        if (btn) btn.innerHTML = '<i class="fa-solid fa-eye-slash"></i> Ukryj';
+    }
+};
+
+// Stare funkcje execCommand — zachowane dla kompatybilności wstecznej
+function rteCmd(cmd) {}
+function rteSize(size) {}
+function rteFontFamily(font) {}
+function rteColor(color) {}
+function rteInsertImage() { rteInsertImageUrl(); }
+window.syncNewsContent = function() {};
 
 // ─── INFORMACJE SYSTEMOWE ─────────────────────────────────────────────────────
 const _panelStartTime = Date.now();
@@ -1718,11 +1809,15 @@ let _guideVisible = false;
 
 window.togglePunishmentGuide = function() {
     _guideVisible = !_guideVisible;
-    const content=document.getElementById('punishment-guide-content');
-    const btn=document.getElementById('guide-toggle-btn');
-    if(content)content.style.display=_guideVisible?'block':'none';
-    if(btn)btn.innerHTML=_guideVisible?'<i class="fa-solid fa-chevron-up"></i>':'<i class="fa-solid fa-chevron-down"></i>';
-    if(_guideVisible)loadPunishmentGuide();
+    const content = document.getElementById('punishment-guide-content');
+    const btn     = document.getElementById('guide-toggle-btn');
+    if (content) content.style.display = _guideVisible ? 'block' : 'none';
+    if (btn) btn.innerHTML = _guideVisible ? '<i class="fa-solid fa-chevron-up"></i>' : '<i class="fa-solid fa-chevron-down"></i>';
+    if (_guideVisible) {
+        // Zawsze pokaż domyślne reguły od razu, potem próbuj Firestore
+        _renderPunishmentGuide(_defaultGuideRules());
+        loadPunishmentGuide().catch(() => {});
+    }
 };
 
 async function loadPunishmentGuide() {
