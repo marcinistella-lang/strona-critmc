@@ -1501,10 +1501,12 @@ window.openNewsModal = function() {
     document.getElementById('news-video').value = '';
     document.getElementById('news-pinned').checked = false;
     document.getElementById('news-msg').style.display = 'none';
-    const preview = document.getElementById('news-preview');
-    if (preview) preview.style.display = 'none';
+    const previews = document.getElementById('news-file-previews');
+    if (previews) previews.innerHTML = '';
     const status = document.getElementById('news-upload-status');
     if (status) status.textContent = '';
+    const fileInput = document.getElementById('news-file-upload');
+    if (fileInput) fileInput.value = '';
     document.getElementById('news-modal').classList.add('open');
     setTimeout(() => document.getElementById('news-content')?.focus(), 100);
 };
@@ -1520,8 +1522,8 @@ window.editNews = async function(id) {
         document.getElementById('news-video').value = n.video||'';
         document.getElementById('news-pinned').checked = !!n.pinned;
         document.getElementById('news-msg').style.display = 'none';
-        const preview = document.getElementById('news-preview');
-        if (preview) preview.style.display = 'none';
+        const previews = document.getElementById('news-file-previews');
+        if (previews) previews.innerHTML = '';
         const status = document.getElementById('news-upload-status');
         if (status) status.textContent = '';
         document.getElementById('news-modal').classList.add('open');
@@ -1677,14 +1679,34 @@ window.rteUploadFile = async function() {
 window.newsHandleFiles = async function(input) {
     const files = Array.from(input.files || []);
     if (!files.length) return;
-    const statusEl = document.getElementById('news-upload-status');
+    const statusEl   = document.getElementById('news-upload-status');
+    const previewEl  = document.getElementById('news-file-previews');
     if (statusEl) statusEl.textContent = 'Wysyłam ' + files.length + ' plik(ów)...';
     let ok = 0, fail = 0;
     for (const file of files) {
-        const success = await _uploadAndInsertFile(file);
-        if (success) ok++; else fail++;
+        const url = await _uploadAndInsertFile(file);
+        if (url && previewEl) {
+            // Dodaj podgląd
+            const isImage = /\.(png|jpg|jpeg|gif|webp)/i.test(file.name);
+            const isVideo = /\.(mp4|webm|mov)/i.test(file.name);
+            const thumb = document.createElement('div');
+            thumb.style.cssText = 'position:relative;border-radius:8px;overflow:hidden;border:1.5px solid var(--border);';
+            if (isImage) {
+                thumb.innerHTML = '<img src="'+url+'" style="width:80px;height:80px;object-fit:cover;display:block;">'
+                    + '<div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.6);color:#fff;font-size:.6rem;padding:.15rem .3rem;text-overflow:ellipsis;overflow:hidden;white-space:nowrap;">'+escapeHtml(file.name)+'</div>';
+            } else if (isVideo) {
+                thumb.innerHTML = '<video src="'+url+'" style="width:80px;height:80px;object-fit:cover;display:block;"></video>'
+                    + '<div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.6);color:#fff;font-size:.6rem;padding:.15rem .3rem;text-overflow:ellipsis;overflow:hidden;white-space:nowrap;">'+escapeHtml(file.name)+'</div>';
+            } else {
+                thumb.innerHTML = '<div style="width:80px;height:80px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--bg);gap:.3rem;">'
+                    + '<i class="fa-solid fa-file" style="font-size:1.8rem;color:var(--accent-blue);"></i>'
+                    + '<div style="font-size:.6rem;color:var(--text-secondary);text-align:center;padding:0 .3rem;word-break:break-all;">'+escapeHtml(file.name.substring(0,15))+'</div></div>';
+            }
+            previewEl.appendChild(thumb);
+            ok++;
+        } else { fail++; }
     }
-    if (statusEl) statusEl.textContent = 'Wgrano: ' + ok + (fail ? ', błędy: ' + fail : '') + '. Linki wstawione do treści.';
+    if (statusEl) statusEl.textContent = ok + ' plik(ów) wgrano' + (fail ? ', błędy: ' + fail : '') + '. Linki wstawione do treści.';
     input.value = '';
 };
 
@@ -1697,20 +1719,20 @@ async function _uploadAndInsertFile(file) {
         const data = await res.json().catch(() => null);
         if (!res.ok || !data?.ok || !data?.file) throw new Error(data?.error || 'Błąd uploadu');
         const url = data.file.publicUrl || data.file.url || (FILE_WORKER_URL + '/file/' + encodeURIComponent(data.file.fileKey));
-        const ta  = _rteGetEditor(); if (!ta) return true;
-        const pos = ta.selectionStart;
+        const ta  = document.getElementById('news-content'); if (!ta) return url;
+        const pos = ta.selectionStart || ta.value.length;
         const isVideo = /\.(mp4|webm|mov)/i.test(url);
         const isImage = /\.(png|jpg|jpeg|gif|webp)/i.test(url);
         let html;
         if (isVideo) html = '\n<video src="' + url + '" controls style="max-width:100%;border-radius:8px;"></video>\n';
         else if (isImage) html = '\n<img src="' + url + '" alt="' + escapeHtml(file.name) + '" style="max-width:100%;border-radius:8px;">\n';
-        else html = '\n<a href="' + url + '" target="_blank">' + escapeHtml(file.name) + '</a>\n';
-        ta.setRangeText(html, pos, ta.selectionEnd, 'end');
+        else html = ' <a href="' + url + '" target="_blank">' + escapeHtml(file.name) + '</a> ';
+        ta.setRangeText(html, pos, pos, 'end');
         showToast('success', 'Wgrano: ' + file.name);
-        return true;
+        return url;
     } catch(ex) {
-        showToast('error', 'Błąd uploadu ' + file.name + ': ' + ex.message);
-        return false;
+        showToast('error', 'Błąd: ' + ex.message);
+        return null;
     }
 }
 
@@ -1818,6 +1840,13 @@ window.togglePunishmentGuide = function() {
         _renderPunishmentGuide(_defaultGuideRules());
         loadPunishmentGuide().catch(() => {});
     }
+};
+window.openPunishmentGuideModal = function() {
+    // Załaduj tabele i otwórz modal
+    _renderPunishmentGuide(_defaultGuideRules());
+    document.getElementById('punishment-guide-modal').classList.add('open');
+    // Spróbuj pobrać z Firestore w tle
+    window.loadPunishmentGuide().then(() => {}).catch(() => {});
 };
 
 window.loadPunishmentGuide = async function() {
