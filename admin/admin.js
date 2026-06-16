@@ -23,7 +23,6 @@ let allPlayers = [], allBans = [], allMutes = [], allLogs = [];
 let allFiles = [], allAdmins = [], allShopItems = [];
 let unsubscribePlayers = null;
 var _shopView = 'grid';
-const _panelStartTime = Date.now();
 
 // ─── Uprawnienia ──────────────────────────────────────────────────────────────
 const DEFAULT_ACCOUNTS = [
@@ -36,7 +35,7 @@ const ROLE_PERMISSIONS = {
     'Admin':        ['ban', 'unban', 'mute', 'unmute', 'kick', 'warn', 'check', 'players', 'logs', 'notes', 'site', 'shop', 'media_manage', 'evidence_view', 'evidence_delete'],
     'Zarządzający': ['all']
 };
-const ROLE_ORDER = ['ChatMod', 'Pomocnik', 'Moderator', 'Admin', 'Zarządzający'];
+const ROLE_ORDER = ['ChatMod', 'Moderator', 'Admin', 'Pomocnik', 'Zarządzający'];
 const PERMISSIONS_PL = {
     players: { label: 'Podgląd graczy', desc: 'Może przeglądać listę graczy.' },
     ban: { label: 'Bany', desc: 'Może nadawać bany.' },
@@ -1461,3 +1460,343 @@ window.siteDeleteProposal = async function(id){
     if(!confirm('Usunąć tę propozycję?'))return;
     try{await deleteDoc(doc(db,'proposals',id));showToast('success','Propozycja usunięta.');await window.siteLoadProposals();}catch(e){showToast('error','Błąd: '+e.message);}
 };
+
+// ─── AKTUALNOŚCI ──────────────────────────────────────────────────────────────
+window.loadNewsTab = async function() {
+    const container = document.getElementById('news-list'); if (!container) return;
+    container.innerHTML = '<div class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</div>';
+    try {
+        const snap = await getDocs(query(collection(db,'news'), orderBy('createdAt','desc')));
+        const items = snap.docs.map(d=>({id:d.id,...d.data()}));
+        if (!items.length) { container.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-secondary);"><i class="fa-solid fa-newspaper" style="font-size:2rem;opacity:.3;display:block;margin-bottom:.5rem;"></i>Brak aktualności.</div>'; return; }
+        container.innerHTML = items.map(n =>
+            '<div class="table-card" style="padding:1.2rem;'+(n.pinned?'border-left:3px solid var(--accent);':'')+'">'
+            +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.75rem;flex-wrap:wrap;">'
+            +'<div style="flex:1;min-width:0;"><div style="font-weight:800;font-size:.95rem;">'+(n.pinned?'<i class="fa-solid fa-thumbtack" style="color:var(--accent);margin-right:.4rem;font-size:.72rem;"></i>':'')+escapeHtml(n.title||'Bez tytułu')+'</div>'
+            +'<div style="font-size:.74rem;color:var(--text-secondary);margin-top:.15rem;">'+formatDate(n.createdAt)+' · '+escapeHtml(n.author||'—')+'</div></div>'
+            +'<div style="display:flex;gap:.4rem;flex-shrink:0;">'
+            +'<button class="tbl-btn" onclick="editNews(\''+n.id+'\')"><i class="fa-solid fa-pen"></i></button>'
+            +'<button class="tbl-btn tbl-btn-red" onclick="deleteNews(\''+n.id+'\')"><i class="fa-solid fa-trash"></i></button>'
+            +'</div></div>'
+            +(n.content?'<div style="margin-top:.7rem;font-size:.88rem;line-height:1.5;">'+n.content+'</div>':'')
+            +_buildVideoEmbed(n.video)
+            +'</div>'
+        ).join('');
+    } catch(e) { container.innerHTML = '<div style="color:#ef4444;padding:1rem;">Błąd: '+e.message+'</div>'; }
+};
+
+function _buildVideoEmbed(url) {
+    if (!url) return '';
+    const yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+    if (yt) return '<div style="margin-top:.75rem;border-radius:10px;overflow:hidden;position:relative;padding-bottom:56.25%;height:0;"><iframe src="https://www.youtube.com/embed/'+yt[1]+'" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;" allowfullscreen loading="lazy"></iframe></div>';
+    if (/\.(mp4|webm|mov)/i.test(url)) return '<video src="'+escapeHtml(url)+'" controls style="width:100%;border-radius:10px;margin-top:.75rem;max-height:360px;"></video>';
+    return '<a href="'+escapeHtml(url)+'" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:.4rem;margin-top:.5rem;font-size:.82rem;color:var(--accent-blue);"><i class="fa-solid fa-play-circle"></i> Obejrzyj wideo</a>';
+}
+
+window.openNewsModal = function() {
+    document.getElementById('news-modal-title').textContent = 'Dodaj aktualność';
+    document.getElementById('news-id').value = '';
+    document.getElementById('news-title').value = '';
+    document.getElementById('news-video').value = '';
+    document.getElementById('news-pinned').checked = false;
+    document.getElementById('news-msg').style.display = 'none';
+    const editor = document.getElementById('news-editor');
+    if (editor) { editor.innerHTML = ''; editor.focus(); }
+    document.getElementById('news-content').value = '';
+    document.getElementById('news-modal').classList.add('open');
+};
+
+window.editNews = async function(id) {
+    try {
+        const snap = await getDoc(doc(db,'news',id)); if (!snap.exists()) return;
+        const n = snap.data();
+        document.getElementById('news-modal-title').textContent = 'Edytuj aktualność';
+        document.getElementById('news-id').value = id;
+        document.getElementById('news-title').value = n.title||'';
+        document.getElementById('news-video').value = n.video||'';
+        document.getElementById('news-pinned').checked = !!n.pinned;
+        document.getElementById('news-msg').style.display = 'none';
+        const editor = document.getElementById('news-editor');
+        if (editor) editor.innerHTML = n.content||'';
+        document.getElementById('news-content').value = n.content||'';
+        document.getElementById('news-modal').classList.add('open');
+    } catch(e) { showToast('error',e.message); }
+};
+
+window.saveNews = async function() {
+    if (!requirePermission('site','zarządzanie stroną')) return;
+    const editor = document.getElementById('news-editor');
+    if (editor) document.getElementById('news-content').value = editor.innerHTML;
+    const id      = document.getElementById('news-id').value;
+    const title   = document.getElementById('news-title').value.trim();
+    const content = document.getElementById('news-content').value.trim();
+    const video   = document.getElementById('news-video').value.trim();
+    const pinned  = document.getElementById('news-pinned').checked;
+    if (!title) { _showNewsMsg('error','Podaj tytuł!'); return; }
+    try {
+        const data = { title, content, video, pinned, author: currentUser?.displayName||'Admin', updatedAt: serverTimestamp() };
+        if (id) { await updateDoc(doc(db,'news',id),data); }
+        else { data.createdAt = serverTimestamp(); await addDoc(collection(db,'news'),data); }
+        showToast('success', id?'Aktualność zaktualizowana!':'Aktualność dodana!');
+        document.getElementById('news-modal').classList.remove('open');
+        window.loadNewsTab();
+    } catch(e) { _showNewsMsg('error','Błąd: '+e.message); }
+};
+
+window.deleteNews = async function(id) {
+    if (!confirm('Usunąć tę aktualność?')) return;
+    try { await deleteDoc(doc(db,'news',id)); showToast('success','Aktualność usunięta.'); window.loadNewsTab(); }
+    catch(e) { showToast('error',e.message); }
+};
+
+function _showNewsMsg(type,text) { const el=document.getElementById('news-msg'); if(!el)return; el.className='modal-msg '+type; el.textContent=text; el.style.display='block'; }
+
+// ─── ANKIETA ──────────────────────────────────────────────────────────────────
+window.loadPollTab = async function() {
+    try {
+        const snap = await getDoc(doc(db,'site_poll','current'));
+        if (!snap.exists()) return;
+        const p = snap.data();
+        const q = document.getElementById('poll-question'); if (q) q.value = p.question||'';
+        const o = document.getElementById('poll-options'); if (o) o.value = (p.options||[]).map(x=>x.label||x).join('\n');
+        const a = document.getElementById('poll-active'); if (a) a.checked = p.active!==false;
+        _renderPollResults(p);
+    } catch(e) { console.error('loadPollTab:',e); }
+};
+
+function _renderPollResults(p) {
+    const container = document.getElementById('poll-results'); if (!container) return;
+    const options = p.options||[], total = options.reduce((s,o)=>s+(o.votes||0),0);
+    if (!options.length) { container.innerHTML='<div style="color:var(--text-secondary);">Brak opcji.</div>'; return; }
+    const colors = ['#3b82f6','#10b981','#8b5cf6','#f59e0b','#ef4444','#f97316'];
+    container.innerHTML = options.map((o,i) => {
+        const label=o.label||o, votes=o.votes||0, pct=total>0?Math.round(votes/total*100):0, col=colors[i%colors.length];
+        return '<div style="margin-bottom:.85rem;"><div style="display:flex;justify-content:space-between;margin-bottom:.3rem;"><span style="font-size:.88rem;font-weight:700;">'+escapeHtml(label)+'</span><span style="font-size:.82rem;color:var(--text-secondary);">'+votes+' głosów ('+pct+'%)</span></div><div style="height:10px;background:var(--border);border-radius:999px;overflow:hidden;"><div style="height:100%;width:'+pct+'%;background:'+col+';border-radius:999px;transition:width .5s ease;"></div></div></div>';
+    }).join('') + '<div style="margin-top:.75rem;font-size:.78rem;color:var(--text-secondary);">Łącznie głosów: '+total+'</div>';
+}
+
+window.savePoll = async function() {
+    if (!requirePermission('site','zarządzanie stroną')) return;
+    const question = (document.getElementById('poll-question')?.value||'').trim();
+    const optLines = (document.getElementById('poll-options')?.value||'').split('\n').map(l=>l.trim()).filter(Boolean);
+    const active   = document.getElementById('poll-active')?.checked ?? true;
+    const pollMsg  = document.getElementById('poll-msg');
+    if (!question) { if(pollMsg){pollMsg.style.color='#ef4444';pollMsg.textContent='Podaj pytanie!';} return; }
+    if (optLines.length < 2) { if(pollMsg){pollMsg.style.color='#ef4444';pollMsg.textContent='Dodaj min. 2 opcje!';} return; }
+    try {
+        const existing = await getDoc(doc(db,'site_poll','current'));
+        const exOpts = existing.exists()?(existing.data().options||[]):[];
+        const options = optLines.map(label => {
+            const ex = exOpts.find(o=>(o.label||o)===label);
+            return { label, votes: ex?(ex.votes||0):0 };
+        });
+        await setDoc(doc(db,'site_poll','current'),{ question, options, active, updatedAt:serverTimestamp(), updatedBy:currentUser?.displayName||'Panel' });
+        if(pollMsg){pollMsg.style.color='#10b981';pollMsg.textContent='✓ Zapisano!';setTimeout(()=>{pollMsg.textContent='';},2000);}
+        window.loadPollTab();
+    } catch(e) { if(pollMsg){pollMsg.style.color='#ef4444';pollMsg.textContent='Błąd: '+e.message;} }
+};
+
+window.resetPollVotes = async function() {
+    if (!confirm('Zresetować wszystkie głosy?')) return;
+    try {
+        const snap = await getDoc(doc(db,'site_poll','current')); if(!snap.exists())return;
+        const options = (snap.data().options||[]).map(o=>({label:o.label||o,votes:0}));
+        await updateDoc(doc(db,'site_poll','current'),{options,votedIPs:[],updatedAt:serverTimestamp()});
+        showToast('success','Głosy zresetowane.'); window.loadPollTab();
+    } catch(e) { showToast('error',e.message); }
+};
+
+// ─── RICH TEXT EDITOR ─────────────────────────────────────────────────────────
+function _rteGetEditor() { return document.getElementById('news-editor'); }
+function rteCmd(cmd) { _rteGetEditor()?.focus(); document.execCommand(cmd,false,null); }
+function rteSize(size) { if(!size)return; _rteGetEditor()?.focus(); document.execCommand('fontSize',false,size); }
+function rteFontFamily(font) { if(!font)return; _rteGetEditor()?.focus(); document.execCommand('fontName',false,font); }
+function rteColor(color) { _rteGetEditor()?.focus(); document.execCommand('foreColor',false,color); }
+function rteInsertLink() {
+    const url=prompt('Adres URL linku:'); if(!url)return;
+    const text=prompt('Tekst linku:')||url;
+    _rteGetEditor()?.focus();
+    document.execCommand('insertHTML',false,'<a href="'+url+'" target="_blank" rel="noopener" style="color:#3b82f6;">'+text+'</a>');
+}
+function rteInsertImage() {
+    const url=prompt('URL zdjęcia:'); if(!url)return;
+    _rteGetEditor()?.focus();
+    document.execCommand('insertHTML',false,'<img src="'+url+'" alt="zdjęcie" style="max-width:100%;border-radius:8px;">');
+}
+window.rteUploadFile = async function() {
+    if (!requirePermission('site','zarządzanie stroną')) return;
+    const input=document.createElement('input'); input.type='file'; input.accept='image/*,video/*,.gif,.png,.jpg,.jpeg,.mp4,.webm';
+    input.onchange = async(e) => {
+        const file=e.target.files?.[0]; if(!file)return;
+        showToast('info','Wysyłam plik...');
+        try {
+            const form=new FormData(); form.append('file',file); form.append('folder','news'); form.append('admin',currentUser?.displayName||'Panel');
+            const res=await fetch(FILE_WORKER_URL+'/upload/news',{method:'POST',body:form});
+            const data=await res.json().catch(()=>null);
+            if(!res.ok||!data?.ok||!data?.file)throw new Error(data?.error||'Błąd uploadu');
+            const url=data.file.publicUrl||data.file.url||(FILE_WORKER_URL+'/file/'+encodeURIComponent(data.file.fileKey));
+            _rteGetEditor()?.focus();
+            const isVideo=/\.(mp4|webm|mov)/i.test(url);
+            document.execCommand('insertHTML',false,isVideo?'<video src="'+url+'" controls style="max-width:100%;border-radius:8px;margin:.4rem 0;display:block;"></video>':'<img src="'+url+'" alt="'+escapeHtml(file.name)+'" style="max-width:100%;border-radius:8px;margin:.4rem 0;display:block;">');
+            showToast('success','Plik dodany.');
+        } catch(ex) { showToast('error','Błąd: '+ex.message); }
+    }; input.click();
+};
+window.syncNewsContent = function() {
+    const editor=_rteGetEditor(); const hidden=document.getElementById('news-content');
+    if(editor&&hidden)hidden.value=editor.innerHTML;
+};
+
+// ─── INFORMACJE SYSTEMOWE ─────────────────────────────────────────────────────
+const _panelStartTime = Date.now();
+let _uptimeInterval = null;
+
+function _setInfoStatus(elId, ok, label, detail) {
+    const el=document.getElementById(elId); if(!el)return;
+    const color=ok?'#10b981':'#ef4444', icon=ok?'fa-circle-check':'fa-circle-xmark';
+    el.innerHTML='<span style="width:10px;height:10px;border-radius:50%;background:'+color+';flex-shrink:0;box-shadow:0 0 6px '+color+'88;"></span><span style="font-size:.88rem;font-weight:700;color:'+color+';"><i class="fa-solid '+icon+'" style="margin-right:.3rem;"></i>'+label+'</span>';
+    const det=document.getElementById(elId.replace('-status','-detail')); if(det)det.textContent=detail||'';
+}
+
+function _setEl(id,val) { const el=document.getElementById(id); if(el)el.textContent=val??'—'; }
+function _formatUptime(ms) { const s=Math.floor(ms/1000),m=Math.floor(s/60),h=Math.floor(m/60); if(h>0)return h+'h '+(m%60)+'m'; if(m>0)return m+'m '+(s%60)+'s'; return s+'s'; }
+
+window.loadInfoPage = async function() {
+    const refreshedEl=document.getElementById('info-refreshed-at');
+    if(refreshedEl)refreshedEl.textContent='Odświeżanie...';
+    // Uptime
+    const uptimeEl=document.getElementById('info-uptime');
+    if(uptimeEl)uptimeEl.textContent=_formatUptime(Date.now()-_panelStartTime);
+    if(!_uptimeInterval){_uptimeInterval=setInterval(()=>{const el=document.getElementById('info-uptime');if(el)el.textContent=_formatUptime(Date.now()-_panelStartTime);},1000);}
+    // Statystyki
+    _setEl('info-stat-players',allPlayers.length);
+    _setEl('info-stat-online',allPlayers.filter(p=>p.online).length);
+    _setEl('info-stat-bans',allBans.length);
+    _setEl('info-stat-mutes',allMutes.length);
+    _setEl('info-stat-logs',allLogs.length);
+    _setEl('info-stat-files',allFiles.length);
+    _setEl('info-stat-admins',allAdmins.length||'—');
+    _setEl('info-stat-shop',allShopItems.length||'—');
+    // Sesja
+    _setEl('info-s-user',currentUser?.displayName||'—');
+    _setEl('info-s-role',currentUser?.role||'—');
+    _setEl('info-s-login-time',new Date(_panelStartTime).toLocaleTimeString('pl-PL'));
+    _setEl('info-s-browser',navigator.userAgent.split(') ').pop().split(' ')[0]||navigator.userAgent.substring(0,60));
+    _setEl('info-s-res',window.screen.width+'×'+window.screen.height+' (viewport: '+window.innerWidth+'×'+window.innerHeight+')');
+    _setEl('info-s-tz',Intl.DateTimeFormat().resolvedOptions().timeZone);
+    // Zasoby
+    _setEl('info-worker-url',FILE_WORKER_URL);
+    _setEl('info-scripts',document.scripts.length);
+    const mem=performance?.memory;
+    _setEl('info-memory',mem?Math.round(mem.usedJSHeapSize/1048576)+' MB / '+Math.round(mem.jsHeapSizeLimit/1048576)+' MB':'N/A');
+    _setEl('info-last-refresh',new Date().toLocaleTimeString('pl-PL'));
+    // Test Firebase
+    const t0=performance.now();
+    try {
+        await getDoc(doc(db,'panel_settings','health_check'));
+        _setInfoStatus('info-db-status',true,'Połączono ('+(Math.round(performance.now()-t0))+'ms)','Projekt: stronacritmcpl · Firebase 12.14.0');
+    } catch(e) { _setInfoStatus('info-db-status',false,'Błąd połączenia',e.message); }
+    // Test Worker
+    const t1=performance.now();
+    try {
+        const res=await fetch(FILE_WORKER_URL+'/health',{method:'GET',signal:AbortSignal.timeout(5000)});
+        const ping=Math.round(performance.now()-t1);
+        _setInfoStatus('info-b2-status',(res.ok||res.status===404),'Dostępny ('+ping+'ms)',FILE_WORKER_URL);
+    } catch(e) {
+        const ping=Math.round(performance.now()-t1);
+        _setInfoStatus('info-b2-status',ping<5000,'Dostępny (CORS: '+ping+'ms)',FILE_WORKER_URL);
+    }
+    // Status MC
+    const online=allPlayers.filter(p=>p.online).length;
+    if(allPlayers.length>0||allLogs.length>0){_setInfoStatus('info-mc-status',true,'Online: '+online+' graczy',allPlayers.length+' graczy w bazie · '+allLogs.length+' wpisów w logach');}
+    else{_setInfoStatus('info-mc-status',false,'Brak danych','Nie odebrano jeszcze danych z pluginu');}
+    if(refreshedEl)refreshedEl.textContent='Odświeżono: '+new Date().toLocaleTimeString('pl-PL');
+};
+
+// ─── PORADNIK KAR ─────────────────────────────────────────────────────────────
+let _guideVisible = false;
+
+window.togglePunishmentGuide = function() {
+    _guideVisible = !_guideVisible;
+    const content=document.getElementById('punishment-guide-content');
+    const btn=document.getElementById('guide-toggle-btn');
+    if(content)content.style.display=_guideVisible?'block':'none';
+    if(btn)btn.innerHTML=_guideVisible?'<i class="fa-solid fa-chevron-up"></i>':'<i class="fa-solid fa-chevron-down"></i>';
+    if(_guideVisible)loadPunishmentGuide();
+};
+
+async function loadPunishmentGuide() {
+    const container=document.getElementById('punishment-guide-table'); if(!container)return;
+    try {
+        const snap=await getDoc(doc(db,'panel_settings','punishment_guide'));
+        _renderPunishmentGuide(snap.exists()?(snap.data().rules||[]):_defaultGuideRules());
+    } catch(e) { _renderPunishmentGuide(_defaultGuideRules()); }
+}
+
+function _defaultGuideRules() {
+    return [
+        {category:'Chat',offense:'Spam / flood',punishment:'warn',duration:'—',notes:'1x warn, przy powtórzeniu mute 1h'},
+        {category:'Chat',offense:'Wulgaryzmy',punishment:'mute',duration:'1h – 1d',notes:'Zależy od nasilenia'},
+        {category:'Chat',offense:'Reklama innych serwerów',punishment:'ban',duration:'7d – permanent',notes:'Permanent przy nagminnym'},
+        {category:'Zachowanie',offense:'Obrażanie graczy',punishment:'warn + mute',duration:'1h',notes:''},
+        {category:'Zachowanie',offense:'Obrażanie administracji',punishment:'mute',duration:'1d – 7d',notes:''},
+        {category:'Cheaty',offense:'Killaura / fly / bhop',punishment:'ban',duration:'7d – permanent',notes:'Wymaga screenshara'},
+        {category:'Cheaty',offense:'Xray / ESP',punishment:'ban',duration:'3d – 14d',notes:''},
+        {category:'Cheaty',offense:'Bugusing',punishment:'ban',duration:'1d – 7d',notes:'Zależy od skali'},
+        {category:'Konto',offense:'Alt konto / omijanie bana',punishment:'ban',duration:'permanent',notes:'Ban głównego konta'},
+    ];
+}
+
+function _renderPunishmentGuide(rules) {
+    const container=document.getElementById('punishment-guide-table'); if(!container)return;
+    const ac={ban:'#ef4444',mute:'#f59e0b',warn:'#f97316',kick:'#6366f1'};
+    container.innerHTML='<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:.83rem;"><thead><tr style="border-bottom:2px solid var(--border);background:var(--bg);"><th style="text-align:left;padding:.55rem .8rem;font-size:.7rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;">Kategoria</th><th style="text-align:left;padding:.55rem .8rem;font-size:.7rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;">Przewinienie</th><th style="text-align:left;padding:.55rem .8rem;font-size:.7rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;">Kara</th><th style="text-align:left;padding:.55rem .8rem;font-size:.7rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;">Czas</th><th style="text-align:left;padding:.55rem .8rem;font-size:.7rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;">Uwagi</th></tr></thead><tbody>'
+        +rules.map((r,i)=>{
+            const pt=(r.punishment||'').toLowerCase().includes('ban')?'ban':(r.punishment||'').toLowerCase().includes('mute')?'mute':(r.punishment||'').toLowerCase().includes('kick')?'kick':'warn';
+            const col=ac[pt]||'#6b7280';
+            return '<tr style="border-bottom:1px solid var(--border);'+(i%2===0?'':'background:var(--bg)')+'"><td style="padding:.5rem .8rem;font-weight:600;color:var(--text-secondary);">'+escapeHtml(r.category||'')+'</td><td style="padding:.5rem .8rem;font-weight:700;">'+escapeHtml(r.offense||'')+'</td><td style="padding:.5rem .8rem;"><span style="background:'+col+'18;color:'+col+';border:1px solid '+col+'33;padding:.15rem .5rem;border-radius:999px;font-size:.72rem;font-weight:700;">'+escapeHtml(r.punishment||'')+'</span></td><td style="padding:.5rem .8rem;font-family:monospace;font-size:.8rem;">'+escapeHtml(r.duration||'—')+'</td><td style="padding:.5rem .8rem;color:var(--text-secondary);font-size:.78rem;">'+escapeHtml(r.notes||'')+'</td></tr>';
+        }).join('')+'</tbody></table></div>';
+}
+
+window.openGuideEditModal = async function() {
+    if (!hasPermission('all')) { showToast('error','Tylko Zarządzający może edytować poradnik.'); return; }
+    try {
+        const snap=await getDoc(doc(db,'panel_settings','punishment_guide'));
+        const rules=snap.exists()?(snap.data().rules||[]):_defaultGuideRules();
+        const json=prompt('Edytuj zasady kar (JSON array):',JSON.stringify(rules,null,2));
+        if(json===null)return;
+        const parsed=JSON.parse(json);
+        await setDoc(doc(db,'panel_settings','punishment_guide'),{rules:parsed,updatedAt:serverTimestamp(),updatedBy:currentUser?.displayName||'Panel'});
+        showToast('success','Poradnik zaktualizowany.'); loadPunishmentGuide();
+    } catch(ex) { showToast('error','Błąd: '+ex.message); }
+};
+
+// ─── MULTIKONTA ───────────────────────────────────────────────────────────────
+window.checkAlts = function(isApPage=false) {
+    const nick=isApPage?document.getElementById('ap-nick')?.value.trim():(window._actionModalPlayer?.nick||window._actionModalPlayer?.id);
+    if(!nick){showToast('error','Podaj nick gracza!');return;}
+    const p=allPlayers.find(pl=>(pl.nick||pl.id||'').toLowerCase()===nick.toLowerCase());
+    document.getElementById('alts-popup-overlay')?.remove();
+    const overlay=document.createElement('div');
+    overlay.id='alts-popup-overlay';
+    overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(4px);z-index:1500;display:flex;align-items:center;justify-content:center;padding:1rem;';
+    overlay.onclick=(e)=>{if(e.target===overlay)overlay.remove();};
+    const ip=p?.ip; let alts=[];
+    if(ip&&ip!=='unknown') alts=allPlayers.filter(pl=>pl.ip===ip&&(pl.nick||pl.id||'').toLowerCase()!==nick.toLowerCase());
+    const ipBadge=ip?'<span style="font-size:.75rem;background:rgba(59,130,246,.1);color:#3b82f6;border:1px solid rgba(59,130,246,.25);padding:.2rem .55rem;border-radius:999px;font-weight:700;font-family:monospace;"><i class="fa-solid fa-network-wired"></i> '+ip+'</span>':'<span style="font-size:.75rem;color:#9ca3af;">brak IP</span>';
+    const altsHtml=alts.length===0?'<div style="text-align:center;padding:1.5rem;color:var(--text-secondary);font-size:.9rem;"><i class="fa-solid fa-circle-check" style="color:#10b981;font-size:1.4rem;display:block;margin-bottom:.5rem;"></i>Brak powiązanych kont</div>':alts.map(pl=>'<div style="display:flex;align-items:center;gap:.75rem;padding:.6rem .75rem;border-radius:var(--radius-sm);background:var(--bg);margin-bottom:.5rem;font-weight:700;"><img class="player-head" src="https://mc-heads.net/avatar/'+encodeURIComponent(pl.nick||pl.id)+'/32" alt="'+escapeHtml(pl.nick||pl.id)+'" onerror="this.src=\'https://mc-heads.net/avatar/Steve/32\'"><span>'+escapeHtml(pl.nick||pl.id)+'</span><span style="margin-left:auto;font-size:.75rem;color:var(--text-secondary);">'+(pl.online?'<span style="color:#10b981;"><i class="fa-solid fa-circle fa-xs"></i> Online</span>':'Offline')+'</span></div>').join('');
+    overlay.innerHTML='<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;z-index:1000;box-shadow:var(--shadow-lg);min-width:320px;max-width:480px;animation:modalIn .2s ease forwards;"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;"><h3 style="font-size:1rem;font-weight:800;"><i class="fa-solid fa-users-viewfinder" style="color:#8b5cf6;margin-right:.5rem;"></i>Multikonta – '+escapeHtml(nick)+'</h3><button onclick="document.getElementById(\'alts-popup-overlay\').remove()" style="background:none;border:1.5px solid var(--border);border-radius:6px;width:30px;height:30px;cursor:pointer;font-size:.9rem;color:var(--text-secondary);"><i class="fa-solid fa-xmark"></i></button></div><div style="margin-bottom:1rem;">Adres IP: '+ipBadge+'</div><div style="font-size:.75rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.6rem;">Znalezione powiązane konta ('+alts.length+')</div>'+altsHtml+'</div>';
+    document.body.appendChild(overlay);
+};
+
+// ─── INICJALIZACJA ────────────────────────────────────────────────────────────
+async function ensureDefaultAdmin() {
+    try {
+        const snap=await getDocs(collection(db,'admins'));
+        if(snap.empty){await addDoc(collection(db,'admins'),{login:'test',password:'test',displayName:'Test Admin',role:'Zarządzający',permissions:['all'],disabled:false,createdAt:serverTimestamp(),createdBy:'system'});console.log('[CritMC] Utworzono domyślne konto test/test');}
+    } catch(e){console.warn('ensureDefaultAdmin:',e.message);}
+}
+ensureDefaultAdmin();
+
+window.checkAlts = window.checkAlts;
+window._extendedApplyPermissions = function() {};
