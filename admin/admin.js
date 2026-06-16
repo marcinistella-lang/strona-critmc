@@ -1618,7 +1618,7 @@ function _rteGetPos() {
     return { start: ta.selectionStart, end: ta.selectionEnd, value: ta.value };
 }
 
-function rteWrap(before, after) {
+window.rteWrap = function(before, after) {
     const ta = _rteGetEditor(); if (!ta) return;
     const start = ta.selectionStart, end = ta.selectionEnd;
     const selected = ta.value.substring(start, end) || 'tekst';
@@ -1632,7 +1632,7 @@ function rteWrap(before, after) {
     }
 }
 
-function rteInsertText(text) {
+window.rteInsertText = function(text) {
     const ta = _rteGetEditor(); if (!ta) return;
     const pos = ta.selectionStart;
     // Jeśli jesteśmy w środku linii, dodaj nową linię przed
@@ -1643,7 +1643,7 @@ function rteInsertText(text) {
     ta.focus();
 }
 
-function rteInsertLink() {
+window.rteInsertLink = function() {
     const url  = prompt('Adres URL linku:'); if (!url) return;
     const text = prompt('Tekst linku:') || url;
     const ta   = _rteGetEditor(); if (!ta) return;
@@ -1653,7 +1653,7 @@ function rteInsertLink() {
     ta.focus();
 }
 
-function rteInsertImageUrl() {
+window.rteInsertImageUrl = function() {
     const url = prompt('URL zdjęcia:'); if (!url) return;
     const ta  = _rteGetEditor(); if (!ta) return;
     const pos = ta.selectionStart;
@@ -1820,7 +1820,7 @@ window.togglePunishmentGuide = function() {
     }
 };
 
-async function loadPunishmentGuide() {
+window.loadPunishmentGuide = async function() {
     const container=document.getElementById('punishment-guide-table'); if(!container)return;
     try {
         const snap=await getDoc(doc(db,'panel_settings','punishment_guide'));
