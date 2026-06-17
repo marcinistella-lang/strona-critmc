@@ -133,7 +133,16 @@
                 <i class="fa-solid fa-bars"></i>
             </button>
             <div class="topbar-title" id="topbar-title">Gracze</div>
-            <a href="../index.html" style="margin-left:auto;padding:.65rem 1.4rem;background:var(--bg-card);border:1.5px solid var(--border);border-radius:var(--radius-sm);display:flex;align-items:center;gap:.5rem;color:var(--text-secondary);text-decoration:none;font-weight:700;font-size:.9rem;white-space:nowrap;transition:all .2s;" onmouseenter="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseleave="this.style.borderColor='var(--border)';this.style.color='var(--text-secondary)'" title="Wróć do strony głównej">
+
+            <!-- Przycisk odświeżania danych -->
+            <button id="topbar-refresh-btn" onclick="refreshAllData()" title="Odśwież wszystkie dane"
+                style="margin-left:auto;padding:.55rem .9rem;background:var(--bg-card);border:1.5px solid var(--border);border-radius:var(--radius-sm);display:flex;align-items:center;gap:.45rem;color:var(--text-secondary);font-weight:700;font-size:.82rem;cursor:pointer;transition:all .2s;white-space:nowrap;"
+                onmouseenter="this.style.borderColor='var(--accent-blue)';this.style.color='var(--accent-blue)'"
+                onmouseleave="this.style.borderColor='var(--border)';this.style.color='var(--text-secondary)'">
+                <i class="fa-solid fa-rotate-right" id="topbar-refresh-icon"></i> Odśwież
+            </button>
+
+            <a href="../index.html" style="margin-left:.5rem;padding:.65rem 1.4rem;background:var(--bg-card);border:1.5px solid var(--border);border-radius:var(--radius-sm);display:flex;align-items:center;gap:.5rem;color:var(--text-secondary);text-decoration:none;font-weight:700;font-size:.9rem;white-space:nowrap;transition:all .2s;" onmouseenter="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseleave="this.style.borderColor='var(--border)';this.style.color='var(--text-secondary)'" title="Wróć do strony głównej">
                 <i class="fa-solid fa-house"></i> Strona główna
             </a>
         </div>

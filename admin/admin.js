@@ -134,6 +134,36 @@ function loadAll() {
     loadRolePermissionsFromStore();
 }
 
+// Przycisk odświeżania w topbarze — resetuje listenery i przeładowuje dane
+window.refreshAllData = async function() {
+    const icon = document.getElementById('topbar-refresh-icon');
+    const btn  = document.getElementById('topbar-refresh-btn');
+    if (icon) icon.className = 'fa-solid fa-rotate-right fa-spin';
+    if (btn)  btn.disabled = true;
+
+    // Resetuj listener graczy żeby pobrać świeże dane
+    if (unsubscribePlayers) { unsubscribePlayers(); unsubscribePlayers = null; }
+    allBans = []; allMutes = []; allLogs = [];
+
+    await Promise.all([
+        new Promise(r => { loadPlayers(); setTimeout(r, 1500); }),
+        loadBans(),
+        loadMutes(),
+        loadLogs()
+    ]);
+
+    // Odśwież aktualnie otwartą stronę
+    const activePage = document.querySelector('.page.active')?.id?.replace('page-','');
+    if (activePage === 'shop') loadShopGrants?.();
+    if (activePage === 'logs') filterLogs?.();
+    if (activePage === 'penalties') { filterBans?.(); filterMutes?.(); }
+    if (activePage === 'stats') loadStats?.();
+
+    showToast('success', 'Dane odswieżone!');
+    if (icon) icon.className = 'fa-solid fa-rotate-right';
+    if (btn)  btn.disabled = false;
+};
+
 function updateServerStatus(type, text) {
     const dot = document.querySelector('.status-dot'); if (dot) dot.className = 'status-dot ' + type;
     const span = document.getElementById('status-text'); if (span) span.textContent = text;
