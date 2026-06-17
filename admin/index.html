@@ -72,10 +72,10 @@
             <button class="nav-btn" data-page="action" onclick="switchPage('action')">
                 <i class="fa-solid fa-plus-circle"></i><span>Nadaj karę</span>
             </button>
-            <button class="nav-btn" <button class="nav-btn" data-page="guides" onclick="switchPage('guides');loadGuidesPage();">
+            <button class="nav-btn" data-page="guides" onclick="switchPage('guides');loadGuidesPage();">
                 <i class="fa-solid fa-book-open"></i><span>Poradniki</span>
             </button>
-            data-page="logs" onclick="switchPage('logs')">
+            <button class="nav-btn" data-page="logs" onclick="switchPage('logs')">
                 <i class="fa-solid fa-clock-rotate-left"></i><span>Logi akcji</span>
             </button>
 
@@ -401,11 +401,133 @@
         <div id="page-shop" class="page">
             <div class="page-header">
                 <h1>Sklep</h1>
-                <p>Panel zarządzania sklepem</p>
+                <p>Nadaj produkty graczom i przeglądaj historię zakupów</p>
             </div>
-            <div style="text-align:center;padding:4rem;color:var(--text-secondary);">
-                <i class="fa-solid fa-shop" style="font-size:3rem;opacity:.3;display:block;margin-bottom:1rem;"></i>
-                <div style="font-size:1rem;font-weight:700;">Sklep w przebudowie</div>
+
+            <!-- Dwie kolumny: formularz + historia -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;align-items:start;">
+
+                <!-- LEWA: Formularz nadania -->
+                <div>
+                    <div class="table-card" style="padding:1.4rem;">
+                        <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:1rem;letter-spacing:.05em;">
+                            <i class="fa-solid fa-gift" style="color:var(--accent);margin-right:.4rem;"></i>Nadaj produkty graczowi
+                        </div>
+
+                        <!-- Wybór gracza -->
+                        <div class="modal-field" style="margin-bottom:1rem;">
+                            <label>Nick gracza *</label>
+                            <div style="position:relative;">
+                                <i class="fa-solid fa-user" style="position:absolute;left:.85rem;top:50%;transform:translateY(-50%);color:var(--text-secondary);"></i>
+                                <input type="text" id="shop-grant-nick" placeholder="Wpisz lub wybierz nick gracza..."
+                                    autocomplete="off"
+                                    oninput="shopGrantSearchPlayer(this.value)"
+                                    style="width:100%;padding:.7rem .9rem .7rem 2.4rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                                <!-- Dropdown sugestii -->
+                                <div id="shop-grant-suggestions" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg-card);border:1.5px solid var(--border);border-top:none;border-radius:0 0 var(--radius-sm) var(--radius-sm);max-height:200px;overflow-y:auto;z-index:100;box-shadow:var(--shadow-md);"></div>
+                            </div>
+                        </div>
+
+                        <!-- Wybór produktów -->
+                        <div class="modal-field" style="margin-bottom:1rem;">
+                            <label>Produkty do nadania *</label>
+
+                            <!-- Rangi -->
+                            <div style="margin-bottom:.6rem;">
+                                <div style="font-size:.72rem;font-weight:700;color:#8b5cf6;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.4rem;"><i class="fa-solid fa-crown"></i> Rangi (30 dni)</div>
+                                <div style="display:flex;gap:.4rem;flex-wrap:wrap;">
+                                    <button class="shop-grant-item-btn" data-type="ranga" data-id="vip" data-label="Ranga VIP" onclick="toggleShopGrantItem(this)" style="border-color:#c026d3;color:#c026d3;">
+                                        <i class="fa-solid fa-crown"></i> VIP
+                                    </button>
+                                    <button class="shop-grant-item-btn" data-type="ranga" data-id="boss" data-label="Ranga BOSS" onclick="toggleShopGrantItem(this)" style="border-color:#2563eb;color:#2563eb;">
+                                        <i class="fa-solid fa-crown"></i> BOSS
+                                    </button>
+                                    <button class="shop-grant-item-btn" data-type="ranga" data-id="crit" data-label="Ranga CRIT" onclick="toggleShopGrantItem(this)" style="border-color:#dc2626;color:#dc2626;">
+                                        <i class="fa-solid fa-crown"></i> CRIT
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Klucze -->
+                            <div style="margin-bottom:.6rem;">
+                                <div style="font-size:.72rem;font-weight:700;color:#f59e0b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.4rem;"><i class="fa-solid fa-key"></i> Klucze</div>
+                                <div id="shop-grant-keys" style="display:flex;gap:.4rem;flex-wrap:wrap;">
+                                    <button class="shop-grant-item-btn" data-type="klucz" data-id="zwykly" data-label="Klucz Zwykły" onclick="toggleShopGrantItem(this)">&#x1F511; Zwykły</button>
+                                    <button class="shop-grant-item-btn" data-type="klucz" data-id="rzadki" data-label="Klucz Rzadki" onclick="toggleShopGrantItem(this)">&#x1F511; Rzadki</button>
+                                    <button class="shop-grant-item-btn" data-type="klucz" data-id="epicki" data-label="Klucz Epicki" onclick="toggleShopGrantItem(this)">&#x1F511; Epicki</button>
+                                    <button class="shop-grant-item-btn" data-type="klucz" data-id="crit" data-label="Klucz CRIT" onclick="toggleShopGrantItem(this)">&#x1F511; CRIT</button>
+                                    <button class="shop-grant-item-btn" data-type="klucz" data-id="premium" data-label="Klucz Premium" onclick="toggleShopGrantItem(this)">&#x1F511; Premium</button>
+                                    <button class="shop-grant-item-btn" data-type="klucz" data-id="losowy" data-label="Klucz Losowy" onclick="toggleShopGrantItem(this)">&#x1F511; Losowy</button>
+                                </div>
+                            </div>
+
+                            <!-- Zestawy -->
+                            <div style="margin-bottom:.6rem;">
+                                <div style="font-size:.72rem;font-weight:700;color:#3b82f6;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.4rem;"><i class="fa-solid fa-boxes-packing"></i> Zestawy</div>
+                                <div style="display:flex;gap:.4rem;flex-wrap:wrap;">
+                                    <button class="shop-grant-item-btn" data-type="zestaw" data-id="pakiet-vip" data-label="Pakiet VIP" onclick="toggleShopGrantItem(this)">&#x1F4E6; Pakiet VIP</button>
+                                    <button class="shop-grant-item-btn" data-type="zestaw" data-id="pakiet-boss" data-label="Pakiet BOSS" onclick="toggleShopGrantItem(this)">&#x1F4E6; Pakiet BOSS</button>
+                                    <button class="shop-grant-item-btn" data-type="zestaw" data-id="pakiet-crit" data-label="Pakiet CRIT" onclick="toggleShopGrantItem(this)">&#x1F4E6; Pakiet CRIT</button>
+                                    <button class="shop-grant-item-btn" data-type="zestaw" data-id="maly-klucze" data-label="Mały Zestaw Kluczy" onclick="toggleShopGrantItem(this)">&#x1F4E6; Mały Zestaw</button>
+                                    <button class="shop-grant-item-btn" data-type="zestaw" data-id="sredni-klucze" data-label="Średni Zestaw Kluczy" onclick="toggleShopGrantItem(this)">&#x1F4E6; Średni Zestaw</button>
+                                    <button class="shop-grant-item-btn" data-type="zestaw" data-id="duzy-klucze" data-label="Duży Zestaw Kluczy" onclick="toggleShopGrantItem(this)">&#x1F4E6; Duży Zestaw</button>
+                                </div>
+                            </div>
+
+                            <!-- Inne -->
+                            <div>
+                                <div style="font-size:.72rem;font-weight:700;color:#10b981;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.4rem;"><i class="fa-solid fa-sparkles"></i> Inne</div>
+                                <div style="display:flex;gap:.4rem;flex-wrap:wrap;">
+                                    <button class="shop-grant-item-btn" data-type="item" data-id="nick-color" data-label="Nick Color Permanent" onclick="toggleShopGrantItem(this)">&#x1F3A8; Nick Color</button>
+                                    <button class="shop-grant-item-btn" data-type="item" data-id="repair-30" data-label="/repair 30 dni" onclick="toggleShopGrantItem(this)">&#x1F527; /repair 30d</button>
+                                    <button class="shop-grant-item-btn" data-type="item" data-id="ec-30" data-label="/ec 30 dni" onclick="toggleShopGrantItem(this)">&#x1F4DC; /ec 30d</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Ilość (dla kluczy) -->
+                        <div class="modal-field" style="margin-bottom:1rem;" id="shop-grant-qty-field">
+                            <label>Ilość <span style="color:#999;font-weight:400;">(dla kluczy — ile sztuk każdego wybranego klucza)</span></label>
+                            <input type="number" id="shop-grant-qty" value="1" min="1" max="100"
+                                style="width:100px;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                        </div>
+
+                        <!-- Wiadomość na czacie -->
+                        <div class="modal-field" style="margin-bottom:1rem;">
+                            <label>Ogłoszenie na czacie serwera <span style="color:#999;font-weight:400;">(opcjonalne)</span></label>
+                            <input type="text" id="shop-grant-message" placeholder="np. Dziękujemy za zakup! - zostaw puste = domyślne ogłoszenie"
+                                style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                        </div>
+
+                        <!-- Podgląd wyboru -->
+                        <div id="shop-grant-preview" style="display:none;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:.75rem 1rem;margin-bottom:1rem;">
+                            <div style="font-size:.72rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.4rem;">Podsumowanie:</div>
+                            <div id="shop-grant-preview-content" style="font-size:.88rem;"></div>
+                        </div>
+
+                        <div id="shop-grant-msg" class="modal-msg" style="display:none;"></div>
+
+                        <button class="modal-submit-btn" onclick="submitShopGrant()" id="shop-grant-btn">
+                            <i class="fa-solid fa-gift"></i> Nadaj produkty
+                        </button>
+                    </div>
+                </div>
+
+                <!-- PRAWA: Historia nadań -->
+                <div>
+                    <div class="table-card" style="overflow:hidden;">
+                        <div style="padding:.9rem 1.2rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+                            <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;">
+                                <i class="fa-solid fa-clock-rotate-left"></i> Historia nadań
+                            </div>
+                            <button class="tbl-btn" onclick="loadShopGrants()" style="font-size:.75rem;"><i class="fa-solid fa-rotate-right"></i></button>
+                        </div>
+                        <div id="shop-grants-list" style="max-height:600px;overflow-y:auto;">
+                            <div style="text-align:center;padding:2rem;color:var(--text-secondary);font-size:.88rem;"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</div>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
 

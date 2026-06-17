@@ -1787,3 +1787,200 @@ window.loadGuidesPage = function() {
 window.loadShopPage = function() {
     // Sklep w przebudowie
 };
+
+// ─── SKLEP — NADAWANIE PRODUKTÓW ─────────────────────────────────────────────
+
+// Wybrane produkty do nadania
+const _shopGrantSelected = new Map(); // id -> { type, id, label, qty }
+
+window.toggleShopGrantItem = function(btn) {
+    const id    = btn.getAttribute('data-id');
+    const type  = btn.getAttribute('data-type');
+    const label = btn.getAttribute('data-label');
+
+    if (_shopGrantSelected.has(id)) {
+        _shopGrantSelected.delete(id);
+        btn.classList.remove('selected');
+    } else {
+        _shopGrantSelected.set(id, { type, id, label });
+        btn.classList.add('selected');
+    }
+    _updateShopGrantPreview();
+};
+
+function _updateShopGrantPreview() {
+    const preview = document.getElementById('shop-grant-preview');
+    const content = document.getElementById('shop-grant-preview-content');
+    const nick    = (document.getElementById('shop-grant-nick')?.value || '').trim();
+    const qty     = parseInt(document.getElementById('shop-grant-qty')?.value || '1');
+
+    if (_shopGrantSelected.size === 0) {
+        if (preview) preview.style.display = 'none';
+        return;
+    }
+
+    if (preview) preview.style.display = 'block';
+    if (!content) return;
+
+    const items = [..._shopGrantSelected.values()];
+    const lines = items.map(item => {
+        const qtyStr = (item.type === 'klucz') ? ' x' + qty : '';
+        return '<span style="display:inline-flex;align-items:center;gap:.3rem;margin:.2rem;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;padding:.2rem .55rem;font-size:.82rem;font-weight:700;">'
+            + item.label + qtyStr
+            + '<button onclick="event.stopPropagation();document.querySelector(\'[data-id=\\\'' + item.id + '\\\']\')?.click()" style="background:none;border:none;cursor:pointer;color:#ef4444;padding:0 .2rem;font-size:.85rem;">×</button>'
+            + '</span>';
+    });
+
+    content.innerHTML = (nick ? '<div style="font-size:.82rem;margin-bottom:.4rem;"><b>Dla gracza:</b> ' + escapeHtml(nick) + '</div>' : '')
+        + '<div>' + lines.join('') + '</div>';
+}
+
+window.shopGrantSearchPlayer = function(val) {
+    const suggestions = document.getElementById('shop-grant-suggestions');
+    if (!suggestions) return;
+    _updateShopGrantPreview();
+    if (!val || val.length < 2) { suggestions.style.display = 'none'; return; }
+    const matches = allPlayers.filter(p => (p.nick||p.id||'').toLowerCase().includes(val.toLowerCase())).slice(0,8);
+    if (!matches.length) { suggestions.style.display = 'none'; return; }
+    suggestions.style.display = 'block';
+    suggestions.innerHTML = matches.map(p =>
+        '<div style="padding:.55rem .9rem;cursor:pointer;display:flex;align-items:center;gap:.6rem;font-size:.88rem;font-weight:600;border-bottom:1px solid var(--border);" onmouseenter="this.style.background=\'var(--bg)\'" onmouseleave="this.style.background=\'\'" onclick="shopGrantSelectPlayer(\'' + escapeHtml(p.nick||p.id) + '\')">'
+        + '<img src="https://mc-heads.net/avatar/' + encodeURIComponent(p.nick||p.id) + '/24" style="width:24px;height:24px;border-radius:4px;image-rendering:pixelated;">'
+        + escapeHtml(p.nick||p.id)
+        + (p.online ? '<span style="margin-left:auto;width:8px;height:8px;border-radius:50%;background:#10b981;"></span>' : '')
+        + '</div>'
+    ).join('');
+};
+
+window.shopGrantSelectPlayer = function(nick) {
+    const input = document.getElementById('shop-grant-nick');
+    const suggestions = document.getElementById('shop-grant-suggestions');
+    if (input) input.value = nick;
+    if (suggestions) suggestions.style.display = 'none';
+    _updateShopGrantPreview();
+};
+
+// Zamknij sugestie przy kliknięciu poza
+document.addEventListener('click', function(e) {
+    const s = document.getElementById('shop-grant-suggestions');
+    const i = document.getElementById('shop-grant-nick');
+    if (s && i && !i.contains(e.target) && !s.contains(e.target)) s.style.display = 'none';
+});
+
+window.submitShopGrant = async function() {
+    if (!requirePermission('shop', 'zarządzanie sklepem')) return;
+
+    const nick = (document.getElementById('shop-grant-nick')?.value || '').trim();
+    if (!nick) { _showShopGrantMsg('error', 'Podaj nick gracza!'); return; }
+    if (_shopGrantSelected.size === 0) { _showShopGrantMsg('error', 'Wybierz co najmniej jeden produkt!'); return; }
+
+    const qty      = parseInt(document.getElementById('shop-grant-qty')?.value || '1');
+    const message  = (document.getElementById('shop-grant-message')?.value || '').trim();
+    const items    = [..._shopGrantSelected.values()].map(item => ({
+        type:  item.type,
+        id:    item.id,
+        label: item.label,
+        qty:   (item.type === 'klucz') ? qty : 1
+    }));
+
+    const btn = document.getElementById('shop-grant-btn');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Nadawanie...'; }
+
+    try {
+        // Zapisz zamówienie do Firestore
+        const orderRef = await addDoc(collection(db, 'orders'), {
+            playerNick:  nick,
+            items,
+            qty,
+            message:     message || '',
+            admin:       currentUser?.displayName || 'Panel',
+            status:      'pending',
+            createdAt:   serverTimestamp(),
+            type:        'admin_grant'
+        });
+
+        // Wyślij też do panel_commands żeby plugin wykonał natychmiast
+        for (const item of items) {
+            await addDoc(collection(db, 'panel_commands'), {
+                action:    'shop_grant',
+                player:    nick,
+                item:      item.id,
+                itemType:  item.type,
+                itemLabel: item.label,
+                qty:       item.qty,
+                orderId:   orderRef.id,
+                message:   message,
+                admin:     currentUser?.displayName || 'Panel',
+                executed:  false,
+                createdAt: serverTimestamp()
+            });
+        }
+
+        // Log akcji
+        await logAction('shop_grant', nick, currentUser?.displayName || 'Panel',
+            'Nadano: ' + items.map(i => i.label + (i.qty > 1 ? ' x' + i.qty : '')).join(', '), '—');
+
+        showToast('success', 'Produkty nadane dla ' + nick + '!');
+        _showShopGrantMsg('success', '✓ Produkty zostały wysłane do gracza ' + nick);
+
+        // Wyczyść formularz
+        _shopGrantSelected.clear();
+        document.querySelectorAll('.shop-grant-item-btn.selected').forEach(b => b.classList.remove('selected'));
+        const preview = document.getElementById('shop-grant-preview');
+        if (preview) preview.style.display = 'none';
+        document.getElementById('shop-grant-nick').value = '';
+        document.getElementById('shop-grant-message').value = '';
+        document.getElementById('shop-grant-qty').value = '1';
+
+        // Odśwież historię
+        await loadShopGrants();
+
+    } catch(e) {
+        _showShopGrantMsg('error', 'Błąd: ' + e.message);
+        console.error('submitShopGrant:', e);
+    } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-gift"></i> Nadaj produkty'; }
+    }
+};
+
+function _showShopGrantMsg(type, text) {
+    const el = document.getElementById('shop-grant-msg'); if (!el) return;
+    el.className = 'modal-msg ' + type; el.innerHTML = text; el.style.display = 'block';
+    setTimeout(() => { el.style.display = 'none'; }, 5000);
+}
+
+async function loadShopGrants() {
+    const list = document.getElementById('shop-grants-list'); if (!list) return;
+    list.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-secondary);font-size:.88rem;"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</div>';
+    try {
+        const snap = await getDocs(query(collection(db, 'orders'), orderBy('createdAt', 'desc')));
+        const orders = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(o => o.type === 'admin_grant').slice(0, 50);
+        if (!orders.length) {
+            list.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-secondary);font-size:.88rem;">Brak historii nadań.</div>';
+            return;
+        }
+        list.innerHTML = orders.map(o => {
+            const items = (o.items || []).map(i => escapeHtml(i.label + (i.qty > 1 ? ' x' + i.qty : ''))).join(', ');
+            const statusClass = o.status === 'executed' ? 'shop-grant-badge-executed' : o.status === 'failed' ? 'shop-grant-badge-failed' : 'shop-grant-badge-pending';
+            const statusLabel = o.status === 'executed' ? 'Wykonano' : o.status === 'failed' ? 'Błąd' : 'Oczekuje';
+            return '<div class="shop-grant-entry">'
+                + '<div class="shop-grant-entry-header">'
+                + '<div style="font-weight:700;font-size:.88rem;">' + escapeHtml(o.playerNick || '?') + '</div>'
+                + '<span class="shop-grant-badge ' + statusClass + '">' + statusLabel + '</span>'
+                + '</div>'
+                + '<div style="font-size:.78rem;color:var(--text-secondary);">' + items + '</div>'
+                + '<div style="font-size:.72rem;color:var(--text-secondary);display:flex;justify-content:space-between;">'
+                + '<span>Admin: ' + escapeHtml(o.admin || '—') + '</span>'
+                + '<span>' + formatDate(o.createdAt) + '</span>'
+                + '</div>'
+                + '</div>';
+        }).join('');
+    } catch(e) {
+        list.innerHTML = '<div style="padding:1rem;color:#ef4444;font-size:.85rem;">Błąd: ' + e.message + '</div>';
+    }
+}
+
+// Nadpisz loadShopPage
+window.loadShopPage = async function() {
+    await loadShopGrants();
+};

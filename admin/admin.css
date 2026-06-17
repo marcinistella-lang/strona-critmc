@@ -1,5 +1,5 @@
-﻿/* =============================================================================
-   CritMC Admin Panel â€” Light Theme
+﻿﻿﻿﻿/* =============================================================================
+   CritMC Admin Panel — Light Theme
    ============================================================================= */
 
 /* Site tab panels — ukryte domyślnie, widoczne tylko z klasą sp-active */
@@ -416,10 +416,6 @@ body {
     min-height: 100vh;
     overflow-x: hidden;
     min-width: 0;
-}
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
 }
 
 /* TOPBAR */
@@ -1103,7 +1099,7 @@ body {
     }
 }
 
-/* Przycisk powrotu do strony gĹ‚Ăłwnej */
+/* Przycisk powrotu do strony głównej */
 .back-to-main-btn {
     display: flex;
     align-items: center;
@@ -1136,7 +1132,7 @@ body {
     }
 }
 
-/* Grid strony Nadaj karÄ™ */
+/* Grid strony Nadaj karę */
 .action-page-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -1150,7 +1146,7 @@ body {
     }
 }
 
-/* Przycisk SprawdĹş */
+/* Przycisk Sprawdź */
 .check-btn:hover, .check-btn.selected {
     background: #0ea5e9;
     border-color: #0ea5e9;
@@ -1163,7 +1159,7 @@ body {
     border: 1px solid rgba(2,132,199,.2);
 }
 
-/* Statystyki â€” karty overview */
+/* Statystyki — karty overview */
 .stats-overview {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -1761,3 +1757,61 @@ select:focus {
 #page-guides .table-card:hover {
     transform: none;
 }
+
+/* =============================================================================
+   SKLEP — NADAWANIE PRODUKTÓW
+   ============================================================================= */
+
+.shop-grant-item-btn {
+    padding: .45rem .9rem;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    font-size: .82rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all .15s ease;
+    font-family: var(--font);
+    white-space: nowrap;
+}
+
+.shop-grant-item-btn:hover {
+    background: var(--bg);
+}
+
+.shop-grant-item-btn.selected {
+    background: var(--text-primary);
+    border-color: var(--text-primary);
+    color: #fff;
+}
+
+/* Historia nadań */
+.shop-grant-entry {
+    padding: .75rem 1.1rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: .3rem;
+    transition: background .1s;
+}
+.shop-grant-entry:last-child { border-bottom: none; }
+.shop-grant-entry:hover { background: var(--bg); }
+
+.shop-grant-entry-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+}
+
+.shop-grant-badge {
+    font-size: .68rem;
+    font-weight: 800;
+    padding: .15rem .5rem;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+.shop-grant-badge-pending  { background: rgba(245,158,11,.12); color: #d97706; border: 1px solid rgba(217,119,6,.25); }
+.shop-grant-badge-executed { background: rgba(16,185,129,.1);  color: #059669; border: 1px solid rgba(5,150,105,.2); }
+.shop-grant-badge-failed   { background: rgba(239,68,68,.1);   color: #dc2626; border: 1px solid rgba(220,38,38,.2); }
