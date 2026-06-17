@@ -659,20 +659,20 @@ async function uploadEvidenceFile(file, meta) {
 window.loadShopPage = async function() {
     const tb   = document.getElementById('shop-items-tbody');
     const grid = document.getElementById('shop-grid-view');
+    const loadMsg = '<div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--text-secondary);"><i class="fa-solid fa-spinner fa-spin fa-2x"></i><div style="margin-top:.75rem;font-size:.9rem;">Ładowanie produktów...</div></div>';
     if (tb)   tb.innerHTML = '<tr><td colspan="7" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>';
-    if (grid) grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--text-secondary);"><i class="fa-solid fa-spinner fa-spin fa-2x"></i><div style="margin-top:.75rem;">Ładowanie produktów...</div></div>';
+    if (grid) grid.innerHTML = loadMsg;
     try {
-        const snap = await getDocs(collection(db, 'shop_items'));
-        allShopItems = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a,b) => (a.sortOrder||99) - (b.sortOrder||99));
-        if (!allShopItems.length) {
-            if (grid) grid.innerHTML = '<div style="grid-column:1/-1;padding:3rem;text-align:center;color:var(--text-secondary);"><i class="fa-solid fa-shop" style="font-size:2.5rem;opacity:.3;display:block;margin-bottom:.75rem;"></i><div style="font-weight:700;">Brak produktów sklepu</div><div style="font-size:.85rem;margin-top:.3rem;">Kliknij <strong>+ Dodaj produkt</strong> aby dodać pierwszy.</div></div>';
-            if (tb) tb.innerHTML = '<tr><td colspan="7" class="table-empty">Brak produktów.</td></tr>';
-        } else { window.filterShopItems(); }
-    } catch (e) {
+        const snap = await getDocs(collection(db,'shop_items'));
+        allShopItems = snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.sortOrder||99)-(b.sortOrder||99));
+        window.filterShopItems();
+    } catch(e) {
         console.error('[Shop]', e.code, e.message);
-        const msg = e.code === 'permission-denied' ? 'Brak uprawnień Firestore. Sprawdź Security Rules dla shop_items.' : 'Błąd: ' + e.message;
-        if (grid) grid.innerHTML = '<div style="grid-column:1/-1;padding:2rem;text-align:center;color:#ef4444;font-size:.88rem;"><i class="fa-solid fa-circle-exclamation"></i> ' + msg + '</div>';
-        if (tb) tb.innerHTML = '<tr><td colspan="7" class="table-empty" style="color:#ef4444;"><i class="fa-solid fa-circle-exclamation"></i> ' + msg + '</td></tr>';
+        const isPermission = e.code === 'permission-denied';
+        const msg = isPermission ? 'Brak uprawnień Firestore. Sprawdź Security Rules dla shop_items.' : 'Błąd: ' + e.message;
+        const errHtml = '<div style="grid-column:1/-1;padding:2rem;text-align:center;color:#ef4444;"><i class="fa-solid fa-circle-exclamation"></i> ' + msg + '</div>';
+        if (grid) grid.innerHTML = errHtml;
+        if (tb)   tb.innerHTML = '<tr><td colspan="7" class="table-empty" style="color:#ef4444;"><i class="fa-solid fa-circle-exclamation"></i> ' + msg + '</td></tr>';
     }
 };
 
@@ -780,20 +780,7 @@ function renderShopItems(list) {
     }).join('');
 }
 
-window.filterShopItems = function() {
-    const type   = document.getElementById('shop-type-filter')?.value||'';
-    const status = document.getElementById('shop-status-filter')?.value||'';
-    const search = (document.getElementById('shop-search')?.value||'').toLowerCase();
-    const filtered = allShopItems.filter(item => {
-        if (type && item.type !== type) return false;
-        if (status === 'active' && item.active === false) return false;
-        if (status === 'hidden' && item.active !== false) return false;
-        if (search && !(item.name||'').toLowerCase().includes(search) && !(item.desc||'').toLowerCase().includes(search)) return false;
-        return true;
-    });
-    renderShopGrid(filtered);
-    renderShopItems(filtered);
-};
+
 
 window.toggleShopItemActive = async function(id, newActive) {
     if (!requirePermission('shop','zarządzanie sklepem')) return;
@@ -829,35 +816,7 @@ window.editShopItem = function(id) {
     document.getElementById('shop-item-modal').classList.add('open');
 };
 
-window.saveShopItem = async function() {
-    if (!requirePermission('shop','zarządzanie sklepem')) return;
-    const id = document.getElementById('shop-item-id').value;
-    const name = document.getElementById('shop-item-name').value.trim();
-    const type = document.getElementById('shop-item-type').value;
-    if (!name) { showShopItemMsg('error','Podaj nazwę produktu.'); return; }
-    let mediaUrl = document.getElementById('shop-item-media-url').value.trim();
-    const fileInput = document.getElementById('shop-item-media-file');
-    const file = fileInput?.files?.[0];
-    if (file) {
-        showShopItemMsg('info','<i class="fa-solid fa-spinner fa-spin"></i> Wysyłam plik...');
-        try {
-            const form = new FormData(); form.append('file',file); form.append('folder','shop'); form.append('admin',currentUser?.displayName||'Panel');
-            const res = await fetch(FILE_WORKER_URL+'/upload/shop',{method:'POST',body:form});
-            const data = await res.json().catch(()=>null);
-            if (!res.ok||!data?.ok||!data?.file) throw new Error(data?.error||'Błąd uploadu');
-            mediaUrl = data.file.publicUrl || data.file.url || mediaUrl;
-            if (fileInput) fileInput.value = '';
-        } catch(e) { showShopItemMsg('error','Błąd uploadu: '+e.message); return; }
-    }
-    const data = { type, name, desc:document.getElementById('shop-item-desc').value.trim(), price:Number(document.getElementById('shop-item-price').value||0), oldPrice:Number(document.getElementById('shop-item-old-price').value||0)||null, sortOrder:parseInt(document.getElementById('shop-item-order').value||'99',10), itemsText:document.getElementById('shop-item-items').value.trim(), mediaUrl, active:document.getElementById('shop-item-active').checked, updatedAt:serverTimestamp(), updatedBy:currentUser?.displayName||'Panel' };
-    try {
-        if (id) { await updateDoc(doc(db,'shop_items',id),data); }
-        else { data.createdAt = serverTimestamp(); await addDoc(collection(db,'shop_items'),data); }
-        showShopItemMsg('success','✓ Produkt zapisany!');
-        await window.loadShopPage();
-        setTimeout(()=>{ document.getElementById('shop-item-modal').classList.remove('open'); const prev=document.getElementById('shop-item-media-preview'); if(prev){prev.style.display='none';prev.innerHTML='';} },1000);
-    } catch(e) { showShopItemMsg('error','Błąd: '+e.message); }
-};
+
 
 window.deleteShopItem = async function(id, name) {
     if (!requirePermission('shop','zarządzanie sklepem')) return;
@@ -1968,10 +1927,10 @@ window._extendedApplyPermissions = function() {};
 
 // ─── SKLEP: ZAKŁADKI KATEGORII ────────────────────────────────────────────────
 
-let _shopCurrentCat = 'all';
+let _shopCat = 'all';
 
 window.shopSwitchCat = function(cat) {
-    _shopCurrentCat = cat;
+    _shopCat = cat;
     document.querySelectorAll('.shop-cat-btn').forEach(b => {
         b.classList.toggle('active', b.getAttribute('data-cat') === cat);
     });
@@ -1984,7 +1943,7 @@ window.filterShopItems = function() {
     const search = (document.getElementById('shop-search')?.value || '').toLowerCase();
     const filtered = allShopItems.filter(item => {
         // Filtr kategorii
-        if (_shopCurrentCat !== 'all' && item.type !== _shopCurrentCat) return false;
+        if (_shopCat !== 'all' && item.type !== _shopCat) return false;
         // Filtr wyszukiwania
         if (search && !(item.name||'').toLowerCase().includes(search) && !(item.desc||'').toLowerCase().includes(search)) return false;
         return true;
@@ -2028,7 +1987,6 @@ window.loadGuidesPage = function() {
 };
 
 // ─── SKLEP — kategorie zakładki ───────────────────────────────────────────────
-let _shopCat = 'all';
 
 window.shopSwitchCat = function(cat) {
     _shopCat = cat;
