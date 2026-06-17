@@ -433,63 +433,59 @@
                             <label>Produkty do nadania *</label>
 
                             <!-- Rangi -->
-                            <div style="margin-bottom:.6rem;">
-                                <div style="font-size:.72rem;font-weight:700;color:#8b5cf6;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.4rem;"><i class="fa-solid fa-crown"></i> Rangi (30 dni)</div>
-                                <div style="display:flex;gap:.4rem;flex-wrap:wrap;">
-                                    <button class="shop-grant-item-btn" data-type="ranga" data-id="vip" data-label="Ranga VIP" onclick="toggleShopGrantItem(this)" style="border-color:#c026d3;color:#c026d3;">
-                                        <i class="fa-solid fa-crown"></i> VIP
-                                    </button>
-                                    <button class="shop-grant-item-btn" data-type="ranga" data-id="boss" data-label="Ranga BOSS" onclick="toggleShopGrantItem(this)" style="border-color:#2563eb;color:#2563eb;">
-                                        <i class="fa-solid fa-crown"></i> BOSS
-                                    </button>
-                                    <button class="shop-grant-item-btn" data-type="ranga" data-id="crit" data-label="Ranga CRIT" onclick="toggleShopGrantItem(this)" style="border-color:#dc2626;color:#dc2626;">
-                                        <i class="fa-solid fa-crown"></i> CRIT
-                                    </button>
+                            <div style="margin-bottom:.8rem;">
+                                <div style="font-size:.72rem;font-weight:700;color:#8b5cf6;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem;"><i class="fa-solid fa-crown"></i> Rangi (30 dni / 60 przy 2×)</div>
+                                <div style="display:flex;flex-direction:column;gap:.35rem;">
+                                    <div class="sgib-row">
+                                        <button class="shop-grant-item-btn" data-type="ranga" data-id="vip" data-label="Ranga VIP" onclick="toggleShopGrantItem(this)" style="border-color:#c026d3;color:#c026d3;"><i class="fa-solid fa-crown"></i> VIP</button>
+                                        <input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="ranga:vip" oninput="onSgibQty(this)" title="Ilość">
+                                    </div>
+                                    <div class="sgib-row">
+                                        <button class="shop-grant-item-btn" data-type="ranga" data-id="boss" data-label="Ranga BOSS" onclick="toggleShopGrantItem(this)" style="border-color:#2563eb;color:#2563eb;"><i class="fa-solid fa-crown"></i> BOSS</button>
+                                        <input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="ranga:boss" oninput="onSgibQty(this)" title="Ilość">
+                                    </div>
+                                    <div class="sgib-row">
+                                        <button class="shop-grant-item-btn" data-type="ranga" data-id="crit" data-label="Ranga CRIT" onclick="toggleShopGrantItem(this)" style="border-color:#dc2626;color:#dc2626;"><i class="fa-solid fa-crown"></i> CRIT</button>
+                                        <input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="ranga:crit" oninput="onSgibQty(this)" title="Ilość">
+                                    </div>
                                 </div>
                             </div>
 
                             <!-- Klucze -->
-                            <div style="margin-bottom:.6rem;">
-                                <div style="font-size:.72rem;font-weight:700;color:#f59e0b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.4rem;"><i class="fa-solid fa-key"></i> Klucze</div>
-                                <div id="shop-grant-keys" style="display:flex;gap:.4rem;flex-wrap:wrap;">
-                                    <button class="shop-grant-item-btn" data-type="klucz" data-id="zwykly" data-label="Klucz Zwykły" onclick="toggleShopGrantItem(this)">&#x1F511; Zwykły</button>
-                                    <button class="shop-grant-item-btn" data-type="klucz" data-id="rzadki" data-label="Klucz Rzadki" onclick="toggleShopGrantItem(this)">&#x1F511; Rzadki</button>
-                                    <button class="shop-grant-item-btn" data-type="klucz" data-id="epicki" data-label="Klucz Epicki" onclick="toggleShopGrantItem(this)">&#x1F511; Epicki</button>
-                                    <button class="shop-grant-item-btn" data-type="klucz" data-id="crit" data-label="Klucz CRIT" onclick="toggleShopGrantItem(this)">&#x1F511; CRIT</button>
-                                    <button class="shop-grant-item-btn" data-type="klucz" data-id="premium" data-label="Klucz Premium" onclick="toggleShopGrantItem(this)">&#x1F511; Premium</button>
-                                    <button class="shop-grant-item-btn" data-type="klucz" data-id="losowy" data-label="Klucz Losowy" onclick="toggleShopGrantItem(this)">&#x1F511; Losowy</button>
+                            <div style="margin-bottom:.8rem;">
+                                <div style="font-size:.72rem;font-weight:700;color:#f59e0b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem;"><i class="fa-solid fa-key"></i> Klucze</div>
+                                <div id="shop-grant-keys" style="display:flex;flex-direction:column;gap:.35rem;">
+                                    <div class="sgib-row"><button class="shop-grant-item-btn" data-type="klucz" data-id="zwykly" data-label="Klucz Zwykły" onclick="toggleShopGrantItem(this)">🔑 Zwykły</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="klucz:zwykly" oninput="onSgibQty(this)" title="Ilość"></div>
+                                    <div class="sgib-row"><button class="shop-grant-item-btn" data-type="klucz" data-id="rzadki" data-label="Klucz Rzadki" onclick="toggleShopGrantItem(this)">🔑 Rzadki</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="klucz:rzadki" oninput="onSgibQty(this)" title="Ilość"></div>
+                                    <div class="sgib-row"><button class="shop-grant-item-btn" data-type="klucz" data-id="epicki" data-label="Klucz Epicki" onclick="toggleShopGrantItem(this)">🔑 Epicki</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="klucz:epicki" oninput="onSgibQty(this)" title="Ilość"></div>
+                                    <div class="sgib-row"><button class="shop-grant-item-btn" data-type="klucz" data-id="crit" data-label="Klucz CRIT" onclick="toggleShopGrantItem(this)">🔑 CRIT</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="klucz:crit" oninput="onSgibQty(this)" title="Ilość"></div>
+                                    <div class="sgib-row"><button class="shop-grant-item-btn" data-type="klucz" data-id="premium" data-label="Klucz Premium" onclick="toggleShopGrantItem(this)">🔑 Premium</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="klucz:premium" oninput="onSgibQty(this)" title="Ilość"></div>
+                                    <div class="sgib-row"><button class="shop-grant-item-btn" data-type="klucz" data-id="losowy" data-label="Klucz Losowy" onclick="toggleShopGrantItem(this)">🔑 Losowy</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="klucz:losowy" oninput="onSgibQty(this)" title="Ilość"></div>
                                 </div>
                             </div>
 
                             <!-- Zestawy -->
-                            <div style="margin-bottom:.6rem;">
-                                <div style="font-size:.72rem;font-weight:700;color:#3b82f6;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.4rem;"><i class="fa-solid fa-boxes-packing"></i> Zestawy</div>
-                                <div style="display:flex;gap:.4rem;flex-wrap:wrap;">
-                                    <button class="shop-grant-item-btn" data-type="zestaw" data-id="pakiet-vip" data-label="Pakiet VIP" onclick="toggleShopGrantItem(this)">&#x1F4E6; Pakiet VIP</button>
-                                    <button class="shop-grant-item-btn" data-type="zestaw" data-id="pakiet-boss" data-label="Pakiet BOSS" onclick="toggleShopGrantItem(this)">&#x1F4E6; Pakiet BOSS</button>
-                                    <button class="shop-grant-item-btn" data-type="zestaw" data-id="pakiet-crit" data-label="Pakiet CRIT" onclick="toggleShopGrantItem(this)">&#x1F4E6; Pakiet CRIT</button>
-                                    <button class="shop-grant-item-btn" data-type="zestaw" data-id="maly-klucze" data-label="Mały Zestaw Kluczy" onclick="toggleShopGrantItem(this)">&#x1F4E6; Mały Zestaw</button>
-                                    <button class="shop-grant-item-btn" data-type="zestaw" data-id="sredni-klucze" data-label="Średni Zestaw Kluczy" onclick="toggleShopGrantItem(this)">&#x1F4E6; Średni Zestaw</button>
-                                    <button class="shop-grant-item-btn" data-type="zestaw" data-id="duzy-klucze" data-label="Duży Zestaw Kluczy" onclick="toggleShopGrantItem(this)">&#x1F4E6; Duży Zestaw</button>
+                            <div style="margin-bottom:.8rem;">
+                                <div style="font-size:.72rem;font-weight:700;color:#3b82f6;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem;"><i class="fa-solid fa-boxes-packing"></i> Zestawy</div>
+                                <div style="display:flex;flex-direction:column;gap:.35rem;">
+                                    <div class="sgib-row"><button class="shop-grant-item-btn" data-type="zestaw" data-id="pakiet-vip" data-label="Pakiet VIP" onclick="toggleShopGrantItem(this)">📦 Pakiet VIP</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="zestaw:pakiet-vip" oninput="onSgibQty(this)" title="Ilość"></div>
+                                    <div class="sgib-row"><button class="shop-grant-item-btn" data-type="zestaw" data-id="pakiet-boss" data-label="Pakiet BOSS" onclick="toggleShopGrantItem(this)">📦 Pakiet BOSS</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="zestaw:pakiet-boss" oninput="onSgibQty(this)" title="Ilość"></div>
+                                    <div class="sgib-row"><button class="shop-grant-item-btn" data-type="zestaw" data-id="pakiet-crit" data-label="Pakiet CRIT" onclick="toggleShopGrantItem(this)">📦 Pakiet CRIT</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="zestaw:pakiet-crit" oninput="onSgibQty(this)" title="Ilość"></div>
+                                    <div class="sgib-row"><button class="shop-grant-item-btn" data-type="zestaw" data-id="maly-klucze" data-label="Mały Zestaw Kluczy" onclick="toggleShopGrantItem(this)">📦 Mały Zestaw</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="zestaw:maly-klucze" oninput="onSgibQty(this)" title="Ilość"></div>
+                                    <div class="sgib-row"><button class="shop-grant-item-btn" data-type="zestaw" data-id="sredni-klucze" data-label="Średni Zestaw Kluczy" onclick="toggleShopGrantItem(this)">📦 Średni Zestaw</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="zestaw:sredni-klucze" oninput="onSgibQty(this)" title="Ilość"></div>
+                                    <div class="sgib-row"><button class="shop-grant-item-btn" data-type="zestaw" data-id="duzy-klucze" data-label="Duży Zestaw Kluczy" onclick="toggleShopGrantItem(this)">📦 Duży Zestaw</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="zestaw:duzy-klucze" oninput="onSgibQty(this)" title="Ilość"></div>
                                 </div>
                             </div>
 
                             <!-- Inne -->
                             <div>
-                                <div style="font-size:.72rem;font-weight:700;color:#10b981;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.4rem;"><i class="fa-solid fa-sparkles"></i> Inne</div>
-                                <div style="display:flex;gap:.4rem;flex-wrap:wrap;">
-                                    <button class="shop-grant-item-btn" data-type="item" data-id="nick-color" data-label="Nick Color Permanent" onclick="toggleShopGrantItem(this)">&#x1F3A8; Nick Color</button>
-                                    <button class="shop-grant-item-btn" data-type="item" data-id="repair-30" data-label="/repair 30 dni" onclick="toggleShopGrantItem(this)">&#x1F527; /repair 30d</button>
-                                    <button class="shop-grant-item-btn" data-type="item" data-id="ec-30" data-label="/ec 30 dni" onclick="toggleShopGrantItem(this)">&#x1F4DC; /ec 30d</button>
+                                <div style="font-size:.72rem;font-weight:700;color:#10b981;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem;"><i class="fa-solid fa-sparkles"></i> Inne</div>
+                                <div style="display:flex;flex-direction:column;gap:.35rem;">
+                                    <div class="sgib-row"><button class="shop-grant-item-btn" data-type="item" data-id="nick-color" data-label="Nick Color Permanent" onclick="toggleShopGrantItem(this)">🎨 Nick Color</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="item:nick-color" oninput="onSgibQty(this)" title="Ilość"></div>
+                                    <div class="sgib-row"><button class="shop-grant-item-btn" data-type="item" data-id="repair-30" data-label="/repair 30 dni" onclick="toggleShopGrantItem(this)">🔧 /repair 30d</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="item:repair-30" oninput="onSgibQty(this)" title="Ilość"></div>
+                                    <div class="sgib-row"><button class="shop-grant-item-btn" data-type="item" data-id="ec-30" data-label="/ec 30 dni" onclick="toggleShopGrantItem(this)">📜 /ec 30d</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="item:ec-30" oninput="onSgibQty(this)" title="Ilość"></div>
                                 </div>
                             </div>
-                        </div>
-
-                        <!-- Ilość (dla kluczy) -->
-                        <div class="modal-field" style="margin-bottom:1rem;" id="shop-grant-qty-field">
-                            <label>Ilość <span style="color:#999;font-weight:400;">(dla kluczy — ile sztuk każdego wybranego klucza)</span></label>
-                            <input type="number" id="shop-grant-qty" value="1" min="1" max="100"
-                                style="width:100px;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
                         </div>
 
                         <!-- Wiadomość na czacie -->

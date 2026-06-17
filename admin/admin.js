@@ -1791,18 +1791,36 @@ window.loadShopPage = function() {
 // ─── SKLEP — NADAWANIE PRODUKTÓW ─────────────────────────────────────────────
 
 // Wybrane produkty do nadania
-const _shopGrantSelected = new Map(); // id -> { type, id, label, qty }
+// ─── SKLEP — NADAWANIE PRODUKTÓW ─────────────────────────────────────────────
+const _shopGrantSelected = new Map(); // key="type:id" -> { type, id, label, qty }
+
+// Aktualizacja qty w mapie gdy zmienisz pole obok przycisku
+window.onSgibQty = function(input) {
+    const key = input.getAttribute('data-for'); // "type:id"
+    if (_shopGrantSelected.has(key)) {
+        const entry = _shopGrantSelected.get(key);
+        entry.qty = Math.min(999, Math.max(1, parseInt(input.value) || 1));
+        _shopGrantSelected.set(key, entry);
+        _updateShopGrantPreview();
+    }
+};
 
 window.toggleShopGrantItem = function(btn) {
     const id    = btn.getAttribute('data-id');
     const type  = btn.getAttribute('data-type');
     const label = btn.getAttribute('data-label');
+    const key   = type + ':' + id;
 
-    if (_shopGrantSelected.has(id)) {
-        _shopGrantSelected.delete(id);
+    // Odczytaj qty z pola obok przycisku w tym samym .sgib-row
+    const row = btn.closest('.sgib-row');
+    const qtyInput = row ? row.querySelector('.sgib-qty') : null;
+    const qty = qtyInput ? Math.min(999, Math.max(1, parseInt(qtyInput.value) || 1)) : 1;
+
+    if (_shopGrantSelected.has(key)) {
+        _shopGrantSelected.delete(key);
         btn.classList.remove('selected');
     } else {
-        _shopGrantSelected.set(id, { type, id, label });
+        _shopGrantSelected.set(key, { type, id, label, qty });
         btn.classList.add('selected');
     }
     _updateShopGrantPreview();
@@ -1812,26 +1830,24 @@ function _updateShopGrantPreview() {
     const preview = document.getElementById('shop-grant-preview');
     const content = document.getElementById('shop-grant-preview-content');
     const nick    = (document.getElementById('shop-grant-nick')?.value || '').trim();
-    const qty     = parseInt(document.getElementById('shop-grant-qty')?.value || '1');
 
     if (_shopGrantSelected.size === 0) {
         if (preview) preview.style.display = 'none';
         return;
     }
-
     if (preview) preview.style.display = 'block';
     if (!content) return;
 
     const items = [..._shopGrantSelected.values()];
     const lines = items.map(item => {
-        const qtyStr = (item.type === 'klucz') ? ' x' + qty : '';
+        const qtyStr = item.qty > 1 ? ' <b>x' + item.qty + '</b>' : '';
         return '<span style="display:inline-flex;align-items:center;gap:.3rem;margin:.2rem;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;padding:.2rem .55rem;font-size:.82rem;font-weight:700;">'
-            + item.label + qtyStr
-            + '<button onclick="event.stopPropagation();document.querySelector(\'[data-id=\\\'' + item.id + '\\\']\')?.click()" style="background:none;border:none;cursor:pointer;color:#ef4444;padding:0 .2rem;font-size:.85rem;">×</button>'
+            + escapeHtml(item.label) + qtyStr
+            + '<button onclick="event.stopPropagation();(function(){const b=document.querySelector(\'[data-type=\\\'' + item.type + '\\\'][data-id=\\\'' + item.id + '\\\']\');if(b)b.click();})();" style="background:none;border:none;cursor:pointer;color:#ef4444;padding:0 .2rem;font-size:.85rem;">×</button>'
             + '</span>';
     });
 
-    content.innerHTML = (nick ? '<div style="font-size:.82rem;margin-bottom:.4rem;"><b>Dla gracza:</b> ' + escapeHtml(nick) + '</div>' : '')
+    content.innerHTML = (nick ? '<div style="font-size:.82rem;margin-bottom:.4rem;"><b>Dla:</b> ' + escapeHtml(nick) + '</div>' : '')
         + '<div>' + lines.join('') + '</div>';
 }
 
@@ -1874,32 +1890,43 @@ window.submitShopGrant = async function() {
     if (!nick) { _showShopGrantMsg('error', 'Podaj nick gracza!'); return; }
     if (_shopGrantSelected.size === 0) { _showShopGrantMsg('error', 'Wybierz co najmniej jeden produkt!'); return; }
 
-    const qty      = parseInt(document.getElementById('shop-grant-qty')?.value || '1');
-    const message  = (document.getElementById('shop-grant-message')?.value || '').trim();
-    const items    = [..._shopGrantSelected.values()].map(item => ({
+    const message = (document.getElementById('shop-grant-message')?.value || '').trim();
+    const items   = [..._shopGrantSelected.values()].map(item => ({
         type:  item.type,
         id:    item.id,
         label: item.label,
-        qty:   (item.type === 'klucz') ? qty : 1
+        qty:   item.qty || 1
     }));
+
+    // ── Sprawdzenie podwójnej rangi (qty >= 2) → pytaj o zgodę → 60 dni ──
+    const doubleRanks = items.filter(i => i.type === 'ranga' && i.qty >= 2);
+    if (doubleRanks.length > 0) {
+        const rankNames = doubleRanks.map(r => r.label).join(', ');
+        const confirmed = await _confirmDoubleRank(rankNames);
+        if (!confirmed) return;
+        // Oznacz te rangi jako 60 dni
+        items.forEach(i => {
+            if (i.type === 'ranga' && i.qty >= 2) {
+                i.label = i.label + ' (60 dni)';
+                i.duration = '60d';
+            }
+        });
+    }
 
     const btn = document.getElementById('shop-grant-btn');
     if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Nadawanie...'; }
 
     try {
-        // Zapisz zamówienie do Firestore
         const orderRef = await addDoc(collection(db, 'orders'), {
-            playerNick:  nick,
+            playerNick: nick,
             items,
-            qty,
-            message:     message || '',
-            admin:       currentUser?.displayName || 'Panel',
-            status:      'pending',
-            createdAt:   serverTimestamp(),
-            type:        'admin_grant'
+            message:    message || '',
+            admin:      currentUser?.displayName || 'Panel',
+            status:     'pending',
+            createdAt:  serverTimestamp(),
+            type:       'admin_grant'
         });
 
-        // Wyślij też do panel_commands żeby plugin wykonał natychmiast
         for (const item of items) {
             await addDoc(collection(db, 'panel_commands'), {
                 action:    'shop_grant',
@@ -1908,6 +1935,7 @@ window.submitShopGrant = async function() {
                 itemType:  item.type,
                 itemLabel: item.label,
                 qty:       item.qty,
+                duration:  item.duration || '',
                 orderId:   orderRef.id,
                 message:   message,
                 admin:     currentUser?.displayName || 'Panel',
@@ -1916,23 +1944,23 @@ window.submitShopGrant = async function() {
             });
         }
 
-        // Log akcji
         await logAction('shop_grant', nick, currentUser?.displayName || 'Panel',
             'Nadano: ' + items.map(i => i.label + (i.qty > 1 ? ' x' + i.qty : '')).join(', '), '—');
 
         showToast('success', 'Produkty nadane dla ' + nick + '!');
-        _showShopGrantMsg('success', '✓ Produkty zostały wysłane do gracza ' + nick);
+        _showShopGrantMsg('success', '✓ Produkty wysłane do gracza ' + nick);
 
-        // Wyczyść formularz
+        // Reset formularza
         _shopGrantSelected.clear();
         document.querySelectorAll('.shop-grant-item-btn.selected').forEach(b => b.classList.remove('selected'));
+        document.querySelectorAll('.sgib-qty').forEach(i => i.value = '1');
         const preview = document.getElementById('shop-grant-preview');
         if (preview) preview.style.display = 'none';
-        document.getElementById('shop-grant-nick').value = '';
-        document.getElementById('shop-grant-message').value = '';
-        document.getElementById('shop-grant-qty').value = '1';
+        const nickEl = document.getElementById('shop-grant-nick');
+        const msgEl  = document.getElementById('shop-grant-message');
+        if (nickEl) nickEl.value = '';
+        if (msgEl)  msgEl.value  = '';
 
-        // Odśwież historię
         await loadShopGrants();
 
     } catch(e) {
@@ -1942,6 +1970,36 @@ window.submitShopGrant = async function() {
         if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-gift"></i> Nadaj produkty'; }
     }
 };
+
+// Modal potwierdzenia podwójnej rangi
+function _confirmDoubleRank(rankNames) {
+    return new Promise(resolve => {
+        // Usuń poprzedni modal jeśli istnieje
+        document.getElementById('rank-confirm-overlay')?.remove();
+
+        const overlay = document.createElement('div');
+        overlay.id = 'rank-confirm-overlay';
+        overlay.innerHTML = `
+            <div id="rank-confirm-box">
+                <h3><i class="fa-solid fa-crown" style="color:#8b5cf6;margin-right:.4rem;"></i>Potwierdzenie — podwójna ranga</h3>
+                <p>Wybrano <b>${escapeHtml(rankNames)}</b> w ilości ≥2.<br>
+                Czy chcesz nadać tę rangę na <b>60 dni</b> zamiast 30?</p>
+                <div class="confirm-btns">
+                    <button class="modal-submit-btn" id="rank-confirm-yes" style="flex:1;background:#8b5cf6;">
+                        <i class="fa-solid fa-check"></i> Tak, 60 dni
+                    </button>
+                    <button class="tbl-btn" id="rank-confirm-no" style="flex:1;padding:.75rem;">
+                        <i class="fa-solid fa-xmark"></i> Anuluj
+                    </button>
+                </div>
+            </div>`;
+        document.body.appendChild(overlay);
+
+        document.getElementById('rank-confirm-yes').onclick = () => { overlay.remove(); resolve(true);  };
+        document.getElementById('rank-confirm-no').onclick  = () => { overlay.remove(); resolve(false); };
+        overlay.onclick = (e) => { if (e.target === overlay) { overlay.remove(); resolve(false); } };
+    });
+}
 
 function _showShopGrantMsg(type, text) {
     const el = document.getElementById('shop-grant-msg'); if (!el) return;
@@ -1960,23 +2018,44 @@ async function loadShopGrants() {
             return;
         }
         list.innerHTML = orders.map(o => {
-            const items = (o.items || []).map(i => escapeHtml(i.label + (i.qty > 1 ? ' x' + i.qty : ''))).join(', ');
-            const statusClass = o.status === 'executed' ? 'shop-grant-badge-executed' : o.status === 'failed' ? 'shop-grant-badge-failed' : 'shop-grant-badge-pending';
-            const statusLabel = o.status === 'executed' ? 'Wykonano' : o.status === 'failed' ? 'Błąd' : 'Oczekuje';
-            return '<div class="shop-grant-entry">'
-                + '<div class="shop-grant-entry-header">'
-                + '<div style="font-weight:700;font-size:.88rem;">' + escapeHtml(o.playerNick || '?') + '</div>'
-                + '<span class="shop-grant-badge ' + statusClass + '">' + statusLabel + '</span>'
-                + '</div>'
-                + '<div style="font-size:.78rem;color:var(--text-secondary);">' + items + '</div>'
-                + '<div style="font-size:.72rem;color:var(--text-secondary);display:flex;justify-content:space-between;">'
-                + '<span>Admin: ' + escapeHtml(o.admin || '—') + '</span>'
-                + '<span>' + formatDate(o.createdAt) + '</span>'
-                + '</div>'
-                + '</div>';
+            const statusClass = o.status === 'executed' ? 'shop-grant-badge-executed'
+                              : o.status === 'failed'   ? 'shop-grant-badge-failed'
+                              : 'shop-grant-badge-pending';
+            const statusLabel = o.status === 'executed' ? '<i class="fa-solid fa-check"></i> Wykonano'
+                              : o.status === 'failed'   ? '<i class="fa-solid fa-xmark"></i> Błąd'
+                              : '<i class="fa-solid fa-clock"></i> Oczekuje';
+
+            // Szczegóły produktów
+            const itemsHtml = (o.items || []).map(i => {
+                const qty = i.qty > 1 ? ` <b>×${i.qty}</b>` : '';
+                const icon = i.type === 'ranga' ? '👑' : i.type === 'klucz' ? '🔑' : i.type === 'zestaw' ? '📦' : '✨';
+                return `<span style="display:inline-flex;align-items:center;gap:.25rem;background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:.15rem .45rem;font-size:.75rem;font-weight:600;margin:.1rem;">${icon} ${escapeHtml(i.label || i.id || '?')}${qty}</span>`;
+            }).join('');
+
+            // Czas wykonania
+            const execTime = o.executedAt ? '<span style="color:#10b981;font-size:.7rem;">• odebrano ' + formatDate(o.executedAt) + '</span>' : '';
+
+            // Wiadomość
+            const msgHtml = o.message ? `<div style="font-size:.75rem;color:var(--text-secondary);margin-top:.2rem;">💬 ${escapeHtml(o.message)}</div>` : '';
+
+            return `<div class="shop-grant-entry">
+                <div class="shop-grant-entry-header">
+                    <div style="display:flex;align-items:center;gap:.5rem;">
+                        <img src="https://mc-heads.net/avatar/${encodeURIComponent(o.playerNick||'Steve')}/22" style="width:22px;height:22px;border-radius:4px;image-rendering:pixelated;">
+                        <span style="font-weight:800;font-size:.9rem;">${escapeHtml(o.playerNick || '?')}</span>
+                    </div>
+                    <span class="shop-grant-badge ${statusClass}">${statusLabel}</span>
+                </div>
+                <div style="margin:.35rem 0 .2rem;">${itemsHtml || '<span style="color:var(--text-secondary);font-size:.78rem;">brak danych</span>'}</div>
+                ${msgHtml}
+                <div style="font-size:.72rem;color:var(--text-secondary);display:flex;justify-content:space-between;margin-top:.3rem;flex-wrap:wrap;gap:.2rem;">
+                    <span>👤 Admin: <b>${escapeHtml(o.admin || '—')}</b></span>
+                    <span style="display:flex;gap:.6rem;">${execTime} <span>📅 ${formatDate(o.createdAt)}</span></span>
+                </div>
+            </div>`;
         }).join('');
     } catch(e) {
-        list.innerHTML = '<div style="padding:1rem;color:#ef4444;font-size:.85rem;">Błąd: ' + e.message + '</div>';
+        list.innerHTML = `<div style="padding:1rem;color:#ef4444;font-size:.85rem;">Błąd: ${e.message}</div>`;
     }
 }
 

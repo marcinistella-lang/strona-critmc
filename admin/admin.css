@@ -1815,3 +1815,102 @@ select:focus {
 .shop-grant-badge-pending  { background: rgba(245,158,11,.12); color: #d97706; border: 1px solid rgba(217,119,6,.25); }
 .shop-grant-badge-executed { background: rgba(16,185,129,.1);  color: #059669; border: 1px solid rgba(5,150,105,.2); }
 .shop-grant-badge-failed   { background: rgba(239,68,68,.1);   color: #dc2626; border: 1px solid rgba(220,38,38,.2); }
+
+/* ── Sklep — wiersz produkt + ilość ── */
+.sgib-row {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+}
+
+.sgib-row .shop-grant-item-btn {
+    flex: 1;
+    justify-content: flex-start;
+    white-space: nowrap;
+}
+
+.sgib-qty {
+    width: 70px;
+    padding: .45rem .6rem;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: .88rem;
+    color: var(--text-primary);
+    background: var(--bg);
+    outline: none;
+    font-family: var(--font);
+    text-align: center;
+    transition: border-color var(--transition);
+    flex-shrink: 0;
+}
+
+.sgib-qty:focus {
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 0 2px rgba(59,130,246,.1);
+}
+
+/* Historia nadań — rozszerzone szczegóły */
+.shop-grant-entry {
+    padding: .9rem 1.2rem;
+    border-bottom: 1px solid var(--border);
+    transition: background .15s;
+}
+.shop-grant-entry:last-child { border-bottom: none; }
+.shop-grant-entry:hover { background: rgba(59,130,246,.02); }
+.shop-grant-entry-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: .3rem;
+}
+.shop-grant-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    padding: .2rem .55rem;
+    border-radius: 999px;
+    font-size: .68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+.shop-grant-badge-pending  { background:rgba(245,158,11,.1);  color:#d97706; border:1px solid rgba(217,119,6,.2); }
+.shop-grant-badge-executed { background:rgba(16,185,129,.1);  color:#059669; border:1px solid rgba(5,150,105,.2); }
+.shop-grant-badge-failed   { background:rgba(239,68,68,.1);   color:#dc2626; border:1px solid rgba(220,38,38,.2); }
+
+/* Modal potwierdzenia rangi */
+#rank-confirm-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.45);
+    backdrop-filter: blur(4px);
+    z-index: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+#rank-confirm-box {
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    padding: 1.8rem;
+    max-width: 420px;
+    width: 100%;
+    box-shadow: var(--shadow-lg);
+    animation: modalIn .2s ease forwards;
+}
+#rank-confirm-box h3 {
+    font-size: 1.05rem;
+    font-weight: 800;
+    margin-bottom: .6rem;
+    color: var(--text-primary);
+}
+#rank-confirm-box p {
+    font-size: .9rem;
+    color: var(--text-secondary);
+    margin-bottom: 1.2rem;
+    line-height: 1.5;
+}
+#rank-confirm-box .confirm-btns {
+    display: flex;
+    gap: .6rem;
+}
