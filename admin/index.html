@@ -72,7 +72,10 @@
             <button class="nav-btn" data-page="action" onclick="switchPage('action')">
                 <i class="fa-solid fa-plus-circle"></i><span>Nadaj karę</span>
             </button>
-            <button class="nav-btn" data-page="logs" onclick="switchPage('logs')">
+            <button class="nav-btn" <button class="nav-btn" data-page="guides" onclick="switchPage('guides');loadGuidesPage();">
+                <i class="fa-solid fa-book-open"></i><span>Poradniki</span>
+            </button>
+            data-page="logs" onclick="switchPage('logs')">
                 <i class="fa-solid fa-clock-rotate-left"></i><span>Logi akcji</span>
             </button>
 
@@ -321,15 +324,37 @@
                 </div>
             </div>
 
-            <!-- Poradnik kar -->
-            <div style="margin-top:1.5rem;">
-                <button class="tbl-btn" onclick="openPunishmentGuideModal()" style="font-weight:700;font-size:.88rem;padding:.65rem 1.2rem;border-color:var(--accent-blue);color:var(--accent-blue);background:rgba(59,130,246,.06);">
-                    <i class="fa-solid fa-book-open" style="margin-right:.4rem;"></i>Poradnik kar
-                </button>
-            </div>
+            <!-- Brak poradnika - przeniesiony do zakładki Poradniki -->
         </div>
 
-        <!-- ===== LOGI AKCJI ===== -->
+        
+        <!-- ===== PORADNIKI ===== -->
+        <div id="page-guides" class="page">
+            <div class="page-header">
+                <h1>Poradniki</h1>
+                <p>Przewodniki dla administracji</p>
+            </div>
+            <div id="guides-list" style="display:flex;flex-direction:column;gap:1.5rem;">
+                <!-- Poradnik kar -->
+                <div class="table-card" style="overflow:hidden;">
+                    <div style="padding:1rem 1.4rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,rgba(59,130,246,.06),rgba(99,102,241,.06));">
+                        <div>
+                            <div style="font-size:1rem;font-weight:800;color:var(--text-primary);">
+                                <i class="fa-solid fa-gavel" style="color:var(--accent-blue);margin-right:.5rem;"></i>Poradnik kar
+                            </div>
+                            <div style="font-size:.78rem;color:var(--text-secondary);margin-top:.15rem;">Tabela kar — za co jaki ban/mute</div>
+                        </div>
+                        <button class="tbl-btn" onclick="openPunishmentGuideModal()" style="padding:.6rem 1.2rem;font-weight:700;border-color:var(--accent-blue);color:var(--accent-blue);background:rgba(59,130,246,.08);">
+                            <i class="fa-solid fa-eye"></i> Otwórz poradnik
+                        </button>
+                    </div>
+                    <div id="guides-punishment-preview" style="padding:.75rem 1.2rem;">
+                        <div style="font-size:.82rem;color:var(--text-secondary);">Kliknij "Otwórz poradnik" aby zobaczyć tabelę kar. Możesz ją edytować klikając przycisk Edytuj w oknie.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+<!-- ===== LOGI AKCJI ===== -->
         <div id="page-logs" class="page">
             <div class="page-header"><h1>Logi Akcji</h1><p>Historia wszystkich akcji administracyjnych</p></div>
             <div class="filters-bar">
@@ -374,41 +399,59 @@
 
         <!-- ===== SKLEP ===== -->
         <div id="page-shop" class="page">
-            <div class="page-header"><h1>Sklep</h1><p>Zarządzaj produktami, rangami, zestawami i cenami</p></div>
-            <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:1.2rem;">
-                <div style="display:flex;gap:.6rem;flex-wrap:wrap;align-items:center;">
-                    <div class="filter-search" style="min-width:180px;">
-                        <i class="fa-solid fa-magnifying-glass"></i>
-                        <input type="text" id="shop-search" placeholder="Szukaj produktu..." oninput="filterShopItems()">
-                    </div>
-                    <select id="shop-type-filter" onchange="filterShopItems()" style="padding:.62rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.88rem;color:var(--text-primary);background:var(--bg-card);outline:none;font-family:var(--font);">
-                        <option value="">Wszystkie typy</option>
-                        <option value="ranga">Rangi</option>
-                        <option value="zestaw">Zestawy</option>
-                        <option value="item">Itemki</option>
-                        <option value="klucz">Klucze</option>
-                    </select>
-                    <select id="shop-status-filter" onchange="filterShopItems()" style="padding:.62rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.88rem;color:var(--text-primary);background:var(--bg-card);outline:none;font-family:var(--font);">
-                        <option value="">Wszystkie statusy</option>
-                        <option value="active">Aktywne</option>
-                        <option value="hidden">Ukryte</option>
-                    </select>
+            <div class="page-header">
+                <h1>Sklep</h1>
+                <p>Zarządzaj produktami, kategoriami i wyglądem sklepu</p>
+            </div>
+
+            <!-- Toolbar główny -->
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:1.5rem;">
+                <!-- Zakładki kategorii -->
+                <div style="display:flex;gap:.4rem;flex-wrap:wrap;">
+                    <button class="shop-cat-btn active" data-cat="all" onclick="shopSwitchCat('all')">
+                        <i class="fa-solid fa-th-large"></i> Wszystkie
+                        <span id="shop-badge-all" style="background:var(--accent);color:#fff;font-size:.65rem;font-weight:800;padding:.1rem .4rem;border-radius:999px;margin-left:.3rem;">0</span>
+                    </button>
+                    <button class="shop-cat-btn" data-cat="ranga" onclick="shopSwitchCat('ranga')">
+                        <i class="fa-solid fa-crown" style="color:#8b5cf6;"></i> Rangi
+                        <span id="shop-badge-ranga" style="background:#8b5cf6;color:#fff;font-size:.65rem;font-weight:800;padding:.1rem .4rem;border-radius:999px;margin-left:.3rem;">0</span>
+                    </button>
+                    <button class="shop-cat-btn" data-cat="klucz" onclick="shopSwitchCat('klucz')">
+                        <i class="fa-solid fa-key" style="color:#f59e0b;"></i> Klucze
+                        <span id="shop-badge-klucz" style="background:#f59e0b;color:#fff;font-size:.65rem;font-weight:800;padding:.1rem .4rem;border-radius:999px;margin-left:.3rem;">0</span>
+                    </button>
+                    <button class="shop-cat-btn" data-cat="zestaw" onclick="shopSwitchCat('zestaw')">
+                        <i class="fa-solid fa-boxes-packing" style="color:#3b82f6;"></i> Zestawy
+                        <span id="shop-badge-zestaw" style="background:#3b82f6;color:#fff;font-size:.65rem;font-weight:800;padding:.1rem .4rem;border-radius:999px;margin-left:.3rem;">0</span>
+                    </button>
+                    <button class="shop-cat-btn" data-cat="item" onclick="shopSwitchCat('item')">
+                        <i class="fa-solid fa-sparkles" style="color:#10b981;"></i> Inne
+                        <span id="shop-badge-item" style="background:#10b981;color:#fff;font-size:.65rem;font-weight:800;padding:.1rem .4rem;border-radius:999px;margin-left:.3rem;">0</span>
+                    </button>
                 </div>
-                <div style="display:flex;gap:.5rem;">
+                <!-- Akcje -->
+                <div style="display:flex;gap:.5rem;align-items:center;">
+                    <div class="filter-search" style="min-width:160px;">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="shop-search" placeholder="Szukaj..." oninput="filterShopItems()">
+                    </div>
                     <button class="tbl-btn" onclick="exportShopItems()" title="Eksportuj JSON"><i class="fa-solid fa-download"></i></button>
                     <button class="tbl-btn" onclick="importShopItems()" title="Importuj JSON"><i class="fa-solid fa-upload"></i></button>
-                    <button class="modal-submit-btn" style="width:auto;padding:.6rem 1.4rem;" onclick="openShopItemModal()">
+                    <button class="tbl-btn" id="shop-view-toggle" onclick="toggleShopView()" title="Zmień widok"><i class="fa-solid fa-table-cells-large"></i></button>
+                    <button class="modal-submit-btn" style="width:auto;padding:.65rem 1.3rem;" onclick="openShopItemModal()">
                         <i class="fa-solid fa-plus"></i> Dodaj produkt
                     </button>
                 </div>
             </div>
-            <!-- Widok kart -->
-            <div id="shop-grid-view" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem;"></div>
-            <!-- Widok tabeli (ukryty domyślnie) -->
+
+            <!-- Widok kart (domyślny) -->
+            <div id="shop-grid-view" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1rem;"></div>
+
+            <!-- Widok tabeli -->
             <div id="shop-table-view" style="display:none;">
                 <div class="table-card"><div class="table-wrap">
                     <table class="data-table">
-                        <thead><tr><th>Nazwa</th><th>Typ</th><th>Cena</th><th>Media</th><th>Status</th><th>Kolejność</th><th>Akcje</th></tr></thead>
+                        <thead><tr><th>Nazwa</th><th>Kategoria</th><th>Cena</th><th>Media</th><th>Status</th><th>Kolejność</th><th>Akcje</th></tr></thead>
                         <tbody id="shop-items-tbody"><tr><td colspan="7" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr></tbody>
                     </table>
                 </div></div>
@@ -883,31 +926,80 @@
 </div>
 
 <!-- MODAL: PRODUKT SKLEPU -->
+<!-- MODAL: PRODUKT SKLEPU -->
 <div class="modal-overlay" id="shop-item-modal" onclick="closeModal(event)">
-    <div class="modal-box" style="max-width:640px;">
-        <div class="modal-header"><div class="modal-title" id="shop-item-modal-title">Dodaj produkt</div><button class="modal-close" onclick="document.getElementById('shop-item-modal').classList.remove('open')"><i class="fa-solid fa-xmark"></i></button></div>
-        <div class="modal-body">
+    <div class="modal-box" style="max-width:700px;">
+        <div class="modal-header">
+            <div class="modal-title" id="shop-item-modal-title">Dodaj produkt</div>
+            <button class="modal-close" onclick="document.getElementById('shop-item-modal').classList.remove('open')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body" style="gap:.75rem;">
             <input type="hidden" id="shop-item-id">
-            <div class="modal-field"><label>Typ produktu</label>
-                <select id="shop-item-type" style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
-                    <option value="ranga">Ranga</option><option value="zestaw">Zestaw</option><option value="item">Itemek</option><option value="klucz">Klucz</option>
-                </select>
+            <div class="shop-modal-section">
+                <div class="shop-modal-section-title"><i class="fa-solid fa-info-circle" style="margin-right:.4rem;color:var(--accent-blue);"></i>Podstawowe informacje</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;">
+                    <div class="modal-field"><label>Nazwa produktu *</label><input type="text" id="shop-item-name" placeholder="np. VIP, Klucz Epicki..."></div>
+                    <div class="modal-field"><label>Kategoria *</label>
+                        <select id="shop-item-type" onchange="shopModalOnTypeChange()" style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                            <option value="ranga">&#x1F451; Ranga</option>
+                            <option value="klucz">&#x1F511; Klucz</option>
+                            <option value="zestaw">&#x1F4E6; Zestaw</option>
+                            <option value="item">&#x2728; Inne</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="shop-subcategory-field" class="modal-field" style="margin-top:.6rem;display:none;">
+                    <label>Podkategoria</label>
+                    <select id="shop-item-subcategory" style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                        <option value="">Brak podkategorii</option>
+                    </select>
+                </div>
+                <div id="shop-rarity-field" class="modal-field" style="margin-top:.6rem;display:none;">
+                    <label>Rzadkość</label>
+                    <div class="rarity-stars-edit" id="rarity-stars">
+                        <span class="rarity-star" data-val="1" onclick="setShopRarity(1)">&#9733;</span>
+                        <span class="rarity-star" data-val="2" onclick="setShopRarity(2)">&#9733;</span>
+                        <span class="rarity-star" data-val="3" onclick="setShopRarity(3)">&#9733;</span>
+                        <span class="rarity-star" data-val="4" onclick="setShopRarity(4)">&#9733;</span>
+                        <span class="rarity-star" data-val="5" onclick="setShopRarity(5)">&#9733;</span>
+                    </div>
+                    <input type="hidden" id="shop-item-rarity" value="1">
+                </div>
+                <div class="modal-field" style="margin-top:.6rem;">
+                    <label>Opis</label>
+                    <textarea id="shop-item-desc" rows="2" placeholder="np. Ranga premium na 30 dni..." style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea>
+                </div>
             </div>
-            <div class="modal-field"><label>Nazwa *</label><input type="text" id="shop-item-name" placeholder="Np. CRIT, Zestaw BOSS, Klucz Medium..."></div>
-            <div class="modal-field"><label>Opis</label><textarea id="shop-item-desc" rows="3" placeholder="Opis produktu..." style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea></div>
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.8rem;">
-                <div class="modal-field"><label>Cena</label><input type="number" id="shop-item-price" min="0" step="0.01" placeholder="0.00"></div>
-                <div class="modal-field"><label>Stara cena</label><input type="number" id="shop-item-old-price" min="0" step="0.01" placeholder="0.00"></div>
-                <div class="modal-field"><label>Kolejność</label><input type="number" id="shop-item-order" min="0" value="99"></div>
+            <div class="shop-modal-section">
+                <div class="shop-modal-section-title"><i class="fa-solid fa-tag" style="margin-right:.4rem;color:#10b981;"></i>Cena i widoczność</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.75rem;">
+                    <div class="modal-field"><label>Cena (PLN) *</label><input type="number" id="shop-item-price" min="0" step="0.01" placeholder="0.00"></div>
+                    <div class="modal-field"><label>Stara cena (przekreślona)</label><input type="number" id="shop-item-old-price" min="0" step="0.01" placeholder="0.00"></div>
+                    <div class="modal-field"><label>Kolejność sortowania</label><input type="number" id="shop-item-order" min="0" value="99"></div>
+                </div>
+                <div style="display:flex;gap:1rem;margin-top:.6rem;flex-wrap:wrap;">
+                    <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.88rem;font-weight:600;"><input type="checkbox" id="shop-item-active" checked> Produkt aktywny</label>
+                    <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.88rem;font-weight:600;"><input type="checkbox" id="shop-item-featured"> <span style="color:#f59e0b;">&#9733;</span> Wyróżniony</label>
+                </div>
             </div>
-            <div class="modal-field"><label>Lista bonusów / itemów</label><textarea id="shop-item-items" rows="4" placeholder="Jeden bonus na linię..." style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea></div>
-            <div class="modal-field"><label>Link do media (obrazek/film)</label><input type="text" id="shop-item-media-url" placeholder="URL do pliku..."></div>
-            <div class="modal-field"><label style="display:flex;align-items:center;gap:.5rem;"><input type="checkbox" id="shop-item-active" checked> Produkt aktywny</label></div>
-            <div class="modal-field"><label>Wgraj nowe media</label><input type="file" id="shop-item-media-file" accept="image/*,video/*,.gif,.png,.jpg,.mp4,.webm" onchange="previewShopMediaInput()"><div style="font-size:.76rem;color:var(--text-secondary);margin-top:.35rem;">Plik zostanie wysłany do bazy.</div></div>
-            <div id="shop-item-media-preview" class="shop-media-preview" style="display:none;"></div>
-            <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem;">
-                <button type="button" class="tbl-btn" onclick="previewShopItemMedia()"><i class="fa-solid fa-eye"></i> Podgląd media</button>
-                <button type="button" class="tbl-btn" onclick="openShopPreview()"><i class="fa-solid fa-arrow-up-right-from-square"></i> Podgląd sklepu</button>
+            <div class="shop-modal-section">
+                <div class="shop-modal-section-title"><i class="fa-solid fa-list-check" style="margin-right:.4rem;color:#8b5cf6;"></i>Bonusy / zawartość <span style="font-size:.7rem;font-weight:400;text-transform:none;color:var(--text-secondary);">(jeden bonus na linię)</span></div>
+                <textarea id="shop-item-items" rows="6" placeholder="Kit VIP co 23,5h&#10;Własny prefix na czacie&#10;Dostęp do /ec, /wb&#10;Itemy na rynku: 9" style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.88rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea>
+            </div>
+            <div class="shop-modal-section">
+                <div class="shop-modal-section-title"><i class="fa-solid fa-image" style="margin-right:.4rem;color:#3b82f6;"></i>Media</div>
+                <div class="modal-field">
+                    <label>URL obrazka / wideo</label>
+                    <div style="display:flex;gap:.5rem;">
+                        <input type="text" id="shop-item-media-url" placeholder="../images/vip.png lub URL..." style="flex:1;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                        <button type="button" class="tbl-btn" onclick="previewShopItemMedia()" title="Podgląd"><i class="fa-solid fa-eye"></i></button>
+                    </div>
+                </div>
+                <div class="modal-field" style="margin-top:.5rem;">
+                    <label>Lub wgraj plik</label>
+                    <input type="file" id="shop-item-media-file" accept="image/*,video/*,.gif,.webp,.png,.jpg,.jpeg,.mp4,.webm" onchange="previewShopMediaInput()" style="width:100%;padding:.55rem .7rem;border:1.5px dashed var(--border);border-radius:var(--radius-sm);font-size:.88rem;color:var(--text-primary);background:var(--bg);">
+                </div>
+                <div id="shop-item-media-preview" class="shop-modal-media-preview"></div>
             </div>
             <div id="shop-item-msg" class="modal-msg" style="display:none;"></div>
             <button class="modal-submit-btn" onclick="saveShopItem()"><i class="fa-solid fa-floppy-disk"></i> Zapisz produkt</button>
@@ -1002,7 +1094,7 @@
         const page=document.getElementById('page-'+pageName);
         if(btn)btn.classList.add('active');
         if(page)page.classList.add('active');
-        const titles={players:'Gracze',penalties:'Kary',action:'Nadaj karę',logs:'Logi Akcji',stats:'Statystyki Adminów',admins:'Administratorzy',permissions:'Uprawnienia',personel:'Personel',site:'Zarządzanie stroną',shop:'Sklep',files:'Pliki',info:'Informacje systemowe'};
+        const titles={players:'Gracze',penalties:'Kary',action:'Nadaj karę',logs:'Logi Akcji',stats:'Statystyki Adminów',admins:'Administratorzy',permissions:'Uprawnienia',personel:'Personel',site:'Zarządzanie stroną',shop:'Sklep',guides:'Poradniki',files:'Pliki',info:'Informacje systemowe'};
         document.getElementById('topbar-title').textContent=titles[pageName]||pageName;
         if(pageName==='action'&&typeof window.apFilterPlayers==='function')window.apFilterPlayers();
     }

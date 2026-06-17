@@ -678,42 +678,82 @@ window.loadShopPage = async function() {
 
 function renderShopGrid(list) {
     const grid = document.getElementById('shop-grid-view'); if (!grid) return;
-    if (!list || !list.length) { grid.innerHTML = '<div style="grid-column:1/-1;padding:3rem;text-align:center;color:var(--text-secondary);"><i class="fa-solid fa-shop" style="font-size:2.5rem;opacity:.3;display:block;margin-bottom:.75rem;"></i><div style="font-weight:700;">Brak produktów</div></div>'; return; }
-    const typeColors = { ranga:'#8b5cf6', zestaw:'#3b82f6', item:'#10b981', klucz:'#f59e0b' };
-    const typeIcons  = { ranga:'&#x1F451;', zestaw:'&#x1F4E6;', item:'&#x2694;&#xFE0F;', klucz:'&#x1F511;' };
-    const typeBg     = { ranga:'rgba(139,92,246,.08)', zestaw:'rgba(59,130,246,.08)', item:'rgba(16,185,129,.08)', klucz:'rgba(245,158,11,.08)' };
-    const typeBorder = { ranga:'rgba(139,92,246,.25)', zestaw:'rgba(59,130,246,.25)', item:'rgba(16,185,129,.25)', klucz:'rgba(245,158,11,.25)' };
+    if (!list || !list.length) {
+        grid.innerHTML = '<div style="grid-column:1/-1;padding:3rem;text-align:center;color:var(--text-secondary);"><i class="fa-solid fa-shop" style="font-size:2.5rem;opacity:.3;display:block;margin-bottom:.75rem;"></i><div style="font-weight:700;">Brak produktów</div><div style="font-size:.85rem;margin-top:.3rem;">Kliknij <strong>+ Dodaj produkt</strong> aby dodać pierwszy.</div></div>';
+        return;
+    }
+    var typeColors = { ranga:'#8b5cf6', klucz:'#f59e0b', zestaw:'#3b82f6', item:'#10b981' };
+    var typeIcons  = { ranga:'&#x1F451;', klucz:'&#x1F511;', zestaw:'&#x1F4E6;', item:'&#x2728;' };
+    var typeBg     = { ranga:'rgba(139,92,246,.08)', klucz:'rgba(245,158,11,.08)', zestaw:'rgba(59,130,246,.08)', item:'rgba(16,185,129,.08)' };
+    var typeBorder = { ranga:'rgba(139,92,246,.25)', klucz:'rgba(245,158,11,.25)', zestaw:'rgba(59,130,246,.25)', item:'rgba(16,185,129,.25)' };
+    var subcatLabels = { 'z-rangami':'Z rangami','bez-rang':'Zestawy kluczy','mieszane':'Mieszane','nowosc':'Nowości','inne-item':'Inne' };
+
     grid.innerHTML = list.map(function(item) {
-        const type   = (item.type||'').toLowerCase();
-        const color  = typeColors[type]  || '#6b7280';
-        const icon   = typeIcons[type]   || '&#x1F6D2;';
-        const bg     = typeBg[type]      || 'rgba(107,114,128,.08)';
-        const border = typeBorder[type]  || 'rgba(107,114,128,.2)';
-        const hidden = item.active === false;
-        let mediaHtml;
+        var type   = (item.type||'').toLowerCase();
+        var color  = typeColors[type]  || '#6b7280';
+        var icon   = typeIcons[type]   || '&#x1F6D2;';
+        var bg     = typeBg[type]      || 'rgba(107,114,128,.08)';
+        var border = typeBorder[type]  || 'rgba(107,114,128,.2)';
+        var hidden = item.active === false;
+
+        // Media
+        var mediaHtml;
         if (item.mediaUrl) {
-            if (/\.(mp4|webm|mov)/i.test(item.mediaUrl)) mediaHtml = '<video src="'+escapeHtml(item.mediaUrl)+'" muted loop autoplay playsinline style="width:100%;height:160px;object-fit:cover;"></video>';
-            else mediaHtml = '<img src="'+escapeHtml(item.mediaUrl)+'" alt="media" style="width:100%;height:160px;object-fit:cover;" onerror="this.parentNode.innerHTML=\'<div style=&quot;width:100%;height:160px;background:'+bg+';display:flex;align-items:center;justify-content:center;font-size:3rem;&quot;>'+icon+'</div>\'">';
-        } else { mediaHtml = '<div style="width:100%;height:160px;background:'+bg+';display:flex;align-items:center;justify-content:center;font-size:3rem;">'+icon+'</div>'; }
-        const rawItems = (item.itemsText||'').split('\n').filter(Boolean);
-        const showItems = rawItems.slice(0,4);
-        let itemsHtml = '';
+            if (/\.(mp4|webm|mov)/i.test(item.mediaUrl)) {
+                mediaHtml = '<video src="'+escapeHtml(item.mediaUrl)+'" muted loop autoplay playsinline style="width:100%;height:160px;object-fit:cover;"></video>';
+            } else {
+                mediaHtml = '<img src="'+escapeHtml(item.mediaUrl)+'" alt="media" style="width:100%;height:160px;object-fit:cover;" onerror="this.parentNode.style.background=\''+bg+'\';this.style.display=\'none\'">';
+            }
+        } else {
+            mediaHtml = '<div style="width:100%;height:160px;background:'+bg+';display:flex;align-items:center;justify-content:center;font-size:3rem;">'+icon+'</div>';
+        }
+
+        // Bonusy
+        var rawItems = (item.itemsText||'').split('\n').filter(Boolean);
+        var showItems = rawItems.slice(0,4);
+        var moreCount = rawItems.length - showItems.length;
+        var itemsHtml = '';
         if (showItems.length) {
             itemsHtml = '<div style="display:flex;flex-direction:column;gap:.2rem;margin-top:.4rem;">'
-                + showItems.map(it=>'<div style="font-size:.75rem;color:var(--text-secondary);display:flex;align-items:center;gap:.3rem;"><i class="fa-solid fa-check" style="color:'+color+';font-size:.6rem;flex-shrink:0;"></i>'+escapeHtml(it)+'</div>').join('')
-                + (rawItems.length>4 ? '<div style="font-size:.72rem;color:var(--text-secondary);">+' + (rawItems.length-4) + ' więcej...</div>' : '')
+                + showItems.map(function(it){ return '<div style="font-size:.75rem;color:var(--text-secondary);display:flex;align-items:center;gap:.3rem;"><i class="fa-solid fa-check" style="color:'+color+';font-size:.6rem;flex-shrink:0;"></i>'+escapeHtml(it)+'</div>'; }).join('')
+                + (moreCount>0?'<div style="font-size:.72rem;color:var(--text-secondary);">+'+moreCount+' więcej...</div>':'')
                 + '</div>';
         }
-        const priceHtml = item.price!=null ? '<span style="font-size:1.2rem;font-weight:900;color:'+color+';">'+item.price+'</span> <span style="font-size:.75rem;color:var(--text-secondary);font-weight:600;">PLN</span>'+(item.oldPrice?'<span style="font-size:.75rem;color:var(--text-secondary);text-decoration:line-through;margin-left:.3rem;">'+item.oldPrice+' PLN</span>':'') : '<span style="color:var(--text-secondary);">—</span>';
+
+        // Rzadkość (klucze)
+        var rarityHtml = '';
+        if (type === 'klucz' && item.rarity) {
+            var stars = '';
+            for (var r=1;r<=5;r++) stars += '<span style="color:'+(r<=item.rarity?'#f59e0b':'#d1d5db');stars+=';font-size:.75rem;">&#9733;</span>';
+            rarityHtml = '<div style="margin-top:.3rem;">'+stars+'</div>';
+        }
+
+        // Podkategoria badge
+        var subcatBadge = '';
+        if (item.subcategory && subcatLabels[item.subcategory]) {
+            subcatBadge = '<span style="font-size:.65rem;background:rgba(255,255,255,.15);color:#fff;padding:.1rem .4rem;border-radius:4px;margin-left:.3rem;">'+subcatLabels[item.subcategory]+'</span>';
+        }
+
+        // Wyróżniony badge
+        var featuredBadge = item.featured ? '<span style="position:absolute;top:.5rem;right:.5rem;background:linear-gradient(135deg,#f59e0b,#ff8c00);color:#000;font-size:.65rem;font-weight:800;padding:.2rem .5rem;border-radius:999px;">&#9733; NOWOŚĆ</span>' : '';
+
+        // Cena
+        var priceHtml = item.price!=null
+            ? '<span style="font-size:1.2rem;font-weight:900;color:'+color+';">'+item.price+'</span> <span style="font-size:.75rem;color:var(--text-secondary);font-weight:600;">PLN</span>'+(item.oldPrice?'<span style="font-size:.75rem;color:var(--text-secondary);text-decoration:line-through;margin-left:.3rem;">'+item.oldPrice+' PLN</span>':'')
+            : '<span style="color:var(--text-secondary);">—</span>';
+
         return '<div class="shop-product-card" style="border-color:'+border+';">'
             +'<div style="position:relative;overflow:hidden;">'+mediaHtml
-            +'<span class="badge" style="position:absolute;top:.5rem;left:.5rem;background:'+bg+';color:'+color+';border:1px solid '+border+';">'+icon+' '+(item.type||'—')+'</span>'
+            +'<span class="badge" style="position:absolute;top:.5rem;left:.5rem;background:'+color+'dd;color:#fff;border:none;font-size:.68rem;">'+icon+' '+(item.type||'—')+subcatBadge+'</span>'
+            +featuredBadge
             +(hidden?'<div class="card-status-hidden"><i class="fa-solid fa-eye-slash" style="margin-right:.3rem;"></i>Ukryty</div>':'')
             +'</div>'
-            +'<div class="card-body"><div class="card-name">'+escapeHtml(item.name||'—')+'</div>'
+            +'<div class="card-body">'
+            +'<div class="card-name">'+escapeHtml(item.name||'—')+'</div>'
             +(item.desc?'<div class="card-desc">'+escapeHtml(item.desc)+'</div>':'')
-            +itemsHtml
-            +'<div style="display:flex;align-items:baseline;gap:.3rem;margin-top:auto;padding-top:.5rem;">'+priceHtml+'</div></div>'
+            +rarityHtml+itemsHtml
+            +'<div style="display:flex;align-items:baseline;gap:.3rem;margin-top:auto;padding-top:.5rem;">'+priceHtml+'</div>'
+            +'</div>'
             +'<div class="card-footer">'
             +'<button class="tbl-btn" style="flex:1;justify-content:center;" onclick="editShopItem(\''+item.id+'\')"><i class="fa-solid fa-pen"></i> Edytuj</button>'
             +'<button class="tbl-btn" onclick="toggleShopItemActive(\''+item.id+'\','+(!hidden)+')" title="'+(hidden?'Aktywuj':'Ukryj')+'"><i class="fa-solid fa-'+(hidden?'eye':'eye-slash')+'"></i></button>'
@@ -721,6 +761,7 @@ function renderShopGrid(list) {
             +'</div></div>';
     }).join('');
 }
+
 
 function renderShopItems(list) {
     const tb = document.getElementById('shop-items-tbody'); if (!tb) return;
@@ -1924,3 +1965,287 @@ ensureDefaultAdmin();
 
 window.checkAlts = window.checkAlts;
 window._extendedApplyPermissions = function() {};
+
+// ─── SKLEP: ZAKŁADKI KATEGORII ────────────────────────────────────────────────
+
+let _shopCurrentCat = 'all';
+
+window.shopSwitchCat = function(cat) {
+    _shopCurrentCat = cat;
+    document.querySelectorAll('.shop-cat-btn').forEach(b => {
+        b.classList.toggle('active', b.getAttribute('data-cat') === cat);
+    });
+    filterShopItems();
+};
+
+// Nadpisz filterShopItems żeby uwzględniała aktywną kategorię
+const _origFilterShopItems = window.filterShopItems;
+window.filterShopItems = function() {
+    const search = (document.getElementById('shop-search')?.value || '').toLowerCase();
+    const filtered = allShopItems.filter(item => {
+        // Filtr kategorii
+        if (_shopCurrentCat !== 'all' && item.type !== _shopCurrentCat) return false;
+        // Filtr wyszukiwania
+        if (search && !(item.name||'').toLowerCase().includes(search) && !(item.desc||'').toLowerCase().includes(search)) return false;
+        return true;
+    });
+    // Aktualizuj liczniki badge
+    const counts = { all: allShopItems.length, ranga: 0, klucz: 0, zestaw: 0, item: 0 };
+    allShopItems.forEach(i => { if (counts[i.type] !== undefined) counts[i.type]++; });
+    Object.entries(counts).forEach(([cat, n]) => {
+        const el = document.getElementById('shop-badge-' + cat);
+        if (el) el.textContent = n;
+    });
+    renderShopGrid(filtered);
+    renderShopItems(filtered);
+};
+
+// Zaktualizuj loadShopPage żeby reset kategorię
+const _origLoadShopPage = window.loadShopPage;
+window.loadShopPage = async function() {
+    const tb   = document.getElementById('shop-items-tbody');
+    const grid = document.getElementById('shop-grid-view');
+    if (tb)   tb.innerHTML   = '<tr><td colspan="7" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>';
+    if (grid) grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--text-secondary);"><i class="fa-solid fa-spinner fa-spin fa-2x"></i><div style="margin-top:.75rem;">Ładowanie produktów...</div></div>';
+    try {
+        const snap = await getDocs(collection(db, 'shop_items'));
+        allShopItems = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a,b) => (a.sortOrder||99) - (b.sortOrder||99));
+        window.filterShopItems();
+    } catch (e) {
+        console.error('[Shop]', e.code, e.message);
+        const msg = e.code === 'permission-denied'
+            ? 'Brak uprawnień Firestore. Sprawdź Security Rules dla shop_items.'
+            : 'Błąd: ' + e.message;
+        if (grid) grid.innerHTML = '<div style="grid-column:1/-1;padding:2rem;text-align:center;color:#ef4444;font-size:.88rem;"><i class="fa-solid fa-circle-exclamation"></i> ' + msg + '</div>';
+        if (tb)   tb.innerHTML   = '<tr><td colspan="7" class="table-empty" style="color:#ef4444;"><i class="fa-solid fa-circle-exclamation"></i> ' + msg + '</td></tr>';
+    }
+};
+
+// ─── PORADNIKI ────────────────────────────────────────────────────────────────
+window.loadGuidesPage = function() {
+    // Strona poradników jest statyczna — nic do ładowania async
+    // W przyszłości można tu ładować inne poradniki
+};
+
+// ─── SKLEP — kategorie zakładki ───────────────────────────────────────────────
+let _shopCat = 'all';
+
+window.shopSwitchCat = function(cat) {
+    _shopCat = cat;
+    document.querySelectorAll('.shop-cat-btn').forEach(b => {
+        b.classList.toggle('active', b.getAttribute('data-cat') === cat);
+    });
+    window.filterShopItems();
+};
+
+// Nadpisanie filterShopItems żeby obsługiwała kategorię
+
+
+function _updateShopBadges() {
+    const counts = { all: allShopItems.length, ranga: 0, klucz: 0, zestaw: 0, item: 0 };
+    allShopItems.forEach(item => { if (counts[item.type] !== undefined) counts[item.type]++; });
+    Object.entries(counts).forEach(([cat, count]) => {
+        const el = document.getElementById('shop-badge-' + cat);
+        if (el) el.textContent = count;
+    });
+}
+
+// ─── SKLEP — nowy modal z podkategoriami i rzadkością ────────────────────────
+
+const SHOP_SUBCATEGORIES = {
+    zestaw: [
+        { value: 'z-rangami',   label: 'Z rangami' },
+        { value: 'bez-rang',    label: 'Zestawy kluczy' },
+        { value: 'mieszane',    label: 'Mieszane' },
+    ],
+    item: [
+        { value: 'nowosc',      label: 'Nowości / Eventowe' },
+        { value: 'inne-item',   label: 'Inne' },
+    ]
+};
+
+window.shopModalOnTypeChange = function() {
+    const type = document.getElementById('shop-item-type')?.value || '';
+    const subcatField   = document.getElementById('shop-subcategory-field');
+    const rarityField   = document.getElementById('shop-rarity-field');
+    const subcatSelect  = document.getElementById('shop-item-subcategory');
+
+    // Podkategoria
+    if (SHOP_SUBCATEGORIES[type]) {
+        subcatField.style.display = 'block';
+        const opts = [{ value: '', label: 'Brak podkategorii' }, ...SHOP_SUBCATEGORIES[type]];
+        subcatSelect.innerHTML = opts.map(o => '<option value="' + o.value + '">' + o.label + '</option>').join('');
+    } else {
+        subcatField.style.display = 'none';
+    }
+
+    // Rzadkość — tylko klucze
+    if (rarityField) rarityField.style.display = (type === 'klucz') ? 'block' : 'none';
+};
+
+window.setShopRarity = function(val) {
+    document.getElementById('shop-item-rarity').value = val;
+    document.querySelectorAll('#rarity-stars .rarity-star').forEach(s => {
+        s.classList.toggle('active', parseInt(s.getAttribute('data-val')) <= val);
+    });
+};
+
+// Nadpisanie openShopItemModal — pola z nowego modala
+window.openShopItemModal = function() {
+    document.getElementById('shop-item-modal-title').textContent = 'Dodaj produkt';
+    document.getElementById('shop-item-id').value = '';
+    document.getElementById('shop-item-name').value = '';
+    document.getElementById('shop-item-type').value = 'ranga';
+    document.getElementById('shop-item-desc').value = '';
+    document.getElementById('shop-item-price').value = '';
+    document.getElementById('shop-item-old-price').value = '';
+    document.getElementById('shop-item-order').value = '99';
+    document.getElementById('shop-item-items').value = '';
+    document.getElementById('shop-item-media-url').value = '';
+    document.getElementById('shop-item-active').checked = true;
+    const featured = document.getElementById('shop-item-featured');
+    if (featured) featured.checked = false;
+    const rarity = document.getElementById('shop-item-rarity');
+    if (rarity) rarity.value = '1';
+    window.setShopRarity(1);
+    window.shopModalOnTypeChange();
+    const preview = document.getElementById('shop-item-media-preview');
+    if (preview) { preview.style.display = 'none'; preview.innerHTML = ''; }
+    const msg = document.getElementById('shop-item-msg');
+    if (msg) msg.style.display = 'none';
+    const fi = document.getElementById('shop-item-media-file');
+    if (fi) fi.value = '';
+    document.getElementById('shop-item-modal').classList.add('open');
+};
+
+// Nadpisanie editShopItem
+window.editShopItem = function(id) {
+    const item = allShopItems.find(e => e.id === id); if (!item) return;
+    document.getElementById('shop-item-modal-title').textContent = 'Edytuj produkt';
+    document.getElementById('shop-item-id').value       = item.id;
+    document.getElementById('shop-item-type').value     = item.type || 'ranga';
+    document.getElementById('shop-item-name').value     = item.name || '';
+    document.getElementById('shop-item-desc').value     = item.desc || '';
+    document.getElementById('shop-item-price').value    = item.price ?? '';
+    document.getElementById('shop-item-old-price').value = item.oldPrice ?? '';
+    document.getElementById('shop-item-order').value    = item.sortOrder || 99;
+    document.getElementById('shop-item-items').value    = item.itemsText || '';
+    document.getElementById('shop-item-media-url').value = item.mediaUrl || '';
+    document.getElementById('shop-item-active').checked = item.active !== false;
+    const featured = document.getElementById('shop-item-featured');
+    if (featured) featured.checked = !!item.featured;
+    // Rzadkość
+    const rarityVal = item.rarity || 1;
+    const rarityEl = document.getElementById('shop-item-rarity');
+    if (rarityEl) rarityEl.value = rarityVal;
+    window.setShopRarity(rarityVal);
+    // Podkategoria
+    window.shopModalOnTypeChange();
+    const subcatEl = document.getElementById('shop-item-subcategory');
+    if (subcatEl && item.subcategory) subcatEl.value = item.subcategory;
+    // Podgląd media
+    const preview = document.getElementById('shop-item-media-preview');
+    if (preview && item.mediaUrl) {
+        const isVideo = /\.(mp4|webm|mov)/i.test(item.mediaUrl);
+        preview.style.display = 'block';
+        preview.innerHTML = isVideo
+            ? '<video src="' + escapeHtml(item.mediaUrl) + '" controls style="width:100%;max-height:200px;object-fit:cover;display:block;"></video>'
+            : '<img src="' + escapeHtml(item.mediaUrl) + '" alt="media" style="width:100%;max-height:200px;object-fit:cover;display:block;">';
+    } else if (preview) { preview.style.display = 'none'; preview.innerHTML = ''; }
+    const msg = document.getElementById('shop-item-msg');
+    if (msg) msg.style.display = 'none';
+    document.getElementById('shop-item-modal').classList.add('open');
+};
+
+// Nadpisanie saveShopItem — dodaje nowe pola
+window.saveShopItem = async function() {
+    if (!requirePermission('shop','zarządzanie sklepem')) return;
+    const id   = document.getElementById('shop-item-id').value;
+    const name = document.getElementById('shop-item-name').value.trim();
+    const type = document.getElementById('shop-item-type').value;
+    if (!name) { showShopItemMsg('error','Podaj nazwę produktu.'); return; }
+
+    let mediaUrl = document.getElementById('shop-item-media-url').value.trim();
+
+    // Upload pliku jeśli wybrany
+    const fileInput = document.getElementById('shop-item-media-file');
+    const file = fileInput?.files?.[0];
+    if (file) {
+        showShopItemMsg('info','<i class="fa-solid fa-spinner fa-spin"></i> Wysyłam plik...');
+        try {
+            const form = new FormData();
+            form.append('file', file); form.append('folder', 'shop'); form.append('admin', currentUser?.displayName||'Panel');
+            const res = await fetch(FILE_WORKER_URL+'/upload/shop',{method:'POST',body:form});
+            const data = await res.json().catch(()=>null);
+            if (!res.ok||!data?.ok||!data?.file) throw new Error(data?.error||'Błąd uploadu');
+            mediaUrl = data.file.publicUrl || data.file.url || mediaUrl;
+            if (fileInput) fileInput.value = '';
+        } catch(e) { showShopItemMsg('error','Błąd uploadu: '+e.message); return; }
+    }
+
+    const subcatEl = document.getElementById('shop-item-subcategory');
+    const rarityEl = document.getElementById('shop-item-rarity');
+    const featuredEl = document.getElementById('shop-item-featured');
+
+    const data = {
+        type, name,
+        desc:         document.getElementById('shop-item-desc').value.trim(),
+        price:        Number(document.getElementById('shop-item-price').value || 0),
+        oldPrice:     Number(document.getElementById('shop-item-old-price').value || 0) || null,
+        sortOrder:    parseInt(document.getElementById('shop-item-order').value || '99', 10),
+        itemsText:    document.getElementById('shop-item-items').value.trim(),
+        mediaUrl,
+        active:       document.getElementById('shop-item-active').checked,
+        featured:     featuredEl ? featuredEl.checked : false,
+        rarity:       rarityEl   ? parseInt(rarityEl.value || '1') : 1,
+        subcategory:  (subcatEl && subcatEl.parentElement.style.display !== 'none') ? subcatEl.value : '',
+        updatedAt:    serverTimestamp(),
+        updatedBy:    currentUser?.displayName || 'Panel'
+    };
+
+    try {
+        if (id) {
+            await updateDoc(doc(db,'shop_items',id), data);
+        } else {
+            data.createdAt = serverTimestamp();
+            await addDoc(collection(db,'shop_items'), data);
+        }
+        showShopItemMsg('success','✓ Produkt zapisany!');
+        await window.loadShopPage();
+        setTimeout(() => {
+            document.getElementById('shop-item-modal').classList.remove('open');
+            const prev = document.getElementById('shop-item-media-preview');
+            if (prev) { prev.style.display='none'; prev.innerHTML=''; }
+        }, 1000);
+    } catch(e) { showShopItemMsg('error','Błąd: '+e.message); }
+};
+
+// Zaktualizowany previewShopMediaInput
+window.previewShopMediaInput = function() {
+    const input   = document.getElementById('shop-item-media-file');
+    const preview = document.getElementById('shop-item-media-preview');
+    if (!input || !preview) return;
+    const file = input.files?.[0];
+    if (!file) { preview.style.display='none'; preview.innerHTML=''; return; }
+    const url = URL.createObjectURL(file);
+    const isVideo = file.type.startsWith('video/');
+    preview.style.display = 'block';
+    preview.innerHTML = isVideo
+        ? '<video src="'+url+'" controls style="width:100%;max-height:200px;object-fit:cover;display:block;"></video>'
+        : '<img src="'+url+'" alt="Podgląd" style="width:100%;max-height:200px;object-fit:cover;display:block;">';
+};
+
+// Zaktualizowany previewShopItemMedia
+window.previewShopItemMedia = function() {
+    const url     = document.getElementById('shop-item-media-url').value.trim();
+    const preview = document.getElementById('shop-item-media-preview');
+    if (!preview) return;
+    if (!url) { preview.style.display='none'; preview.innerHTML=''; return; }
+    const isVideo = /\.(mp4|webm|mov)(\?|$)/i.test(url);
+    preview.style.display = 'block';
+    preview.innerHTML = isVideo
+        ? '<video src="'+escapeHtml(url)+'" controls style="width:100%;max-height:200px;object-fit:cover;display:block;"></video>'
+        : '<img src="'+escapeHtml(url)+'" alt="Podgląd" style="width:100%;max-height:200px;object-fit:cover;display:block;">';
+};
+
+// Titles map update — dodaj guides
