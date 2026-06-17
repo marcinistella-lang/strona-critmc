@@ -401,64 +401,15 @@
         <div id="page-shop" class="page">
             <div class="page-header">
                 <h1>Sklep</h1>
-                <p>Zarządzaj produktami, kategoriami i wyglądem sklepu</p>
+                <p>Panel zarządzania sklepem</p>
             </div>
-
-            <!-- Toolbar główny -->
-            <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:1.5rem;">
-                <!-- Zakładki kategorii -->
-                <div style="display:flex;gap:.4rem;flex-wrap:wrap;">
-                    <button class="shop-cat-btn active" data-cat="all" onclick="shopSwitchCat('all')">
-                        <i class="fa-solid fa-th-large"></i> Wszystkie
-                        <span id="shop-badge-all" style="background:var(--accent);color:#fff;font-size:.65rem;font-weight:800;padding:.1rem .4rem;border-radius:999px;margin-left:.3rem;">0</span>
-                    </button>
-                    <button class="shop-cat-btn" data-cat="ranga" onclick="shopSwitchCat('ranga')">
-                        <i class="fa-solid fa-crown" style="color:#8b5cf6;"></i> Rangi
-                        <span id="shop-badge-ranga" style="background:#8b5cf6;color:#fff;font-size:.65rem;font-weight:800;padding:.1rem .4rem;border-radius:999px;margin-left:.3rem;">0</span>
-                    </button>
-                    <button class="shop-cat-btn" data-cat="klucz" onclick="shopSwitchCat('klucz')">
-                        <i class="fa-solid fa-key" style="color:#f59e0b;"></i> Klucze
-                        <span id="shop-badge-klucz" style="background:#f59e0b;color:#fff;font-size:.65rem;font-weight:800;padding:.1rem .4rem;border-radius:999px;margin-left:.3rem;">0</span>
-                    </button>
-                    <button class="shop-cat-btn" data-cat="zestaw" onclick="shopSwitchCat('zestaw')">
-                        <i class="fa-solid fa-boxes-packing" style="color:#3b82f6;"></i> Zestawy
-                        <span id="shop-badge-zestaw" style="background:#3b82f6;color:#fff;font-size:.65rem;font-weight:800;padding:.1rem .4rem;border-radius:999px;margin-left:.3rem;">0</span>
-                    </button>
-                    <button class="shop-cat-btn" data-cat="item" onclick="shopSwitchCat('item')">
-                        <i class="fa-solid fa-sparkles" style="color:#10b981;"></i> Inne
-                        <span id="shop-badge-item" style="background:#10b981;color:#fff;font-size:.65rem;font-weight:800;padding:.1rem .4rem;border-radius:999px;margin-left:.3rem;">0</span>
-                    </button>
-                </div>
-                <!-- Akcje -->
-                <div style="display:flex;gap:.5rem;align-items:center;">
-                    <div class="filter-search" style="min-width:160px;">
-                        <i class="fa-solid fa-magnifying-glass"></i>
-                        <input type="text" id="shop-search" placeholder="Szukaj..." oninput="filterShopItems()">
-                    </div>
-                    <button class="tbl-btn" onclick="exportShopItems()" title="Eksportuj JSON"><i class="fa-solid fa-download"></i></button>
-                    <button class="tbl-btn" onclick="importShopItems()" title="Importuj JSON"><i class="fa-solid fa-upload"></i></button>
-                    <button class="tbl-btn" id="shop-view-toggle" onclick="toggleShopView()" title="Zmień widok"><i class="fa-solid fa-table-cells-large"></i></button>
-                    <button class="modal-submit-btn" style="width:auto;padding:.65rem 1.3rem;" onclick="openShopItemModal()">
-                        <i class="fa-solid fa-plus"></i> Dodaj produkt
-                    </button>
-                </div>
-            </div>
-
-            <!-- Widok kart (domyślny) -->
-            <div id="shop-grid-view" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1rem;"></div>
-
-            <!-- Widok tabeli -->
-            <div id="shop-table-view" style="display:none;">
-                <div class="table-card"><div class="table-wrap">
-                    <table class="data-table">
-                        <thead><tr><th>Nazwa</th><th>Kategoria</th><th>Cena</th><th>Media</th><th>Status</th><th>Kolejność</th><th>Akcje</th></tr></thead>
-                        <tbody id="shop-items-tbody"><tr><td colspan="7" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr></tbody>
-                    </table>
-                </div></div>
+            <div style="text-align:center;padding:4rem;color:var(--text-secondary);">
+                <i class="fa-solid fa-shop" style="font-size:3rem;opacity:.3;display:block;margin-bottom:1rem;"></i>
+                <div style="font-size:1rem;font-weight:700;">Sklep w przebudowie</div>
             </div>
         </div>
 
-        <!-- ===== ZARZĄDZANIE STRONĄ ===== -->
+                <!-- ===== ZARZĄDZANIE STRONĄ ===== -->
         <div id="page-site" class="page">
             <div class="page-header"><h1>Zarządzanie stroną</h1><p>Konkurs, zmiany, media, aktualności, ankieta</p></div>
 
