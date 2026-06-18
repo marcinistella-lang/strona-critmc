@@ -1887,10 +1887,22 @@ window.loadShopPage = function() {
     // Sklep w przebudowie
 };
 
+// ─── SKLEP — CENY PRODUKTÓW ───────────────────────────────────────────────────
+const SHOP_PRICES = {
+    'vip': 10, 'boss': 20, 'crit': 30,
+    'zwykly': 0.25, 'rzadki': 0.75, 'epicki': 1.50, 'crit_key': 5, 'premium': 20, 'losowy': 5,
+    'pakiet-vip': 10, 'pakiet-boss': 20, 'pakiet-crit': 30,
+    'maly-klucze': 5, 'sredni-klucze': 15, 'duzy-klucze': 30,
+    'nick-color': 15, 'repair-30': 5, 'ec-30': 5
+};
+function getItemPrice(type, id) {
+    if (type === 'klucz' && id === 'crit') return SHOP_PRICES['crit_key'] || 5;
+    return SHOP_PRICES[id] || 0;
+}
+
 // ─── SKLEP — NADAWANIE PRODUKTÓW ─────────────────────────────────────────────
 
 // Wybrane produkty do nadania
-// ─── SKLEP — NADAWANIE PRODUKTÓW ─────────────────────────────────────────────
 const _shopGrantSelected = new Map(); // key="type:id" -> { type, id, label, qty }
 
 // Aktualizacja qty w mapie gdy zmienisz pole obok przycisku
@@ -1938,16 +1950,30 @@ function _updateShopGrantPreview() {
     if (!content) return;
 
     const items = [..._shopGrantSelected.values()];
+
+    // Oblicz całkowitą wartość
+    let totalValue = 0;
     const lines = items.map(item => {
+        const unitPrice = getItemPrice(item.type, item.id);
+        const lineTotal = unitPrice * (item.qty || 1);
+        totalValue += lineTotal;
         const qtyStr = item.qty > 1 ? ' <b>x' + item.qty + '</b>' : '';
+        const priceStr = unitPrice > 0 ? ` <span style="color:var(--accent-green);font-size:.75rem;">${lineTotal.toFixed(2)} PLN</span>` : '';
         return '<span style="display:inline-flex;align-items:center;gap:.3rem;margin:.2rem;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;padding:.2rem .55rem;font-size:.82rem;font-weight:700;">'
-            + escapeHtml(item.label) + qtyStr
+            + escapeHtml(item.label) + qtyStr + priceStr
             + '<button onclick="event.stopPropagation();(function(){const b=document.querySelector(\'[data-type=\\\'' + item.type + '\\\'][data-id=\\\'' + item.id + '\\\']\');if(b)b.click();})();" style="background:none;border:none;cursor:pointer;color:#ef4444;padding:0 .2rem;font-size:.85rem;">×</button>'
             + '</span>';
     });
 
+    const valueLine = totalValue > 0
+        ? `<div style="margin-top:.5rem;padding:.4rem .6rem;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:6px;font-size:.82rem;font-weight:700;color:#10b981;">
+            <i class="fa-solid fa-tag"></i> Wartość zamówienia: <b>${totalValue.toFixed(2)} PLN</b>
+           </div>`
+        : '';
+
     content.innerHTML = (nick ? '<div style="font-size:.82rem;margin-bottom:.4rem;"><b>Dla:</b> ' + escapeHtml(nick) + '</div>' : '')
-        + '<div>' + lines.join('') + '</div>';
+        + '<div>' + lines.join('') + '</div>'
+        + valueLine;
 }
 
 window.shopGrantSearchPlayer = function(val) {
@@ -2128,8 +2154,19 @@ async function loadShopGrants() {
             const itemsHtml = (o.items || []).map(i => {
                 const qty = i.qty > 1 ? ` <b>×${i.qty}</b>` : '';
                 const icon = i.type === 'ranga' ? '👑' : i.type === 'klucz' ? '🔑' : i.type === 'zestaw' ? '📦' : '✨';
-                return `<span style="display:inline-flex;align-items:center;gap:.25rem;background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:.15rem .45rem;font-size:.75rem;font-weight:600;margin:.1rem;">${icon} ${escapeHtml(i.label || i.id || '?')}${qty}</span>`;
+                const unitPrice = getItemPrice(i.type, i.id);
+                const lineTotal = unitPrice * (i.qty || 1);
+                const priceTag = unitPrice > 0
+                    ? `<span style="color:#10b981;font-size:.68rem;font-weight:700;margin-left:.25rem;">${lineTotal.toFixed(2)} PLN</span>`
+                    : '';
+                return `<span style="display:inline-flex;align-items:center;gap:.25rem;background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:.15rem .45rem;font-size:.75rem;font-weight:600;margin:.1rem;">${icon} ${escapeHtml(i.label || i.id || '?')}${qty}${priceTag}</span>`;
             }).join('');
+
+            // Suma wartości
+            const totalVal = (o.items || []).reduce((s, i) => s + getItemPrice(i.type, i.id) * (i.qty || 1), 0);
+            const totalBadge = totalVal > 0
+                ? `<span style="font-size:.72rem;font-weight:700;color:#10b981;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);padding:.1rem .45rem;border-radius:5px;margin-left:.4rem;">= ${totalVal.toFixed(2)} PLN</span>`
+                : '';
 
             // Czas wykonania
             const execTime = o.executedAt ? '<span style="color:#10b981;font-size:.7rem;">• odebrano ' + formatDate(o.executedAt) + '</span>' : '';
@@ -2145,7 +2182,7 @@ async function loadShopGrants() {
                     </div>
                     <span class="shop-grant-badge ${statusClass}">${statusLabel}</span>
                 </div>
-                <div style="margin:.35rem 0 .2rem;">${itemsHtml || '<span style="color:var(--text-secondary);font-size:.78rem;">brak danych</span>'}</div>
+                <div style="margin:.35rem 0 .2rem;">${itemsHtml || '<span style="color:var(--text-secondary);font-size:.78rem;">brak danych</span>'}${totalBadge}</div>
                 ${msgHtml}
                 <div style="font-size:.72rem;color:var(--text-secondary);display:flex;justify-content:space-between;margin-top:.3rem;flex-wrap:wrap;gap:.2rem;">
                     <span>👤 Admin: <b>${escapeHtml(o.admin || '—')}</b></span>
