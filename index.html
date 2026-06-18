@@ -441,7 +441,7 @@
     <script type="module">
         import { joinContest } from './firebase.js';
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
-        import { getFirestore, doc, getDoc, getDocs, collection, query, orderBy, addDoc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, getDocs, collection, query, orderBy, addDoc, updateDoc, increment, onSnapshot } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
 
         const _fbApp = initializeApp({
             apiKey: "AIzaSyBdwzCGhUtqGm0Ggfmrl2MC8_u10c_AuMQ",
@@ -622,7 +622,7 @@
         }
 
         setInterval(updateContestTimers, 1000);
-        loadContests();
+        // loadContests() — wywołane przez onSnapshot w bloku inicjalizacji
 
         window.openContest = function(id) {
             currentContestId = id;
@@ -678,7 +678,7 @@
                 if (el && saved[mode]) el.innerHTML = '<p style="white-space:pre-line">' + saved[mode] + '</p>';
             });
         }
-        loadChanges();
+        // loadChanges() — obsługiwane przez onSnapshot w bloku inicjalizacji
 
         // ─── PERSONEL I MEDIA — ładowanie z Firestore ────────────────────
         async function loadSiteData() {
@@ -1038,9 +1038,80 @@
             }
         };
 
-        // ─── INICJALIZACJA ────────────────────────────────────────────────
-        loadHomeNews();
-        loadHomePoll();
+        // ─── INICJALIZACJA ─────────────────────────────────────────────────
+        // loadSiteData() i loadProposals() — już wywołane wyżej jednorazowo
+        // loadChanges() — obsługiwane przez onSnapshot poniżej
+        // loadContests() — obsługiwane przez onSnapshot poniżej
+
+        // Pierwsze ładowanie konkursów (zanim onSnapshot się zainicjalizuje)
+        loadContests();
+
+        // Real-time listener — aktualności
+        onSnapshot(query(collection(db2, 'news'), orderBy('createdAt', 'desc')), (snap) => {
+            const container = document.getElementById('home-news-list');
+            if (!container) return;
+            const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            if (!items.length) {
+                container.innerHTML = '<div style="text-align:center;padding:1.5rem;color:rgba(255,255,255,.35);font-size:.88rem;">Brak aktualnosci.</div>';
+                return;
+            }
+            container.innerHTML = items.map(n => {
+                const ts = n.createdAt;
+                const date = ts
+                    ? (ts.seconds
+                        ? new Date(ts.seconds * 1000).toLocaleDateString('pl-PL', {day:'2-digit',month:'2-digit',year:'numeric'})
+                        : new Date(ts).toLocaleDateString('pl-PL', {day:'2-digit',month:'2-digit',year:'numeric'}))
+                    : '';
+                let mediaHtml = '';
+                if (n.video) {
+                    const yt = n.video.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+                    if (yt) mediaHtml += '<div style="margin-top:.9rem;border-radius:12px;overflow:hidden;position:relative;padding-bottom:56.25%;height:0;"><iframe src="https://www.youtube.com/embed/' + yt[1] + '" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;" allowfullscreen loading="lazy"></iframe></div>';
+                    else if (/\.(mp4|webm|mov)/i.test(n.video)) mediaHtml += '<video src="' + n.video + '" controls style="width:100%;border-radius:12px;margin-top:.9rem;max-height:360px;"></video>';
+                }
+                if (n.files && n.files.length) {
+                    mediaHtml += '<div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.75rem;">'
+                        + n.files.map(f => {
+                            if (/\.(jpg|jpeg|png|gif|webp)/i.test(f)) return '<a href="' + f + '" target="_blank"><img src="' + f + '" style="height:90px;border-radius:8px;object-fit:cover;cursor:pointer;" loading="lazy"></a>';
+                            if (/\.pdf/i.test(f)) return '<a href="' + f + '" target="_blank" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:#fff;padding:.4rem .8rem;border-radius:8px;font-size:.8rem;text-decoration:none;"><i class="fa-solid fa-file-pdf" style="color:#ff5252;"></i> PDF</a>';
+                            return '<a href="' + f + '" target="_blank" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:#fff;padding:.4rem .8rem;border-radius:8px;font-size:.8rem;text-decoration:none;"><i class="fa-solid fa-file"></i> Zalacznik</a>';
+                        }).join('') + '</div>';
+                }
+                return '<div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,' + (n.pinned ? '.2' : '.08') + ');border-radius:14px;padding:1.2rem;' + (n.pinned ? 'border-left:3px solid #ff1744;' : '') + '">'
+                    + '<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem;">'
+                    + (n.pinned ? '<i class="fa-solid fa-thumbtack" style="color:#ff1744;font-size:.72rem;"></i>' : '')
+                    + '<span style="font-size:.7rem;color:rgba(255,255,255,.35);">' + date + '</span>'
+                    + '</div>'
+                    + (n.title ? '<div style="font-weight:800;font-size:.95rem;color:#fff;margin-bottom:.4rem;">' + n.title + '</div>' : '')
+                    + (n.content ? '<div style="font-size:.85rem;color:rgba(255,255,255,.75);line-height:1.6;white-space:pre-wrap;">' + n.content + '</div>' : '')
+                    + mediaHtml + '</div>';
+            }).join('');
+        }, (err) => {
+            console.warn('news snapshot err:', err);
+            // Fallback do jednorazowego ładowania
+            loadHomeNews();
+        });
+
+        // Real-time listener — personel (admini widoczni publicznie)
+        onSnapshot(collection(db2, 'personel'), () => { loadSiteData(); });
+
+        // Real-time listener — propozycje graczy
+        onSnapshot(query(collection(db2, 'proposals'), orderBy('createdAt', 'desc')), () => { loadProposals(); });
+
+        // Real-time listener — ankieta
+        onSnapshot(doc(db2, 'site_poll', 'current'), () => { loadHomePoll(); });
+
+        // Real-time listener — konkursy
+        onSnapshot(collection(db2, 'contests'), () => { loadContests(); });
+
+        // Real-time listener — zmiany serwerowe
+        onSnapshot(doc(db2, 'server_content', 'changes'), (snap) => {
+            if (!snap.exists()) return;
+            const data = snap.data();
+            ['zwykle','szczegolowe','najmocniejsze'].forEach(mode => {
+                const el = document.getElementById('mode-' + mode);
+                if (el) el.innerHTML = '<p style="white-space:pre-line">' + (data[mode] || 'Brak zmian.') + '</p>';
+            });
+        });
     </script>
 </body>
 </html>

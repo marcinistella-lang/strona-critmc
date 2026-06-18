@@ -138,30 +138,41 @@ function loadAll() {
 window.refreshAllData = async function() {
     const icon = document.getElementById('topbar-refresh-icon');
     const btn  = document.getElementById('topbar-refresh-btn');
-    if (icon) icon.className = 'fa-solid fa-rotate-right fa-spin';
+    if (icon) { icon.className = 'fa-solid fa-rotate-right fa-spin'; icon.style.color = 'var(--accent-blue)'; }
     if (btn)  btn.disabled = true;
 
-    // Resetuj listener graczy żeby pobrać świeże dane
-    if (unsubscribePlayers) { unsubscribePlayers(); unsubscribePlayers = null; }
-    allBans = []; allMutes = []; allLogs = [];
+    try {
+        // Resetuj real-time listener graczy (wymusi ponowne pobranie)
+        if (typeof unsubscribePlayers !== 'undefined' && unsubscribePlayers) {
+            unsubscribePlayers();
+            unsubscribePlayers = null;
+        }
+        allBans = []; allMutes = []; allLogs = [];
 
-    await Promise.all([
-        new Promise(r => { loadPlayers(); setTimeout(r, 1500); }),
-        loadBans(),
-        loadMutes(),
-        loadLogs()
-    ]);
+        // Uruchom wszystko równolegle
+        await Promise.allSettled([
+            loadBans(),
+            loadMutes(),
+            loadLogs(),
+            loadRolePermissionsFromStore()
+        ]);
+        // Gracze — z real-time listenerem (reset wyżej go reinicjalizuje)
+        loadPlayers();
 
-    // Odśwież aktualnie otwartą stronę
-    const activePage = document.querySelector('.page.active')?.id?.replace('page-','');
-    if (activePage === 'shop') loadShopGrants?.();
-    if (activePage === 'logs') filterLogs?.();
-    if (activePage === 'penalties') { filterBans?.(); filterMutes?.(); }
-    if (activePage === 'stats') loadStats?.();
+        // Odśwież aktualnie otwartą stronę
+        const activePage = document.querySelector('.page.active')?.id?.replace('page-', '');
+        if (activePage === 'shop')     await loadShopGrants?.();
+        if (activePage === 'stats')    loadStats?.();
+        if (activePage === 'info')     loadInfoPage?.();
+        if (activePage === 'site')     { /* switchSiteTab odświeży */ }
 
-    showToast('success', 'Dane odswieżone!');
-    if (icon) icon.className = 'fa-solid fa-rotate-right';
-    if (btn)  btn.disabled = false;
+        showToast('success', 'Dane odświeżone!');
+    } catch(e) {
+        showToast('error', 'Błąd odświeżania: ' + e.message);
+    } finally {
+        if (icon) { icon.className = 'fa-solid fa-rotate-right'; icon.style.color = ''; }
+        if (btn)  btn.disabled = false;
+    }
 };
 
 function updateServerStatus(type, text) {
@@ -282,16 +293,35 @@ function renderPlayers(list) {
     if (!list.length) { tb.innerHTML = '<tr><td colspan="5" class="table-empty">Brak graczy</td></tr>'; return; }
     tb.innerHTML = list.map(p => '<tr>'
         + '<td><div class="player-cell">' + head(p.nick||p.id) + '<div><div class="player-name">' + escapeHtml(p.nick||p.id) + '</div><div class="player-uuid">' + (p.uuid||p.id||'').substring(0,16) + '...</div></div></div></td>'
-        + '<td><span style="font-family:monospace;font-size:.8rem;color:var(--accent-blue);"><i class="fa-solid fa-network-wired"></i> ' + (p.ip||'brak') + '</span></td>'
+        + '<td><span id="ip-' + escapeHtml(p.nick||p.id) + '" style="font-family:monospace;font-size:.8rem;color:var(--text-secondary);cursor:pointer;" onclick="toggleIpDisplay(this,\'' + escapeHtml(p.ip||'') + '\')" title="Kliknij aby pokazać IP"><i class="fa-solid fa-eye-slash"></i> ••••••••</span></td>'
         + '<td>' + statusBadge(p) + '</td>'
         + '<td style="color:var(--text-secondary);font-size:.82rem;">' + formatDate(p.lastSeen) + '</td>'
         + '<td><div style="display:flex;gap:.4rem;flex-wrap:wrap;">'
         + '<button class="tbl-btn" onclick="openActionModal(\'' + escapeHtml(p.nick||p.id) + '\',\'' + (p.uuid||'') + '\')"><i class="fa-solid fa-gavel"></i> Akcja</button>'
-        + '<button class="tbl-btn" onclick="openPlayerDetail(\'' + p.id + '\')"><i class="fa-solid fa-eye"></i></button>'
+        + '<button class="tbl-btn" onclick="openPlayerDetail(\'' + p.id + '\')"><i class="fa-solid fa-eye"></i> Szczegóły</button>'
         + '<button class="tbl-btn" onclick="openNoteModal(\'' + escapeHtml(p.nick||p.id) + '\')"><i class="fa-solid fa-note-sticky"></i></button>'
         + '</div></td></tr>'
     ).join('');
 }
+
+window.toggleIpDisplay = function(el, ip) {
+    if (!ip) return;
+    if (el.dataset.shown === '1') {
+        el.innerHTML = '<i class="fa-solid fa-eye-slash"></i> ••••••••';
+        el.style.color = 'var(--text-secondary)';
+        el.dataset.shown = '0';
+    } else {
+        el.innerHTML = '<i class="fa-solid fa-network-wired"></i> ' + escapeHtml(ip);
+        el.style.color = 'var(--accent-blue)';
+        el.dataset.shown = '1';
+    }
+};
+
+window.revealIpInDetail = function(btn, ip) {
+    if (!ip) { btn.textContent = 'Brak IP'; return; }
+    btn.outerHTML = '<span style="font-family:monospace;font-size:.78rem;color:var(--accent-blue);font-weight:600;">'
+        + '<i class="fa-solid fa-network-wired"></i> ' + escapeHtml(ip) + '</span>';
+};
 
 window.filterPlayers = function() {
     const s = (document.getElementById('players-search')?.value||'').toLowerCase();
@@ -520,7 +550,7 @@ function renderApPlayers(list) {
             + dot
             + '<img src="https://mc-heads.net/avatar/' + encodeURIComponent(nick) + '/28" style="width:28px;height:28px;border-radius:5px;image-rendering:pixelated;border:1px solid var(--border);flex-shrink:0;" onerror="this.src=\'https://mc-heads.net/avatar/Steve/28\'">'
             + '<div style="flex:1;min-width:0;"><div style="font-weight:700;font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(nick) + '</div>'
-            + '<div style="font-size:.72rem;color:var(--text-secondary);">' + (p.ip ? '<i class="fa-solid fa-network-wired" style="font-size:.65rem;"></i> ' + p.ip : '') + ' ' + flags + '</div></div>'
+            + '<div style="font-size:.72rem;color:var(--text-secondary);">' + (p.ip ? '<i class="fa-solid fa-network-wired" style="font-size:.65rem;"></i> ••••••' : '') + ' ' + flags + '</div></div>'
             + '<button style="background:var(--accent);border:none;color:#fff;padding:.3rem .65rem;border-radius:5px;font-size:.75rem;font-weight:700;cursor:pointer;flex-shrink:0;font-family:var(--font);" onclick="event.stopPropagation();apSelectPlayer(\'' + escapeHtml(nick) + '\')">Wybierz</button>'
             + '</div>';
     }).join('');
@@ -746,7 +776,10 @@ window.addEventListener('openPlayerDetail', async (e) => {
         body.innerHTML = '<div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem;">'+head(p.nick||p.id)
             +'<div style="flex:1;"><div style="font-size:1.2rem;font-weight:800;">'+(p.nick||p.id)+'</div>'
             +'<div style="font-size:.78rem;color:var(--text-secondary);">'+(p.uuid||'')+'</div>'
-            +'<div style="font-size:.78rem;color:var(--accent);font-weight:600;"><i class="fa-solid fa-network-wired"></i> '+(p.ip||'brak')+'</div></div>'
+            +'<div style="font-size:.78rem;font-weight:600;margin-top:.2rem;">'
+            +'<button class="tbl-btn" style="font-size:.72rem;padding:.2rem .6rem;" onclick="revealIpInDetail(this,\''+escapeHtml(p.ip||'')+'\')">'
+            +'<i class="fa-solid fa-eye"></i> Pokaż IP</button>'
+            +'</div></div>'
             +'<div style="display:flex;flex-direction:column;gap:.4rem;">'+rankBadge(p.rank)+' '+statusBadge(p)+'</div></div>'
             +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:1.5rem;">'
             +'<div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:.75rem;"><div style="font-size:.7rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.3rem;">Pierwsze logowanie</div><div style="font-weight:700;font-size:.88rem;">'+formatDate(p.firstJoin)+'</div></div>'
@@ -1357,10 +1390,31 @@ window.editNews = async function(id) {
         document.getElementById('news-video').value = n.video||'';
         document.getElementById('news-pinned').checked = !!n.pinned;
         document.getElementById('news-msg').style.display = 'none';
+
+        // Przywróć istniejące pliki do podglądu (z data-url żeby saveNews je zebrał)
         const previews = document.getElementById('news-file-previews');
-        if (previews) previews.innerHTML = '';
+        if (previews) {
+            previews.innerHTML = '';
+            (n.files || []).forEach(url => {
+                const thumb = document.createElement('div');
+                thumb.style.cssText = 'position:relative;border-radius:8px;overflow:hidden;border:1.5px solid var(--border);';
+                thumb.setAttribute('data-url', url);
+                const isImage = /\.(png|jpg|jpeg|gif|webp)/i.test(url);
+                if (isImage) {
+                    thumb.innerHTML = '<img src="'+url+'" style="width:80px;height:80px;object-fit:cover;display:block;">'
+                        + '<button onclick="this.parentElement.remove()" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,.7);border:none;color:#fff;border-radius:4px;cursor:pointer;font-size:.7rem;padding:.1rem .3rem;">×</button>';
+                } else {
+                    const name = url.split('/').pop().split('?')[0];
+                    thumb.innerHTML = '<div style="width:80px;height:80px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--bg);gap:.2rem;">'
+                        + '<i class="fa-solid fa-file" style="font-size:1.6rem;color:var(--accent-blue);"></i>'
+                        + '<div style="font-size:.55rem;color:var(--text-secondary);text-align:center;padding:0 .3rem;word-break:break-all;">'+escapeHtml(name.substring(0,15))+'</div></div>'
+                        + '<button onclick="this.parentElement.remove()" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,.7);border:none;color:#fff;border-radius:4px;cursor:pointer;font-size:.7rem;padding:.1rem .3rem;">×</button>';
+                }
+                previews.appendChild(thumb);
+            });
+        }
         const status = document.getElementById('news-upload-status');
-        if (status) status.textContent = '';
+        if (status) status.textContent = (n.files||[]).length ? (n.files.length + ' istn. plik(ów)') : '';
         document.getElementById('news-modal').classList.add('open');
     } catch(e) { showToast('error',e.message); }
 };
@@ -1373,8 +1427,22 @@ window.saveNews = async function() {
     const video   = document.getElementById('news-video').value.trim();
     const pinned  = document.getElementById('news-pinned').checked;
     if (!title) { _showNewsMsg('error','Podaj tytuł!'); return; }
+
+    // Zbierz URL-e wgranych plików z podglądu (data-url na elementach)
+    const files = [];
+    const previewEl = document.getElementById('news-file-previews');
+    if (previewEl) {
+        previewEl.querySelectorAll('[data-url]').forEach(el => {
+            const u = el.getAttribute('data-url');
+            if (u) files.push(u);
+        });
+    }
+    // Też wyciągnij URL-e img/video z content (zabezpieczenie)
+    const srcMatches = [...content.matchAll(/src="(https?:\/\/[^"]+)"/g)];
+    srcMatches.forEach(m => { if (!files.includes(m[1])) files.push(m[1]); });
+
     try {
-        const data = { title, content, video, pinned, author: currentUser?.displayName||'Admin', updatedAt: serverTimestamp() };
+        const data = { title, content, video, pinned, files, author: currentUser?.displayName||'Admin', updatedAt: serverTimestamp() };
         if (id) { await updateDoc(doc(db,'news',id), data); }
         else { data.createdAt = serverTimestamp(); await addDoc(collection(db,'news'), data); }
         showToast('success', id ? 'Aktualność zaktualizowana!' : 'Aktualność dodana!');
@@ -1526,6 +1594,7 @@ window.newsHandleFiles = async function(input) {
             const isVideo = /\.(mp4|webm|mov)/i.test(file.name);
             const thumb = document.createElement('div');
             thumb.style.cssText = 'position:relative;border-radius:8px;overflow:hidden;border:1.5px solid var(--border);';
+            thumb.setAttribute('data-url', url); // dla saveNews
             if (isImage) {
                 thumb.innerHTML = '<img src="'+url+'" style="width:80px;height:80px;object-fit:cover;display:block;">'
                     + '<div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.6);color:#fff;font-size:.6rem;padding:.15rem .3rem;text-overflow:ellipsis;overflow:hidden;white-space:nowrap;">'+escapeHtml(file.name)+'</div>';
