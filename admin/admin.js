@@ -791,12 +791,137 @@ window.addEventListener('openPlayerDetail', async (e) => {
             +'<div style="margin-bottom:1.5rem;"><div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.75rem;">Historia akcji ('+hist.length+')</div>'
             +(hist.length===0?'<div style="text-align:center;padding:1rem;color:var(--text-secondary);">Brak historii</div>':hist.slice(0,10).map(h=>'<div style="display:flex;align-items:center;gap:.75rem;padding:.6rem 0;border-bottom:1px solid var(--border);">'+actionBadge(h.action)+'<span style="font-size:.82rem;color:var(--text-secondary);flex:1;">'+escapeHtml(h.reason||'')+'</span><span style="font-size:.78rem;color:var(--text-secondary);">'+formatDate(h.date)+'</span></div>').join(''))
             +'</div>'
+            +'<div style="margin-bottom:1.5rem;">'
+            +'<div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.75rem;display:flex;align-items:center;justify-content:space-between;">'
+            +'<span>Ekwipunek gracza</span>'
+            +'<span id="player-inv-status" style="font-size:.72rem;font-weight:400;"></span>'
+            +'</div>'
+            +'<div id="player-inventory-display"></div>'
+            +'</div>'
             +'<div style="display:flex;gap:.75rem;">'
             +'<button class="login-btn" style="flex:1;" onclick="openActionModal(\''+escapeHtml(p.nick||p.id)+'\',\''+escapeHtml(p.uuid||'')+'\');document.getElementById(\'player-detail-modal\').classList.remove(\'open\')"><i class="fa-solid fa-gavel"></i> Wykonaj akcję</button>'
             +'<button class="login-btn" style="flex:1;background:var(--accent-yellow);color:#000;" onclick="openNoteModal(\''+escapeHtml(p.nick||p.id)+'\');document.getElementById(\'player-detail-modal\').classList.remove(\'open\')"><i class="fa-solid fa-note-sticky"></i> Dodaj notatkę</button>'
             +'</div>';
+
+        // Załaduj ekwipunek z Firestore
+        const uuid = p.uuid || p.id;
+        try {
+            const invSnap = await getDoc(doc(db, 'cstats_inventory', uuid));
+            const statusEl = document.getElementById('player-inv-status');
+            const dispEl   = document.getElementById('player-inventory-display');
+            if (invSnap.exists()) {
+                const inv = invSnap.data();
+                if (statusEl) { statusEl.textContent = 'Dane z CStats'; statusEl.style.color = '#10b981'; }
+                renderInventoryDisplay('player-inventory-display', inv.inventory||[], inv.armor||[], inv.offhand||[], inv.enderchest||[]);
+            } else {
+                if (statusEl) { statusEl.textContent = 'Brak danych'; statusEl.style.color = 'var(--text-secondary)'; }
+                if (dispEl) dispEl.innerHTML = '<div style="font-size:.82rem;color:var(--text-secondary);padding:.5rem 0;">Brak danych ekwipunku (gracz musi mieć plugin CStats)</div>';
+            }
+        } catch(invErr) {
+            const statusEl = document.getElementById('player-inv-status');
+            const dispEl   = document.getElementById('player-inventory-display');
+            if (statusEl) { statusEl.textContent = 'Błąd'; statusEl.style.color = '#ef4444'; }
+            if (dispEl) dispEl.innerHTML = '<div style="font-size:.82rem;color:#ef4444;padding:.5rem 0;">Błąd ładowania ekwipunku: ' + escapeHtml(invErr.message) + '</div>';
+        }
     } catch(e) { body.innerHTML = '<p style="color:#ef4444;">Błąd: '+e.message+'</p>'; }
 });
+
+// ─── EKWIPUNEK GRACZA ────────────────────────────────────────────────────────
+
+const _MAT_EMOJI = {
+    DIAMOND_SWORD:'⚔️', NETHERITE_SWORD:'⚔️', IRON_SWORD:'🗡️', STONE_SWORD:'🗡️', GOLDEN_SWORD:'🗡️', WOODEN_SWORD:'🗡️',
+    DIAMOND_PICKAXE:'⛏️', NETHERITE_PICKAXE:'⛏️', IRON_PICKAXE:'⛏️', STONE_PICKAXE:'⛏️', GOLDEN_PICKAXE:'⛏️', WOODEN_PICKAXE:'⛏️',
+    DIAMOND_AXE:'🪓', NETHERITE_AXE:'🪓', IRON_AXE:'🪓',
+    DIAMOND_HELMET:'💎', DIAMOND_CHESTPLATE:'💎', DIAMOND_LEGGINGS:'💎', DIAMOND_BOOTS:'💎',
+    NETHERITE_HELMET:'🌑', NETHERITE_CHESTPLATE:'🌑', NETHERITE_LEGGINGS:'🌑', NETHERITE_BOOTS:'🌑',
+    IRON_HELMET:'🔧', IRON_CHESTPLATE:'🔧', IRON_LEGGINGS:'🔧', IRON_BOOTS:'🔧',
+    GOLDEN_HELMET:'✨', GOLDEN_CHESTPLATE:'✨', GOLDEN_LEGGINGS:'✨', GOLDEN_BOOTS:'✨',
+    CHAINMAIL_HELMET:'⛓️', CHAINMAIL_CHESTPLATE:'⛓️', CHAINMAIL_LEGGINGS:'⛓️', CHAINMAIL_BOOTS:'⛓️',
+    LEATHER_HELMET:'🟫', LEATHER_CHESTPLATE:'🟫', LEATHER_LEGGINGS:'🟫', LEATHER_BOOTS:'🟫',
+    ENCHANTED_GOLDEN_APPLE:'⭐', GOLDEN_APPLE:'🍎',
+    POTION:'🧪', SPLASH_POTION:'🧪', LINGERING_POTION:'🧪',
+    ENDER_PEARL:'🔮', BOW:'🏹', CROSSBOW:'🏹', ARROW:'➡️', SPECTRAL_ARROW:'➡️', TIPPED_ARROW:'➡️',
+    SHIELD:'🛡️', TOTEM_OF_UNDYING:'🪬',
+    COOKED_BEEF:'🥩', COOKED_PORKCHOP:'🥩', COOKED_CHICKEN:'🍗', BREAD:'🍞', CAKE:'🎂',
+    TNT:'💥', OBSIDIAN:'⬛', DIAMOND:'💎', EMERALD:'💚', GOLD_INGOT:'🟡', IRON_INGOT:'⚙️',
+    ELYTRA:'🪂', TRIDENT:'🔱', FISHING_ROD:'🎣', FLINT_AND_STEEL:'🔥',
+    WATER_BUCKET:'💧', LAVA_BUCKET:'🌋', BUCKET:'🪣',
+};
+
+function _matEmoji(mat) {
+    if (!mat) return '❓';
+    return _MAT_EMOJI[mat.toUpperCase()] || (mat.charAt(0).toUpperCase());
+}
+
+function _invSlotHtml(item) {
+    if (!item || !item.type || item.type === 'AIR') {
+        return '<div style="width:36px;height:36px;border:1px solid var(--border);border-radius:4px;background:var(--bg);display:inline-flex;align-items:center;justify-content:center;font-size:.7rem;color:var(--text-secondary);cursor:default;" title="Pusty slot">—</div>';
+    }
+    const mat = (item.type||'').toUpperCase();
+    const amt = item.amount > 1 ? item.amount : '';
+    const enchants = Array.isArray(item.enchantments)
+        ? item.enchantments.map(e => (e.type||e)+(e.level?' '+e.level:'')).join(', ')
+        : (item.enchantments ? String(item.enchantments) : '');
+    const lore = Array.isArray(item.lore) ? item.lore.join('\n') : (item.lore||'');
+    const displayName = item.displayName ? item.displayName.replace(/§[0-9a-fk-or]/g,'') : '';
+    const titleParts = [displayName||mat, amt ? 'x'+amt : '', enchants, lore].filter(Boolean);
+    const title = escapeHtml(titleParts.join('\n'));
+
+    // Kolor tła wg kategorii
+    let bg = 'var(--bg)';
+    if (mat.includes('DIAMOND'))    bg = 'rgba(56,189,248,.15)';
+    else if (mat.includes('NETHERITE')) bg = 'rgba(139,92,246,.18)';
+    else if (mat.includes('GOLDEN') || mat.includes('GOLD')) bg = 'rgba(251,191,36,.15)';
+    else if (mat.includes('IRON'))  bg = 'rgba(156,163,175,.15)';
+    else if (mat === 'TOTEM_OF_UNDYING') bg = 'rgba(245,158,11,.2)';
+    else if (mat === 'ENCHANTED_GOLDEN_APPLE') bg = 'rgba(251,191,36,.25)';
+    else if (mat.includes('SWORD') || mat.includes('AXE') || mat.includes('BOW') || mat.includes('PICKAXE')) bg = 'rgba(239,68,68,.12)';
+    else if (mat === 'SHIELD' || mat.includes('ARMOR') || mat.includes('HELMET') || mat.includes('CHESTPLATE') || mat.includes('LEGGINGS') || mat.includes('BOOTS')) bg = 'rgba(59,130,246,.12)';
+
+    const emoji = _matEmoji(mat);
+    return `<div style="width:36px;height:36px;border:1px solid var(--border);border-radius:4px;background:${bg};display:inline-flex;align-items:center;justify-content:center;font-size:.55rem;text-align:center;cursor:default;overflow:hidden;position:relative;flex-shrink:0;" title="${title}">
+        <span style="font-size:.85rem;line-height:1;">${emoji}</span>
+        ${amt ? `<span style="position:absolute;bottom:1px;right:2px;font-size:.52rem;font-weight:700;color:var(--text-primary);text-shadow:0 0 2px var(--bg);">${amt}</span>` : ''}
+    </div>`;
+}
+
+window.renderInventoryDisplay = function(containerId, inventoryData, armorData, offhandData, enderchestData) {
+    const cont = document.getElementById(containerId); if (!cont) return;
+
+    const rowLabel = (txt) => `<div style="font-size:.68rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin:0.55rem 0 .25rem;letter-spacing:.04em;">${txt}</div>`;
+    const slotGrid = (items, count) => {
+        let html = '<div style="display:flex;flex-wrap:wrap;gap:3px;">';
+        for (let i = 0; i < count; i++) {
+            html += _invSlotHtml(items[i]||null);
+        }
+        html += '</div>';
+        return html;
+    };
+
+    const ARMOR_LABELS = ['Hełm','Napierśnik','Spodnie','Buty'];
+    let armorHtml = '<div style="display:flex;gap:3px;">';
+    for (let i = 0; i < 4; i++) {
+        const item = Array.isArray(armorData) ? armorData[i] : null;
+        const slot = _invSlotHtml(item);
+        const lbl  = ARMOR_LABELS[i];
+        armorHtml += `<div style="display:flex;flex-direction:column;align-items:center;gap:2px;">${slot}<span style="font-size:.5rem;color:var(--text-secondary);">${lbl}</span></div>`;
+    }
+    armorHtml += '</div>';
+
+    const offhandItem  = Array.isArray(offhandData) ? offhandData[0] : offhandData;
+    const offhandHtml  = `<div style="display:flex;gap:3px;align-items:center;">${_invSlotHtml(offhandItem)}</div>`;
+
+    cont.innerHTML =
+        rowLabel('Zbroja (4 sloty)')
+        + armorHtml
+        + `<div style="display:flex;gap:1rem;align-items:flex-start;flex-wrap:wrap;">
+            <div><div style="font-size:.68rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin:.55rem 0 .25rem;">Lewa ręka</div>${offhandHtml}</div>
+           </div>`
+        + rowLabel('Ekwipunek (36 slotów)')
+        + slotGrid(Array.isArray(inventoryData) ? inventoryData : [], 36)
+        + rowLabel('Skrzynka końca (27 slotów)')
+        + slotGrid(Array.isArray(enderchestData) ? enderchestData : [], 27);
+};
 
 // ─── PLIKI ────────────────────────────────────────────────────────────────────
 window.loadFilesPage = async function() {
@@ -2198,4 +2323,663 @@ async function loadShopGrants() {
 // Nadpisz loadShopPage
 window.loadShopPage = async function() {
     await loadShopGrants();
+};
+
+// ─── PLUGINY — CStats ─────────────────────────────────────────────────────────
+
+let _cstatsSelectedPlayer = null; // { name, uuid, stats }
+
+window.loadPluginsPage = async function() {
+    switchPluginTab('cstats');
+    await Promise.allSettled([loadCStatsTop(), loadCStatsEditLog()]);
+};
+
+window.switchPluginTab = function(tab) {
+    document.querySelectorAll('[data-site-tab]').forEach(b => {
+        if (b.closest('#page-plugins')) b.classList.toggle('active', b.getAttribute('data-site-tab') === tab);
+    });
+    document.querySelectorAll('#page-plugins .site-tab-panel').forEach(p => {
+        p.classList.toggle('sp-active', p.id === 'ptab-' + tab);
+    });
+    if (tab === 'pconnections') loadPluginConnections();
+};
+
+// ── Top rankingi ──────────────────────────────────────────────────────────────
+
+async function loadCStatsTop() {
+    const stat = document.getElementById('cstats-top-stat')?.value || 'kills';
+    const list = document.getElementById('cstats-top-list');
+    if (!list) return;
+    list.innerHTML = '<div style="text-align:center;padding:1.5rem;color:var(--text-secondary);font-size:.85rem;"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</div>';
+
+    try {
+        const snap = await getDocs(query(collection(db, 'cstats_top')));
+        const topDoc = snap.docs.find(d => d.id === stat);
+
+        if (!topDoc) {
+            list.innerHTML = '<div style="text-align:center;padding:1.5rem;color:var(--text-secondary);font-size:.85rem;">Brak danych — poczekaj na sync pluginu.</div>';
+            return;
+        }
+
+        const entries = (topDoc.data().entries || []).slice(0, 50);
+        if (!entries.length) {
+            list.innerHTML = '<div style="text-align:center;padding:1rem;color:var(--text-secondary);">Brak graczy w rankingu.</div>';
+            return;
+        }
+
+        const medals = ['🥇','🥈','🥉'];
+        list.innerHTML = entries.map((e, i) => {
+            const rankIcon = i < 3 ? medals[i] : `<span style="color:var(--text-secondary);font-size:.78rem;">#${e.rank}</span>`;
+            const val = stat === 'playtime' ? fmtPlaytime(e.value)
+                      : stat === 'kdr'     ? Number(e.value).toFixed(2)
+                      : stat.includes('damage') ? Math.round(e.value).toLocaleString('pl-PL')
+                      : Math.round(e.value).toLocaleString('pl-PL');
+            return `<div style="display:flex;align-items:center;gap:.6rem;padding:.45rem .6rem;border-bottom:1px solid var(--border);font-size:.82rem;" onmouseenter="this.style.background='var(--bg)'" onmouseleave="this.style.background=''">
+                <span style="width:28px;text-align:center;flex-shrink:0;">${rankIcon}</span>
+                <img src="https://mc-heads.net/avatar/${encodeURIComponent(e.player||'Steve')}/22" style="width:22px;height:22px;border-radius:4px;image-rendering:pixelated;flex-shrink:0;">
+                <span style="flex:1;font-weight:700;">${escapeHtml(e.player||'?')}</span>
+                <span style="color:var(--accent-blue);font-weight:800;">${val}</span>
+            </div>`;
+        }).join('');
+    } catch(err) {
+        list.innerHTML = `<div style="padding:.8rem;color:#ef4444;font-size:.82rem;">Błąd: ${err.message}</div>`;
+    }
+}
+
+function fmtPlaytime(secs) {
+    const s = Math.round(secs);
+    const d = Math.floor(s / 86400);
+    const h = Math.floor((s % 86400) / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    if (d > 0) return `${d}d ${h}h`;
+    if (h > 0) return `${h}h ${m}m`;
+    return `${m}m`;
+}
+
+// ── Wyszukiwanie gracza CStats ────────────────────────────────────────────────
+
+window.cstatsSearchPlayer = async function(val) {
+    const sug = document.getElementById('cstats-suggestions');
+    if (!sug) return;
+    if (!val || val.length < 2) { sug.style.display = 'none'; return; }
+
+    // Szukaj w cstats_players
+    try {
+        const snap = await getDocs(collection(db, 'cstats_players'));
+        const matches = snap.docs
+            .map(d => ({ id: d.id, ...d.data() }))
+            .filter(p => (p.name || '').toLowerCase().includes(val.toLowerCase()))
+            .slice(0, 8);
+
+        if (!matches.length) { sug.style.display = 'none'; return; }
+        sug.style.display = 'block';
+        sug.innerHTML = matches.map(p =>
+            `<div style="padding:.5rem .8rem;cursor:pointer;display:flex;align-items:center;gap:.6rem;font-size:.85rem;font-weight:600;border-bottom:1px solid var(--border);"
+                onmouseenter="this.style.background='var(--bg)'" onmouseleave="this.style.background=''"
+                onclick="cstatsSelectPlayer('${escapeHtml(p.name)}','${p.uuid||p.id}')">
+                <img src="https://mc-heads.net/avatar/${encodeURIComponent(p.name||'Steve')}/24" style="width:24px;height:24px;border-radius:4px;image-rendering:pixelated;">
+                ${escapeHtml(p.name || p.id)}
+                <span style="margin-left:auto;font-size:.72rem;color:var(--text-secondary);">${Math.round((p.kills||0))} kills</span>
+            </div>`
+        ).join('');
+    } catch(e) {
+        sug.style.display = 'none';
+    }
+};
+
+window.cstatsSelectPlayer = async function(name, uuid) {
+    const sug = document.getElementById('cstats-suggestions');
+    const input = document.getElementById('cstats-edit-nick');
+    if (sug) sug.style.display = 'none';
+    if (input) input.value = name;
+
+    const statsDiv = document.getElementById('cstats-player-stats');
+    const infoDiv  = document.getElementById('cstats-player-info');
+    if (!statsDiv || !infoDiv) return;
+
+    try {
+        const snap = await getDoc(doc(db, 'cstats_players', uuid));
+        if (!snap.exists()) { statsDiv.style.display = 'none'; return; }
+
+        const p = snap.data();
+        _cstatsSelectedPlayer = { name, uuid, stats: p };
+
+        infoDiv.innerHTML = `
+            <img src="https://mc-heads.net/avatar/${encodeURIComponent(name)}/32" style="width:32px;height:32px;border-radius:6px;image-rendering:pixelated;">
+            <div>
+                <div style="font-weight:800;">${escapeHtml(name)}</div>
+                <div style="font-size:.72rem;color:var(--text-secondary);">
+                    Kille: <b>${(p.kills||0).toLocaleString('pl-PL')}</b> •
+                    Czas: <b>${fmtPlaytime(p.playtime||0)}</b> •
+                    Punkty: <b>${Math.round(p.points||0).toLocaleString('pl-PL')}</b>
+                </div>
+            </div>`;
+        statsDiv.style.display = 'block';
+
+        // Załaduj osiągnięcia
+        loadCStatsAchievements(p, name);
+    } catch(e) {
+        statsDiv.style.display = 'none';
+        showToast('error', 'Błąd ładowania: ' + e.message);
+    }
+};
+
+document.addEventListener('click', function(e) {
+    const sug = document.getElementById('cstats-suggestions');
+    const inp = document.getElementById('cstats-edit-nick');
+    if (sug && inp && !inp.contains(e.target) && !sug.contains(e.target)) sug.style.display = 'none';
+});
+
+// ── Zapis statystyki ──────────────────────────────────────────────────────────
+
+window.cstatsSaveStat = async function() {
+    if (!requirePermission('all', 'edycja statystyk')) return;
+    if (!_cstatsSelectedPlayer) { showToast('error', 'Wybierz gracza!'); return; }
+
+    const stat    = document.getElementById('cstats-stat-name')?.value;
+    const valStr  = document.getElementById('cstats-stat-value')?.value;
+    const msgEl   = document.getElementById('cstats-edit-msg');
+    if (!stat || valStr === '') { showToast('error', 'Wybierz statystykę i wartość!'); return; }
+
+    const value = parseFloat(valStr);
+    if (isNaN(value) || value < 0) { showToast('error', 'Nieprawidłowa wartość!'); return; }
+
+    const oldValue = _cstatsSelectedPlayer.stats[stat] || 0;
+
+    try {
+        // Zapisz do Firestore cstats_players
+        await updateDoc(doc(db, 'cstats_players', _cstatsSelectedPlayer.uuid), {
+            [stat]: value,
+            lastSync: new Date().toISOString()
+        });
+
+        // Zapisz log edycji
+        await addDoc(collection(db, 'cstats_editlog'), {
+            admin:     currentUser?.displayName || 'Panel',
+            player:    _cstatsSelectedPlayer.name,
+            stat,
+            oldValue,
+            newValue:  value,
+            timestamp: serverTimestamp()
+        });
+
+        if (msgEl) {
+            msgEl.className = 'success';
+            msgEl.style.cssText = 'display:block;margin-top:.4rem;padding:.45rem .7rem;border-radius:6px;font-size:.8rem;font-weight:600;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25);color:#059669;';
+            msgEl.textContent = '✓ Zapisano! Zmiana zostanie pobrana przez plugin przy następnym sync.';
+            setTimeout(() => { if(msgEl) msgEl.style.display = 'none'; }, 4000);
+        }
+        showToast('success', `Zaktualizowano ${stat} gracza ${_cstatsSelectedPlayer.name}`);
+        await loadCStatsEditLog();
+    } catch(e) {
+        if (msgEl) {
+            msgEl.style.cssText = 'display:block;margin-top:.4rem;padding:.45rem .7rem;border-radius:6px;font-size:.8rem;font-weight:600;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);color:#dc2626;';
+            msgEl.textContent = 'Błąd: ' + e.message;
+        }
+    }
+};
+
+// ── Osiągnięcia gracza ────────────────────────────────────────────────────────
+
+function loadCStatsAchievements(playerData, name) {
+    const div     = document.getElementById('cstats-achievements');
+    const nameEl  = document.getElementById('cstats-ach-player');
+    if (!div) return;
+    if (nameEl) nameEl.textContent = name;
+
+    const unlocked = playerData.unlockedAchievements || [];
+    const pending  = playerData.pendingAchievements  || [];
+    const claimed  = playerData.claimedAchievements  || [];
+
+    if (!unlocked.length && !pending.length && !claimed.length) {
+        div.innerHTML = '<div style="text-align:center;padding:1.2rem;color:var(--text-secondary);font-size:.85rem;">Gracz nie ma jeszcze żadnych osiągnięć.</div>';
+        return;
+    }
+
+    const all = [...new Set([...unlocked, ...pending, ...claimed])];
+    div.innerHTML = `
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.75rem;">
+            <span style="background:rgba(16,185,129,.1);color:#059669;border:1px solid rgba(16,185,129,.2);padding:.2rem .6rem;border-radius:999px;font-size:.75rem;font-weight:700;">✔ Odebrane: ${claimed.length}</span>
+            <span style="background:rgba(245,158,11,.1);color:#d97706;border:1px solid rgba(245,158,11,.2);padding:.2rem .6rem;border-radius:999px;font-size:.75rem;font-weight:700;">⏳ Oczekujące: ${pending.length}</span>
+            <span style="background:rgba(99,102,241,.1);color:#6366f1;border:1px solid rgba(99,102,241,.2);padding:.2rem .6rem;border-radius:999px;font-size:.75rem;font-weight:700;">🔓 Wszystkie: ${all.length}</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:.35rem;">
+            ${all.map(id => {
+                const isClaimed = claimed.includes(id);
+                const isPending = pending.includes(id);
+                const color = isClaimed ? '#059669' : isPending ? '#d97706' : '#6366f1';
+                const bg    = isClaimed ? 'rgba(16,185,129,.08)' : isPending ? 'rgba(245,158,11,.08)' : 'rgba(99,102,241,.06)';
+                const icon  = isClaimed ? '✔' : isPending ? '⏳' : '🔓';
+                return `<span style="background:${bg};border:1px solid ${color}33;color:${color};padding:.2rem .55rem;border-radius:6px;font-size:.72rem;font-weight:700;" title="${id}">${icon} ${id}</span>`;
+            }).join('')}
+        </div>`;
+}
+
+// ── Historia edycji ───────────────────────────────────────────────────────────
+
+async function loadCStatsEditLog() {
+    const list = document.getElementById('cstats-editlog-list');
+    if (!list) return;
+    list.innerHTML = '<div style="text-align:center;padding:1.5rem;color:var(--text-secondary);font-size:.85rem;"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</div>';
+
+    try {
+        const snap = await getDocs(query(collection(db, 'cstats_editlog'), orderBy('timestamp', 'desc')));
+        const items = snap.docs.map(d => ({ id: d.id, ...d.data() })).slice(0, 100);
+
+        if (!items.length) {
+            list.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-secondary);font-size:.85rem;">Brak historii edycji.</div>';
+            return;
+        }
+
+        list.innerHTML = items.map(log => {
+            const diff = (log.newValue - log.oldValue);
+            const sign = diff >= 0 ? '+' : '';
+            const diffColor = diff >= 0 ? '#10b981' : '#ef4444';
+            const ts = log.timestamp?.seconds
+                ? new Date(log.timestamp.seconds * 1000).toLocaleString('pl-PL')
+                : (log.timestamp || '—');
+            return `<div style="display:flex;align-items:center;gap:.6rem;padding:.55rem 1rem;border-bottom:1px solid var(--border);font-size:.8rem;">
+                <img src="https://mc-heads.net/avatar/${encodeURIComponent(log.player||'Steve')}/20" style="width:20px;height:20px;border-radius:3px;image-rendering:pixelated;flex-shrink:0;">
+                <span style="font-weight:700;min-width:80px;">${escapeHtml(log.player||'?')}</span>
+                <span style="background:rgba(59,130,246,.1);color:#3b82f6;padding:.1rem .45rem;border-radius:5px;font-size:.72rem;font-weight:700;">${escapeHtml(log.stat||'?')}</span>
+                <span style="color:var(--text-secondary);">${Math.round(log.oldValue||0)} →</span>
+                <span style="font-weight:800;">${Math.round(log.newValue||0)}</span>
+                <span style="color:${diffColor};font-weight:700;">(${sign}${Math.round(diff)})</span>
+                <span style="margin-left:auto;color:var(--text-secondary);font-size:.72rem;">👤 ${escapeHtml(log.admin||'?')} • ${ts}</span>
+            </div>`;
+        }).join('');
+    } catch(e) {
+        list.innerHTML = `<div style="padding:.8rem;color:#ef4444;font-size:.82rem;">Błąd: ${e.message}</div>`;
+    }
+}
+
+// ── Status połączeń pluginów ──────────────────────────────────────────────────
+
+async function loadPluginConnections() {
+    const grid = document.getElementById('plugin-connections-grid');
+    if (!grid) return;
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:2rem;color:var(--text-secondary);"><i class="fa-solid fa-spinner fa-spin"></i> Sprawdzanie...</div>';
+
+    const plugins = [
+        {
+            name: 'CritMC Panel',
+            key: 'server_stats/current',
+            icon: 'fa-shield-halved',
+            color: '#ff1744',
+            check: async () => {
+                const snap = await getDoc(doc(db, 'server_stats', 'current'));
+                if (!snap.exists()) return { ok: false, detail: 'Brak danych' };
+                const d = snap.data();
+                const last = d.lastUpdate ? new Date(d.lastUpdate) : null;
+                const ageSec = last ? Math.floor((Date.now() - last) / 1000) : 9999;
+                return {
+                    ok: ageSec < 60,
+                    detail: d.serverOnline
+                        ? `Online: ${d.online}/${d.max} graczy • TPS: ${d.tps?.toFixed(1)||'?'}`
+                        : 'Serwer offline',
+                    lastUpdate: last ? last.toLocaleTimeString('pl-PL') : '—'
+                };
+            }
+        },
+        {
+            name: 'CStats Plugin',
+            key: 'cstats_players',
+            icon: 'fa-chart-bar',
+            color: '#10b981',
+            check: async () => {
+                const snap = await getDocs(query(collection(db, 'cstats_players')));
+                const count = snap.size;
+                if (!count) return { ok: false, detail: 'Brak danych graczy' };
+                // Sprawdź ostatni sync
+                const docs = snap.docs.map(d => d.data());
+                const lastSync = docs.reduce((max, d) => {
+                    if (!d.lastSync) return max;
+                    const t = new Date(d.lastSync).getTime();
+                    return t > max ? t : max;
+                }, 0);
+                const ageSec = lastSync ? Math.floor((Date.now() - lastSync) / 1000) : 9999;
+                return {
+                    ok: ageSec < 300,
+                    detail: `${count} graczy w bazie`,
+                    lastUpdate: lastSync ? new Date(lastSync).toLocaleTimeString('pl-PL') : '—'
+                };
+            }
+        },
+        {
+            name: 'Cloudflare Worker (R2)',
+            key: 'worker',
+            icon: 'fa-cloud',
+            color: '#f59e0b',
+            check: async () => {
+                const t0 = Date.now();
+                try {
+                    const res = await fetch(FILE_WORKER_URL + '/health', { signal: AbortSignal.timeout(5000) });
+                    const ping = Date.now() - t0;
+                    return { ok: res.ok || res.status === 404, detail: `Ping: ${ping}ms`, lastUpdate: 'teraz' };
+                } catch(e) {
+                    return { ok: false, detail: 'Niedostępny: ' + e.message };
+                }
+            }
+        },
+        {
+            name: 'Firestore (REST API)',
+            key: 'firestore',
+            icon: 'fa-database',
+            color: '#ff6d00',
+            check: async () => {
+                const t0 = Date.now();
+                try {
+                    await getDoc(doc(db, 'panel_settings', 'health_check'));
+                    return { ok: true, detail: `Ping: ${Date.now() - t0}ms`, lastUpdate: 'teraz' };
+                } catch(e) {
+                    return { ok: false, detail: 'Błąd: ' + e.message };
+                }
+            }
+        }
+    ];
+
+    const results = await Promise.allSettled(plugins.map(p => p.check()));
+
+    grid.innerHTML = plugins.map((p, i) => {
+        const r = results[i].status === 'fulfilled' ? results[i].value : { ok: false, detail: results[i].reason?.message || 'Błąd' };
+        const statusColor = r.ok ? '#10b981' : '#ef4444';
+        const statusText  = r.ok ? 'Połączony' : 'Brak połączenia';
+        const statusIcon  = r.ok ? 'fa-circle-check' : 'fa-circle-xmark';
+        return `<div class="table-card" style="padding:1.2rem;">
+            <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.8rem;">
+                <div style="width:40px;height:40px;border-radius:10px;background:${p.color}18;display:flex;align-items:center;justify-content:center;font-size:1.1rem;color:${p.color};">
+                    <i class="fa-solid ${p.icon}"></i>
+                </div>
+                <div>
+                    <div style="font-weight:800;font-size:.92rem;">${p.name}</div>
+                    <div style="font-size:.72rem;color:${statusColor};font-weight:700;display:flex;align-items:center;gap:.3rem;">
+                        <i class="fa-solid ${statusIcon}"></i> ${statusText}
+                    </div>
+                </div>
+            </div>
+            <div style="font-size:.8rem;color:var(--text-secondary);">${r.detail || ''}</div>
+            ${r.lastUpdate ? `<div style="font-size:.72rem;color:var(--text-secondary);margin-top:.3rem;">Ostatni sync: ${r.lastUpdate}</div>` : ''}
+        </div>`;
+    }).join('');
+}
+
+// Aktualizuj też stronę Informacje — dodaj sekcję połączeń pluginów
+const _origLoadInfoPage = window.loadInfoPage;
+window.loadInfoPage = async function() {
+    if (_origLoadInfoPage) await _origLoadInfoPage();
+    // Odśwież status połączeń jeśli sekcja istnieje
+    const pluginStatusEl = document.getElementById('info-plugin-status');
+    if (!pluginStatusEl) return;
+    pluginStatusEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sprawdzanie...';
+    try {
+        const statsSnap = await getDoc(doc(db, 'server_stats', 'current'));
+        const cstatsSnap = await getDocs(query(collection(db, 'cstats_players')));
+        const sData = statsSnap.exists() ? statsSnap.data() : null;
+        const cstatsOk = cstatsSnap.size > 0;
+
+        const _setPluginStatus = (elId, ok, label, detail) => {
+            const el = document.getElementById(elId); if(!el)return;
+            const c = ok ? '#10b981' : '#ef4444';
+            el.innerHTML = `<span style="width:9px;height:9px;border-radius:50%;background:${c};flex-shrink:0;box-shadow:0 0 5px ${c}88;"></span><span style="font-size:.82rem;font-weight:700;color:${c};">${label}</span>`;
+            const d = document.getElementById(elId.replace('-status','-detail')); if(d)d.textContent=detail||'';
+        };
+        _setPluginStatus('info-mc-plugin-status', !!sData?.serverOnline, sData?.serverOnline ? 'CritMC Panel Online' : 'CritMC Panel Offline', sData ? `Online: ${sData.online||0}/${sData.max||20} graczy` : 'Brak danych');
+        _setPluginStatus('info-cstats-status', cstatsOk, cstatsOk ? 'CStats Aktywny' : 'CStats Offline', `${cstatsSnap.size} graczy w bazie`);
+    } catch(e) { if(pluginStatusEl) pluginStatusEl.innerHTML = '<span style="color:#ef4444;font-size:.8rem;">Błąd sprawdzania</span>'; }
+};
+
+// ─── AI ASYSTENT ──────────────────────────────────────────────────────────────
+
+const AI_SYSTEM_PROMPT = `Jesteś asystentem administratora serwera Minecraft CritMC.
+Twoim zadaniem jest parsować polecenia po polsku i zwracać JSON z akcją do wykonania.
+
+Dostępne akcje:
+- ban: { action: "ban", player: "nick", reason: "powód", duration: "7d" }
+- unban: { action: "unban", player: "nick" }  
+- mute: { action: "mute", player: "nick", reason: "powód", duration: "1h" }
+- unmute: { action: "unmute", player: "nick" }
+- kick: { action: "kick", player: "nick", reason: "powód" }
+- warn: { action: "warn", player: "nick", reason: "powód" }
+- grant_rank: { action: "shop_grant", player: "nick", itemType: "ranga", itemId: "vip|boss|crit", qty: 1 }
+- grant_keys: { action: "shop_grant", player: "nick", itemType: "klucz", itemId: "zwykly|rzadki|epicki|crit|premium|losowy", qty: N }
+- broadcast: { action: "broadcast", message: "treść" }
+- message: { action: "message", player: "nick", message: "treść" }
+- unknown: { action: "unknown", message: "nie rozumiem" }
+
+Czas trwania: 1h, 6h, 12h, 1d, 3d, 7d, 14d, 30d, permanent
+Odpowiadaj TYLKO czystym JSON bez markdown.`;
+
+let _aiHistory = [];
+let _aiUsageToday = parseInt(localStorage.getItem('ai_usage_' + new Date().toDateString()) || '0');
+
+window.loadAiPage = function() {
+    // Sprawdź klucz API
+    const key = localStorage.getItem('critmc_ai_key');
+    const setupDiv = document.getElementById('ai-api-setup');
+    const keyStatus = document.getElementById('ai-key-status');
+    const usageEl = document.getElementById('ai-usage-count');
+    if (setupDiv) setupDiv.style.display = key ? 'none' : 'block';
+    if (keyStatus) { keyStatus.textContent = key ? 'Skonfigurowany ✓' : 'Nie skonfigurowany'; keyStatus.style.color = key ? '#10b981' : '#ef4444'; }
+    if (usageEl) usageEl.textContent = _aiUsageToday;
+
+    // Pokaż wyraźnie chip dla Zarządzającego
+    const advChip = document.getElementById('ai-chip-advanced');
+    const ecoChip = document.getElementById('ai-chip-economy');
+    if (advChip && currentUser?.role === 'Zarządzający') advChip.style.display = '';
+    if (ecoChip && currentUser?.role === 'Zarządzający') ecoChip.style.display = '';
+};
+
+window.saveAiApiKey = function() {
+    const val = document.getElementById('ai-api-key-input')?.value?.trim();
+    if (!val || !val.startsWith('AIza')) { showToast('error', 'Nieprawidłowy klucz Gemini (musi zaczynać się od AIza)'); return; }
+    localStorage.setItem('critmc_ai_key', val);
+    showToast('success', 'Klucz zapisany!');
+    window.loadAiPage();
+};
+
+window._aiUseExample = function(el) {
+    const input = document.getElementById('ai-input');
+    if (input) { input.value = el.textContent.replace(/^[^\s]+\s/, ''); input.focus(); }
+};
+
+window.sendAiMessage = async function() {
+    const input = document.getElementById('ai-input');
+    const btn   = document.getElementById('ai-send-btn');
+    const hist  = document.getElementById('ai-chat-history');
+    if (!input || !btn || !hist) return;
+
+    const text = input.value.trim();
+    if (!text) return;
+
+    const key = localStorage.getItem('critmc_ai_key');
+    if (!key) { showToast('error', 'Skonfiguruj klucz Gemini API!'); document.getElementById('ai-api-setup').style.display = 'block'; return; }
+
+    if (!requirePermission('check', 'AI asystent')) return;
+
+    // Ukryj welcome
+    const welcome = document.getElementById('ai-welcome');
+    if (welcome) welcome.style.display = 'none';
+
+    // Pokaż wiadomość użytkownika
+    _aiAppendMsg('user', text, currentUser?.displayName?.charAt(0) || 'A');
+    input.value = '';
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+    // Typing indicator
+    const typingId = 'ai-typing-' + Date.now();
+    hist.insertAdjacentHTML('beforeend', `
+        <div class="ai-msg ai-msg-ai" id="${typingId}">
+            <div class="ai-msg-avatar"><i class="fa-solid fa-robot"></i></div>
+            <div class="ai-typing"><span></span><span></span><span></span></div>
+        </div>`);
+    hist.scrollTop = hist.scrollHeight;
+
+    try {
+        // Wywołaj Gemini API
+        const response = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [
+                        { role: 'user', parts: [{ text: AI_SYSTEM_PROMPT }] },
+                        { role: 'model', parts: [{ text: '{"action":"ready"}' }] },
+                        ..._aiHistory.slice(-10),
+                        { role: 'user', parts: [{ text }] }
+                    ],
+                    generationConfig: { temperature: 0.1, maxOutputTokens: 512 }
+                })
+            }
+        );
+
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            throw new Error(err.error?.message || `HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+        const raw  = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+
+        // Zapisz w historii
+        _aiHistory.push({ role: 'user',  parts: [{ text }] });
+        _aiHistory.push({ role: 'model', parts: [{ text: raw }] });
+
+        // Aktualizuj licznik
+        _aiUsageToday++;
+        localStorage.setItem('ai_usage_' + new Date().toDateString(), _aiUsageToday);
+        const usageEl = document.getElementById('ai-usage-count');
+        if (usageEl) usageEl.textContent = _aiUsageToday;
+
+        // Usuń typing
+        document.getElementById(typingId)?.remove();
+
+        // Parsuj JSON
+        let parsed;
+        try { parsed = JSON.parse(raw.replace(/```json|```/g, '').trim()); }
+        catch(e) { parsed = { action: 'unknown', message: 'Nie mogłem sparsować odpowiedzi.' }; }
+
+        // Pokaż kartę potwierdzenia
+        if (parsed.action && parsed.action !== 'unknown' && parsed.action !== 'ready') {
+            _aiShowConfirmCard(parsed, text);
+        } else {
+            _aiAppendMsg('ai', parsed.message || 'Nie rozumiem tego polecenia. Spróbuj inaczej.', '🤖');
+        }
+
+    } catch(err) {
+        document.getElementById(typingId)?.remove();
+        _aiAppendMsg('ai', `⚠️ Błąd API: ${err.message}`, '🤖');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i>';
+        hist.scrollTop = hist.scrollHeight;
+    }
+};
+
+function _aiAppendMsg(role, text, avatar) {
+    const hist = document.getElementById('ai-chat-history');
+    if (!hist) return;
+    const isUser = role === 'user';
+    hist.insertAdjacentHTML('beforeend', `
+        <div class="ai-msg ${isUser ? 'ai-msg-user' : 'ai-msg-ai'}">
+            <div class="ai-msg-avatar">${avatar}</div>
+            <div class="ai-msg-bubble">${escapeHtml(text)}</div>
+        </div>`);
+    hist.scrollTop = hist.scrollHeight;
+}
+
+function _aiShowConfirmCard(parsed, originalText) {
+    const hist = document.getElementById('ai-chat-history');
+    if (!hist) return;
+
+    const actionLabels = {
+        ban: '🔨 BAN gracza', unban: '✅ UNBAN gracza', mute: '🔇 MUTE gracza',
+        unmute: '🔊 UNMUTE gracza', kick: '👢 KICK gracza', warn: '⚠️ WARN gracza',
+        shop_grant: '🎁 Nadaj produkt', broadcast: '📢 Broadcast', message: '💬 Wiadomość'
+    };
+
+    const fields = [];
+    if (parsed.player)   fields.push(['Gracz',    parsed.player]);
+    if (parsed.reason)   fields.push(['Powód',    parsed.reason]);
+    if (parsed.duration) fields.push(['Czas',     parsed.duration]);
+    if (parsed.itemType) fields.push(['Typ',      parsed.itemType]);
+    if (parsed.itemId)   fields.push(['Produkt',  parsed.itemId]);
+    if (parsed.qty > 1)  fields.push(['Ilość',    parsed.qty]);
+    if (parsed.message)  fields.push(['Treść',    parsed.message]);
+
+    const cardId = 'ai-confirm-' + Date.now();
+    hist.insertAdjacentHTML('beforeend', `
+        <div class="ai-msg ai-msg-ai">
+            <div class="ai-msg-avatar"><i class="fa-solid fa-robot"></i></div>
+            <div style="max-width:80%;">
+                <div class="ai-msg-bubble" style="margin-bottom:.4rem;">Rozumiem polecenie. Czy wykonać?</div>
+                <div class="ai-confirm-card" id="${cardId}">
+                    <div class="ai-confirm-card-title">${actionLabels[parsed.action] || parsed.action.toUpperCase()}</div>
+                    ${fields.map(([l,v]) => `<div class="ai-confirm-field"><span class="ai-confirm-field-label">${l}:</span><span class="ai-confirm-field-value">${escapeHtml(String(v))}</span></div>`).join('')}
+                    <div class="ai-confirm-btns">
+                        <button class="ai-confirm-yes" onclick="aiExecuteAction(${cardId.replace('ai-confirm-','')}, ${JSON.stringify(parsed).replace(/"/g,'&quot;')})">
+                            <i class="fa-solid fa-check"></i> Wykonaj
+                        </button>
+                        <button class="ai-confirm-no" onclick="document.getElementById('${cardId}').innerHTML='<span style=\\'color:var(--text-secondary);font-size:.82rem;\\'>Anulowano.</span>'">
+                            Anuluj
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>`);
+    hist.scrollTop = hist.scrollHeight;
+}
+
+window.aiExecuteAction = async function(cardTimestamp, parsed) {
+    const cardId = 'ai-confirm-' + cardTimestamp;
+    const card   = document.getElementById(cardId);
+
+    if (!requirePermission('ban', 'wykonywanie akcji AI')) return;
+
+    // Mapuj akcję AI → executeAction lub addDoc do panel_commands
+    try {
+        if (['ban','unban','mute','unmute','kick','warn'].includes(parsed.action)) {
+            await executeAction(
+                parsed.action,
+                parsed.player || '',
+                '',
+                parsed.reason || 'AI: ' + parsed.action,
+                parsed.duration || '—'
+            );
+            if (card) card.innerHTML = `<span style="color:#10b981;font-weight:700;"><i class="fa-solid fa-check"></i> Wykonano: ${parsed.action.toUpperCase()} na ${escapeHtml(parsed.player)}</span>`;
+        } else if (parsed.action === 'shop_grant') {
+            await addDoc(collection(db, 'orders'), {
+                playerNick: parsed.player,
+                items: [{ type: parsed.itemType, id: parsed.itemId, label: parsed.itemId, qty: parsed.qty || 1 }],
+                admin: 'AI (' + (currentUser?.displayName || 'Panel') + ')',
+                status: 'pending', type: 'admin_grant', createdAt: serverTimestamp()
+            });
+            if (card) card.innerHTML = `<span style="color:#10b981;font-weight:700;"><i class="fa-solid fa-check"></i> Nadano ${parsed.itemType} ${parsed.itemId} dla ${escapeHtml(parsed.player)}</span>`;
+        } else if (parsed.action === 'broadcast') {
+            await addDoc(collection(db, 'panel_commands'), {
+                action: 'broadcast', message: parsed.message,
+                admin: 'AI (' + (currentUser?.displayName || 'Panel') + ')',
+                executed: false, createdAt: serverTimestamp()
+            });
+            if (card) card.innerHTML = `<span style="color:#10b981;font-weight:700;"><i class="fa-solid fa-check"></i> Broadcast wysłany!</span>`;
+        } else if (parsed.action === 'message') {
+            await addDoc(collection(db, 'panel_commands'), {
+                action: 'message', player: parsed.player, message: parsed.message,
+                admin: 'AI (' + (currentUser?.displayName || 'Panel') + ')',
+                executed: false, createdAt: serverTimestamp()
+            });
+            if (card) card.innerHTML = `<span style="color:#10b981;font-weight:700;"><i class="fa-solid fa-check"></i> Wiadomość wysłana do ${escapeHtml(parsed.player)}</span>`;
+        }
+
+        // Log akcji
+        await logAction(parsed.action, parsed.player || 'broadcast',
+            'AI (' + (currentUser?.displayName || 'Panel') + ')',
+            parsed.reason || parsed.message || '', parsed.duration || '—');
+
+        showToast('success', 'AI: Akcja wykonana!');
+    } catch(e) {
+        if (card) card.innerHTML = `<span style="color:#ef4444;font-weight:700;"><i class="fa-solid fa-xmark"></i> Błąd: ${escapeHtml(e.message)}</span>`;
+        showToast('error', 'Błąd: ' + e.message);
+    }
 };
