@@ -166,6 +166,19 @@ window.refreshAllData = async function() {
         if (activePage === 'stats')    loadStats?.();
         if (activePage === 'info')     loadInfoPage?.();
         if (activePage === 'site')     { /* switchSiteTab odświeży */ }
+        // Strona CStats — odśwież topki + historię edycji + aktualnie wybranego gracza
+        if (activePage === 'plugins') {
+            await Promise.allSettled([loadCStatsTop?.(), loadCStatsEditLog?.()]);
+            if (typeof _cstatsSelectedPlayer !== 'undefined' && _cstatsSelectedPlayer) {
+                // Odśwież dane aktualnie otwartego gracza (statystyki, osiągnięcia, ekwipunek)
+                cstatsSelectPlayer(_cstatsSelectedPlayer.name, _cstatsSelectedPlayer.uuid);
+            }
+        }
+        // Modal szczegółów gracza — odśwież ekwipunek jeśli otwarty
+        const detailModal = document.getElementById('player-detail-modal');
+        if (detailModal && detailModal.classList.contains('open') && _openDetailPlayerId) {
+            window.dispatchEvent(new CustomEvent('openPlayerDetail', { detail: _openDetailPlayerId }));
+        }
 
         showToast('success', 'Dane odświeżone!');
     } catch(e) {
@@ -760,8 +773,10 @@ window.submitNote = async function() {
 function showNoteMsg(type, text) { const el=document.getElementById('note-msg'); if(!el)return; el.className='modal-msg '+type; el.innerHTML=text; el.style.display='block'; }
 
 // ─── SZCZEGÓŁY GRACZA ─────────────────────────────────────────────────────────
+let _openDetailPlayerId = null; // zapamiętany ID gracza w otwartym modalu (dla refresh)
 window.addEventListener('openPlayerDetail', async (e) => {
     const playerId = e.detail;
+    _openDetailPlayerId = playerId; // zapamiętaj do refresh
     const modal = document.getElementById('player-detail-modal');
     const body  = document.getElementById('player-detail-body');
     body.innerHTML = '<div style="text-align:center;padding:2rem;"><i class="fa-solid fa-spinner fa-spin fa-2x"></i></div>';
@@ -884,6 +899,59 @@ const _MAT_EMOJI = {
     SADDLE:'🐎', HORSE_ARMOR_DIAMOND:'💎',
 };
 
+/**
+ * Inteligentny fallback emoji gdy nie ma w _MAT_EMOJI i ikona się nie załaduje.
+ * Dobiera emoji na podstawie słów kluczowych w nazwie materiału.
+ */
+function _matEmoji(mat) {
+    const m = (mat || '').toUpperCase();
+    if (m.includes('SWORD'))          return '⚔️';
+    if (m.includes('PICKAXE'))        return '⛏️';
+    if (m.includes('AXE') && !m.includes('WAX')) return '🪓';
+    if (m.includes('SHOVEL') || m.includes('SPADE')) return '🥄';
+    if (m.includes('HOE'))            return '🌾';
+    if (m.includes('HELMET'))         return '🪖';
+    if (m.includes('CHESTPLATE'))     return '🦺';
+    if (m.includes('LEGGINGS'))       return '👖';
+    if (m.includes('BOOTS'))          return '👟';
+    if (m.includes('DIAMOND'))        return '💎';
+    if (m.includes('EMERALD'))        return '💚';
+    if (m.includes('GOLD'))           return '🟡';
+    if (m.includes('IRON'))           return '⚙️';
+    if (m.includes('NETHERITE'))      return '🌑';
+    if (m.includes('STONE') || m.includes('COBBLE')) return '🪨';
+    if (m.includes('WOOD') || m.includes('LOG') || m.includes('PLANK')) return '🪵';
+    if (m.includes('DIRT') || m.includes('GRASS')) return '🟫';
+    if (m.includes('SAND'))           return '🟨';
+    if (m.includes('WATER'))          return '💧';
+    if (m.includes('LAVA'))           return '🌋';
+    if (m.includes('FIRE'))           return '🔥';
+    if (m.includes('GLASS'))          return '🪟';
+    if (m.includes('BREAD') || m.includes('FOOD') || m.includes('MEAT')) return '🍞';
+    if (m.includes('APPLE'))          return '🍎';
+    if (m.includes('POTION'))         return '🧪';
+    if (m.includes('BUCKET'))         return '🪣';
+    if (m.includes('BOOK'))           return '📖';
+    if (m.includes('TORCH') || m.includes('LANTERN')) return '🏮';
+    if (m.includes('FLOWER') || m.includes('ROSE') || m.includes('TULIP')) return '🌸';
+    if (m.includes('SAPLING') || m.includes('SEED')) return '🌱';
+    if (m.includes('BONE') || m.includes('SKULL') || m.includes('HEAD')) return '💀';
+    if (m.includes('GUNPOWDER') || m.includes('TNT')) return '💥';
+    if (m.includes('REDSTONE'))       return '🔴';
+    if (m.includes('INGOT'))          return '🧱';
+    if (m.includes('CHEST') || m.includes('BARREL') || m.includes('SHULKER')) return '📦';
+    if (m.includes('DOOR') || m.includes('GATE') || m.includes('TRAPDOOR')) return '🚪';
+    if (m.includes('BED'))            return '🛏️';
+    if (m.includes('RAIL'))           return '🛤️';
+    if (m.includes('MINECART') || m.includes('BOAT')) return '🛒';
+    if (m.includes('SPAWN') || m.includes('EGG')) return '🥚';
+    if (m.includes('WOOL') || m.includes('CARPET')) return '🧶';
+    if (m.includes('BANNER') || m.includes('SHIELD')) return '🛡️';
+    if (m.includes('ENDER'))          return '👁️';
+    if (m.includes('OBSIDIAN'))       return '⬛';
+    return '📦'; // neutralny domyślny
+}
+
 /** Czyści kody kolorów Minecraft (§x) */
 function _stripColor(s) {
     return (s||'').replace(/§[0-9a-fk-or]/gi, '').trim();
@@ -930,12 +998,14 @@ function _buildItemTooltip(item) {
 /** Pojedynczy slot eq — slot 36×36 z emoji i tooltipem */
 function _invSlotHtml(item, showTooltipPopup = false) {
     if (!item || !item.type || item.type === 'AIR' || item.empty) {
-        return `<div class="inv-slot inv-slot-empty" title="Pusty">—</div>`;
+        return `<div class="inv-slot inv-slot-empty" title="Pusty slot"></div>`;
     }
 
-    const mat  = (item.type||'').toUpperCase();
-    const amt  = (item.amount || 1);
-    const emoji = _MAT_EMOJI[mat] || mat.charAt(0);
+    // Sanityzacja materiału: usuń prefiksy (minecraft:), spacje, zachowaj tylko A-Z 0-9 _
+    const rawMat = (item.type||'').toUpperCase();
+    const mat    = rawMat.replace(/^MINECRAFT:/, '').replace(/[^A-Z0-9_]/g, '') || 'STONE';
+    const amt    = (item.amount || 1);
+    const emoji = _MAT_EMOJI[mat] || _matEmoji(mat);
     const tooltip = _buildItemTooltip(item);
 
     // Kolor tła wg tier
@@ -953,13 +1023,17 @@ function _invSlotHtml(item, showTooltipPopup = false) {
         ? `<span class="inv-slot-amt">${amt}</span>`
         : '';
 
-    // ─── Ikona itemu z minecraftitemids.com (działający serwis ikon) ──────
-    // Material lowercase, np. DIAMOND_SWORD → diamond_sword → URL.
-    // Fallback: emoji jeśli obrazek się nie załaduje (onerror → pokaż emoji).
+    // ─── Ikona itemu — próba 2 serwisów + fallback na emoji ──────────────
+    // 1. minecraftitemids.com (główny, działa dobrze)
+    // 2. mc-heads.net/item/ (backup)
+    // 3. emoji _matEmoji (ostateczny)
     const matLower = mat.toLowerCase();
-    const iconUrl  = `https://minecraftitemids.com/item/64/${encodeURIComponent(matLower)}.png`;
-    const iconHtml = `<img class="inv-slot-img" src="${iconUrl}" alt="${escapeHtml(mat)}" loading="lazy"
-                          onerror="this.style.display='none';this.parentElement.querySelector('.inv-slot-emoji-fallback').style.display='';">
+    const url1     = `https://minecraftitemids.com/item/64/${encodeURIComponent(matLower)}.png`;
+    const url2     = `https://mc-heads.net/item/${encodeURIComponent(matLower)}`;
+    // onerror w 3 etapach: url1 → url2 → emoji. Używamy data-attr żeby śledzić stan.
+    const iconHtml = `<img class="inv-slot-img" src="${url1}" alt="${escapeHtml(mat)}" loading="lazy"
+                          data-fallback="${url2}"
+                          onerror="var f=this.getAttribute('data-fallback');if(f){this.removeAttribute('data-fallback');this.src=f;}else{this.style.display='none';this.parentElement.querySelector('.inv-slot-emoji-fallback').style.display='';}">
                      <span class="inv-slot-emoji-fallback" style="display:none;">${emoji}</span>`;
 
     // ─── Tooltip CSS-only (Problem 4) ─────────────────────────────────────
@@ -972,42 +1046,72 @@ function _invSlotHtml(item, showTooltipPopup = false) {
     </div>`;
 }
 
-/** Buduje HTML tooltipa (CSS-only hover) — Problem 4 */
+/** Buduje HTML tooltipa (CSS-only hover) — pełne dane: nazwa, enchanty, lore, attributes, effects */
 function _buildTooltipHtml(item, mat) {
     const amt  = (item.amount || 1);
     const name = item.displayNameClean || (item.displayName ? _stripColor(item.displayName) : '') || mat.replace(/_/g,' ');
     const nameColor = _rarirtColorClass(mat);
-    let html = `<div class="inv-tooltip"><div class="inv-tooltip-name ${nameColor}">${escapeHtml(name)}${amt > 1 ? ' ×'+amt : ''}</div>`;
+    let html = `<div class="inv-tooltip">`;
+    html += `<div class="inv-tooltip-name ${nameColor}">${escapeHtml(name)}${amt > 1 ? ' <span style="color:#fff;opacity:.8;">×'+amt+'</span>' : ''}</div>`;
 
     // Enchanty
     const enchs = item.enchants || item.enchantments;
     if (enchs && typeof enchs === 'object' && !Array.isArray(enchs)) {
         const parts = Object.entries(enchs).map(([k,v]) => {
             const n = k.replace('minecraft:','').replace(/_/g,' ');
-            return `<div class="inv-tooltip-enchant">${escapeHtml(n)} ${escapeHtml(String(v))}</div>`;
+            return `<div class="inv-tooltip-enchant">✦ ${escapeHtml(n)} ${escapeHtml(String(v))}</div>`;
         });
         if (parts.length) html += parts.join('');
     } else if (Array.isArray(enchs) && enchs.length) {
         const parts = enchs.map(e => {
             const n = _stripColor(String(e.type||e)).replace('minecraft:','').replace(/_/g,' ');
-            return `<div class="inv-tooltip-enchant">${escapeHtml(n)} ${escapeHtml(String(e.level||''))}</div>`;
+            return `<div class="inv-tooltip-enchant">✦ ${escapeHtml(n)} ${escapeHtml(String(e.level||''))}</div>`;
         });
         if (parts.length) html += parts.join('');
     }
 
+    // AttributeModifiers (atak, obrona, prędkość) — pełne dane
+    if (Array.isArray(item.attributes) && item.attributes.length) {
+        html += '<div class="inv-tooltip-section">Atrybuty:</div>';
+        item.attributes.forEach(a => {
+            const attr = (a.attribute||'').replace(/_/g,' ');
+            const op = a.operation || '';
+            const sign = (a.amount||0) >= 0 ? '+' : '';
+            html += `<div class="inv-tooltip-attr">▸ ${escapeHtml(attr)} ${sign}${escapeHtml(String(a.amount||0))} <span style="opacity:.6;">(${escapeHtml(String(op))})</span>${a.slot && a.slot!=='ANY' ? ' ['+escapeHtml(String(a.slot))+']' : ''}</div>`;
+        });
+    }
+
+    // Potion effects (czas, amplituda, typ)
+    if (Array.isArray(item.potionEffects) && item.potionEffects.length) {
+        html += '<div class="inv-tooltip-section">Efekty mikstury:</div>';
+        item.potionEffects.forEach(eff => {
+            const t = (eff.type||'').replace(/_/g,' ');
+            const lvl = (eff.amplifier||0) + 1;
+            const dur = eff.duration > 0 ? Math.floor(eff.duration/20) + 's' : '∞';
+            html += `<div class="inv-tooltip-effect">◆ ${escapeHtml(t)} ${lvl} <span style="opacity:.6;">(${dur})</span></div>`;
+        });
+    }
+
     // Lore
     if (Array.isArray(item.lore) && item.lore.length) {
-        html += '<div style="margin-top:.2rem;">';
+        html += '<div style="margin-top:.25rem;">';
         item.lore.forEach(l => html += `<div class="inv-tooltip-lore">${escapeHtml(String(l))}</div>`);
         html += '</div>';
     }
 
-    // Meta
+    // Meta — ID, trwałość, custom model data, item flags
     const metaParts = [];
-    if (item.damage > 0) metaParts.push('Zniszczenie: ' + item.damage);
-    if (item.customModelData) metaParts.push('CMD: ' + item.customModelData);
-    metaParts.push(mat);
-    if (metaParts.length) html += `<div class="inv-tooltip-meta">${escapeHtml(metaParts.join(' • '))}</div>`;
+    metaParts.push(`<span style="color:#9ca3af;">ID:</span> <span style="font-family:monospace;color:#60a5fa;">${escapeHtml(mat)}</span>`);
+    if (item.damage > 0) {
+        metaParts.push(`<span style="color:#fbbf24;">Durability:</span> ${escapeHtml(String(item.damage))}`);
+    }
+    if (item.customModelData) {
+        metaParts.push(`<span style="color:#a78bfa;">CMD:</span> ${escapeHtml(String(item.customModelData))}`);
+    }
+    if (Array.isArray(item.itemFlags) && item.itemFlags.length) {
+        metaParts.push(`<span style="color:#34d399;">Flags:</span> ${escapeHtml(item.itemFlags.join(', ').replace(/HIDE_/g,''))}`);
+    }
+    if (metaParts.length) html += `<div class="inv-tooltip-meta">${metaParts.join(' • ')}</div>`;
 
     html += '</div>';
     return html;
@@ -1091,31 +1195,41 @@ window.renderInventoryDisplay = function(containerId, inventoryData, armorData, 
         _buildItemList('EnderChest', ender, 27);
 
     cont.innerHTML = `
+      <!-- Cały ekwipunek przesunięty w prawo (padding-left) + przycisk odświeżania u góry -->
+      <div style="padding-left:2rem;border-left:1px solid var(--border);">
+        <!-- Pasek z info + przycisk odświeżania -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;flex-wrap:wrap;gap:.5rem;">
+            <div style="font-size:.72rem;color:var(--text-secondary);"><i class="fa-solid fa-circle-info" style="color:#8b5cf6;"></i> Najedź na slot aby zobaczyć pełne dane (ID, enchanty, atrybuty, efekty, lore)</div>
+            <button onclick="window.dispatchEvent(new CustomEvent('openPlayerDetail',{detail:_openDetailPlayerId}));" style="padding:.45rem .9rem;background:linear-gradient(135deg,rgba(139,92,246,.15),rgba(59,130,246,.1));border:1.5px solid rgba(139,92,246,.3);border-radius:8px;color:#8b5cf6;font-size:.8rem;font-weight:800;cursor:pointer;font-family:var(--font);">
+                <i class="fa-solid fa-rotate-right"></i> Odśwież ekwipunek
+            </button>
+        </div>
+
         <!-- Górny wiersz: armor (pionowo) + offhand | główny ekwipunek -->
-        <div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-start;margin-bottom:.75rem;">
+        <div style="display:flex;gap:1.2rem;flex-wrap:wrap;align-items:flex-start;margin-bottom:.75rem;">
             <!-- Zbroja + offhand -->
             <div style="display:flex;flex-direction:column;gap:.4rem;">
-                <div style="font-size:.65rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.2rem;">⚔️ Zbroja</div>
+                <div style="font-size:.7rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.2rem;">⚔️ Zbroja</div>
                 ${armorHtml}
-                <div style="font-size:.65rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin:.4rem 0 .2rem;">✋ Lewa ręka</div>
+                <div style="font-size:.7rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin:.4rem 0 .2rem;">✋ Lewa ręka</div>
                 <div>${offhandHtml}</div>
             </div>
             <!-- Główny ekwipunek (10-36) -->
             <div style="flex:1;min-width:0;">
-                <div style="font-size:.65rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.3rem;">🎒 Plecak (sloty 10-36)</div>
+                <div style="font-size:.7rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.3rem;">🎒 Plecak (sloty 10-36)</div>
                 ${mainInvHtml}
             </div>
         </div>
 
         <!-- Hotbar (osobno, żółta ramka) -->
         <div style="margin-bottom:.75rem;">
-            <div style="font-size:.65rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.3rem;">🎮 Hotbar (sloty 1-9)</div>
+            <div style="font-size:.7rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.3rem;">🎮 Hotbar (sloty 1-9)</div>
             ${hotbarHtml}
         </div>
 
         <!-- Enderchest (domyślnie zwinięty) -->
         <details style="margin-bottom:.5rem;">
-            <summary style="font-size:.68rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;cursor:pointer;margin-bottom:.3rem;user-select:none;">
+            <summary style="font-size:.72rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;cursor:pointer;margin-bottom:.3rem;user-select:none;">
                 📦 Skrzynka Końca (27 slotów)
             </summary>
             <div style="margin-top:.3rem;">${enderHtml}</div>
@@ -1134,7 +1248,8 @@ window.renderInventoryDisplay = function(containerId, inventoryData, armorData, 
         <!-- Przycisk AI -->
         <button onclick="_askAiAboutInventory(this)" style="margin-top:.6rem;width:100%;padding:.5rem;background:linear-gradient(135deg,rgba(139,92,246,.15),rgba(59,130,246,.1));border:1px solid rgba(139,92,246,.3);border-radius:8px;color:#8b5cf6;font-weight:700;font-size:.8rem;cursor:pointer;font-family:var(--font);">
             <i class="fa-solid fa-robot"></i> Zapytaj AI o ekwipunek gracza
-        </button>`;
+        </button>
+      </div>`;
 };
 
 /** Zapytaj AI o ekwipunek — wysyła summary do chatu AI */
@@ -3150,52 +3265,95 @@ window.removeAiApiKey = function() {
 
 window.saveAiApiKey = function() {
     const val = document.getElementById('ai-api-key-input')?.value?.trim();
-    // Walidacja: musi zaczynać się od AIza i mieć min. 30 znaków (realne klucze mają ~39)
-    if (!val || !val.startsWith('AIza')) { showToast('error', 'Nieprawidłowy klucz Gemini (musi zaczynać się od AIza)'); return; }
-    if (val.length < 30) { showToast('error', 'Klucz jest zbyt krótki (min. 30 znaków).'); return; }
+    // Walidacja: klucze Gemini mają różne formaty — stare "AIza..." oraz nowe "AQ.Ab...".
+    // Wymagamy tylko rozsądnej długości (min 25 znaków) i braku spacji.
+    if (!val || val.length < 25) { showToast('error', 'Klucz jest zbyt krótki (min. 25 znaków).'); return; }
+    if (val.includes(' ')) { showToast('error', 'Klucz nie może zawierać spacji.'); return; }
     localStorage.setItem('critmc_ai_key', val);
     showToast('success', 'Klucz zapisany!');
     window.loadAiPage();
 };
 
-/** Test klucza API — wysyła proste zapytanie i pokazuje wynik */
+/** Lista modeli do wypróbowania w kolejności. Pierwszy działający wygrywa. */
+const AI_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-flash-latest'];
+
+/** Zwraca pierwszy model, który odpowie 200. Zapisuje go w localStorage. */
+async function _aiPickWorkingModel(key) {
+    // Spróbuj zapamiętany model najpierw (szybka ścieżka)
+    const cached = localStorage.getItem('critmc_ai_model');
+    const order = cached ? [cached, ...AI_MODELS.filter(m => m !== cached)] : AI_MODELS;
+    let lastStatus = 0, lastMsg = '';
+    for (const model of order) {
+        try {
+            const r = await fetch(
+                `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ role: 'user', parts: [{ text: 'OK' }] }],
+                        generationConfig: { temperature: 0, maxOutputTokens: 5 }
+                    })
+                }
+            );
+            if (r.ok) {
+                localStorage.setItem('critmc_ai_model', model);
+                return { model, status: 200 };
+            }
+            lastStatus = r.status;
+            // 429 = quota dla tego modelu — spróbuj następnego
+            // 404 = model nie istnieje — spróbuj następnego
+            // 400/403 = problem klucza — nie próbuj dalej
+            if (r.status === 400 || r.status === 403) {
+                const e = await r.json().catch(() => ({}));
+                return { model, status: r.status, msg: e.error?.message || '' };
+            }
+            // 429 lub 404 — kontynuuj do następnego modelu
+        } catch (e) {
+            lastStatus = -1; // błąd sieci
+            lastMsg = e.message || '';
+        }
+    }
+    // Żaden model nie zadziałał — zwróć ostatni status (429 = wszystkie quota, 0 = nieznany)
+    return { model: null, status: lastStatus, msg: lastMsg };
+}
+
+/** Test klucza API — próbuje modele po kolei, pokazuje który działa */
 window.testAiKey = async function() {
     const key = localStorage.getItem('critmc_ai_key');
     const btn = document.getElementById('ai-test-btn');
     if (!key) { showToast('error', 'Najpierw wpisz i zapisz klucz API.'); return; }
     if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Testuję...'; }
 
+    // DIAGNOSTYKA: pokaż w konsoli co testujemy
+    console.log('[AI Test] Klucz z localStorage:', key ? key.substring(0,10) + '...' + key.substring(key.length-4) : '(brak)', 'długość:', key.length);
+
     try {
-        const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(key)}`,
-            {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{ role: 'user', parts: [{ text: 'Odpowiedz tylko slowem OK' }] }],
-                    generationConfig: { temperature: 0, maxOutputTokens: 10 }
-                })
-            }
-        );
-        if (response.ok) {
-            const data = await response.json();
-            const txt = data.candidates?.[0]?.content?.parts?.[0]?.text || '(pusta)';
-            showToast('success', '✅ Klucz działa! Odpowiedź: ' + txt.substring(0, 40));
-        } else if (response.status === 400 || response.status === 403) {
-            const err = await response.json().catch(() => ({}));
-            const msg = err.error?.message || '';
-            if (msg.includes('API_KEY_INVALID') || msg.includes('API key not valid')) {
-                showToast('error', '❌ Klucz jest nieprawidłowy. Wygeneruj nowy na aistudio.google.com.');
+        const result = await _aiPickWorkingModel(key);
+        console.log('[AI Test] Wynik _aiPickWorkingModel:', result);
+
+        if (result.status === 200 && result.model) {
+            showToast('success', '✅ Klucz działa! Model: ' + result.model);
+            const modelEl = document.getElementById('ai-active-model');
+            if (modelEl) modelEl.textContent = result.model;
+        } else if (result.status === 400 || result.status === 403) {
+            const msg = result.msg || '';
+            console.log('[AI Test] Błąd API pełny komunikat:', msg);
+            if (msg.includes('API_KEY_INVALID') || msg.includes('API key not valid') || msg.includes('API key')) {
+                showToast('error', '❌ Klucz jest nieprawidłowy. Sprawdź konsolę (F12) — pełny błąd.');
             } else {
-                showToast('error', '❌ Błąd API: ' + msg.substring(0, 100));
+                showToast('error', '❌ Błąd API (' + result.status + '): ' + msg.substring(0, 80));
             }
-        } else if (response.status === 429) {
-            showToast('error', '⏳ Limit zapytań wyczerpany. Poczekaj chwilę.');
+        } else if (result.status === 429) {
+            showToast('error', '⏳ Wszystkie modele mają wyczerpany limit dzienny (429). Spróbuj jutro.');
+        } else if (result.status === -1) {
+            showToast('error', '🌐 Błąd sieci — sprawdź połączenie. Konsola (F12) ma szczegóły.');
         } else {
-            showToast('error', '❌ Błąd HTTP ' + response.status);
+            showToast('error', '❌ Status ' + result.status + '. Sprawdź konsolę (F12).');
         }
     } catch (e) {
-        showToast('error', '🌐 Błąd sieci: ' + (e.message || 'nieznany') + '. Sprawdź połączenie.');
+        console.error('[AI Test] Wyjątek:', e);
+        showToast('error', '🌐 Błąd: ' + (e.message || 'nieznany') + '. Konsola (F12) ma szczegóły.');
     } finally {
         if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-vial"></i> Testuj klucz API'; }
     }
@@ -3240,47 +3398,43 @@ window.sendAiMessage = async function() {
     hist.scrollTop = hist.scrollHeight;
 
     try {
-        // Wywołaj Gemini API — systemInstruction (poprawne) zamiast wkładania promptu w contents.
-        // Lista modeli sprawdzana po kolei: jeśli pierwszy 404 (nieznany model), próbuj następnego.
-        const MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
-        let data = null, lastErr = null;
-
-        for (const model of MODELS) {
-            try {
-                const response = await fetch(
-                    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`,
-                    {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            systemInstruction: { parts: [{ text: AI_SYSTEM_PROMPT }] },
-                            contents: [
-                                { role: 'user', parts: [{ text: '{"action":"ready"}' }] },
-                                { role: 'model', parts: [{ text: '{"action":"ready"}' }] },
-                                ..._aiHistory.slice(-10),
-                                { role: 'user', parts: [{ text }] }
-                            ],
-                            generationConfig: { temperature: 0.1, maxOutputTokens: 512, responseMimeType: 'application/json' }
-                        })
-                    }
-                );
-                if (response.status === 404) { lastErr = new Error(`Model ${model} nie istnieje (404)`); continue; }
-                if (!response.ok) {
-                    const err = await response.json().catch(() => ({}));
-                    // 400 z "API_KEY_INVALID" lub 403 — nie próbuj innych modeli, to problem klucza
-                    throw new Error(err.error?.message || `HTTP ${response.status}`);
-                }
-                data = await response.json();
-                break; // sukces
-            } catch (e) {
-                lastErr = e;
-                // Błąd klucza / quota — nie próbuj innych modeli
-                if (e.message && (e.message.includes('API_KEY') || e.message.includes('API key') || e.message.includes('quota'))) break;
+        // Krok 1: znajdź działający model (cache w localStorage, szybka ścieżka)
+        const picked = await _aiPickWorkingModel(key);
+        if (picked.status !== 200 || !picked.model) {
+            // Wyświetl konkretny błąd na podstawie statusu
+            if (picked.status === 400 || picked.status === 403) {
+                throw new Error('API_KEY_INVALID: ' + (picked.msg || 'nieprawidłowy klucz'));
+            } else if (picked.status === 429) {
+                throw new Error('RESOURCE_EXHAUSTED: wszystkie modele mają wyczerpany limit');
+            } else {
+                throw new Error('Nie udało się połączyć z żadnym modelem Gemini (status ' + picked.status + ')');
             }
         }
+        const model = picked.model;
 
-        if (!data) throw lastErr || new Error('Nie udało się wywołać Gemini API.');
-
+        // Krok 2: wyślij właściwe zapytanie z wybranym modelem
+        const response = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`,
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    systemInstruction: { parts: [{ text: AI_SYSTEM_PROMPT }] },
+                    contents: [
+                        { role: 'user', parts: [{ text: '{"action":"ready"}' }] },
+                        { role: 'model', parts: [{ text: '{"action":"ready"}' }] },
+                        ..._aiHistory.slice(-10),
+                        { role: 'user', parts: [{ text }] }
+                    ],
+                    generationConfig: { temperature: 0.1, maxOutputTokens: 512, responseMimeType: 'application/json' }
+                })
+            }
+        );
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            throw new Error(err.error?.message || `HTTP ${response.status}`);
+        }
+        const data = await response.json();
         const raw  = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
 
         // Zapisz w historii

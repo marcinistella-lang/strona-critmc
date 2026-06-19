@@ -2086,18 +2086,18 @@ select:focus {
     box-shadow: inset 0 0 0 1px rgba(255,255,255,.04), inset 0 -2px 4px rgba(0,0,0,.4);
 }
 .inv-slot-emoji {
-    font-size: 1.1rem;
+    font-size: 1.15rem;
     line-height: 1;
     user-select: none;
 }
 .inv-slot-amt {
     position: absolute;
-    bottom: -1px;
-    right: 1px;
-    font-size: .68rem;
-    font-weight: 800;
+    bottom: -3px;
+    right: 0px;
+    font-size: .85rem;
+    font-weight: 900;
     color: #fff;
-    text-shadow: 1px 1px 0 #000, -1px 1px 0 #000, 1px -1px 0 #000, -1px -1px 0 #000;
+    text-shadow: 1px 1px 0 #000, -1px 1px 0 #000, 1px -1px 0 #000, -1px -1px 0 #000, 2px 2px 3px rgba(0,0,0,.8);
     pointer-events: none;
     font-family: 'Segoe UI', sans-serif;
 }
@@ -2160,10 +2160,13 @@ select:focus {
     white-space: pre-wrap;
     text-align: left;
 }
-.inv-tooltip-name    { font-weight: 700; margin-bottom: .25rem; font-size: .82rem; }
-.inv-tooltip-enchant { color: #b4a7ff; font-size: .7rem; }
-.inv-tooltip-lore    { color: #ff7bff; font-style: italic; font-size: .68rem; }
-.inv-tooltip-meta    { color: #888; font-size: .66rem; margin-top: .3rem; border-top: 1px solid #2a0040; padding-top: .25rem; }
+.inv-tooltip-name    { font-weight: 700; margin-bottom: .25rem; font-size: .85rem; }
+.inv-tooltip-enchant { color: #b4a7ff; font-size: .72rem; line-height: 1.4; }
+.inv-tooltip-lore    { color: #ff7bff; font-style: italic; font-size: .7rem; }
+.inv-tooltip-meta    { color: #9ca3af; font-size: .68rem; margin-top: .35rem; border-top: 1px solid #2a0040; padding-top: .3rem; line-height: 1.5; }
+.inv-tooltip-section { color: #fbbf24; font-size: .68rem; font-weight: 700; text-transform: uppercase; margin-top: .3rem; margin-bottom: .15rem; letter-spacing: .03em; }
+.inv-tooltip-attr    { color: #60d394; font-size: .7rem; line-height: 1.4; }
+.inv-tooltip-effect  { color: #ff8c69; font-size: .7rem; line-height: 1.4; }
 .inv-slot:hover .inv-tooltip { display: block; }
 /* Hotbar — złota ramka jak w MC */
 .inv-grid-hotbar .inv-slot { border-color: #78350f; box-shadow: inset 0 0 0 1px rgba(251,191,36,.2), inset 0 -2px 4px rgba(0,0,0,.5); }
