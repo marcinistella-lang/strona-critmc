@@ -899,64 +899,90 @@ document.addEventListener('DOMContentLoaded', function() {
         <button class="site-tab-btn" data-site-tab="pconnections" onclick="switchPluginTab('pconnections')"><i class="fa-solid fa-network-wired"></i> Połączenia</button>
     </div>
     <div id="ptab-cstats" class="site-tab-panel sp-active">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;margin-bottom:1.2rem;">
+        <!-- GÓRA: wyszukiwarka gracza (duża, centralna) -->
+        <div class="table-card" style="padding:1.4rem;margin-bottom:1.2rem;">
+            <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.8rem;text-align:center;">
+                <i class="fa-solid fa-magnifying-glass" style="color:#10b981;"></i> Wpisz nick gracza
+            </div>
+            <div style="position:relative;max-width:420px;margin:0 auto;">
+                <input type="text" id="cstats-edit-nick" placeholder="np. sosenka8..." autocomplete="off" oninput="cstatsSearchPlayer(this.value)"
+                    style="width:100%;padding:.85rem 1.1rem;border:2px solid var(--border);border-radius:10px;font-size:1.05rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);text-align:center;font-weight:600;">
+                <div id="cstats-suggestions" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg-card);border:1.5px solid var(--border);border-top:none;border-radius:0 0 10px 10px;max-height:220px;overflow-y:auto;z-index:50;box-shadow:var(--shadow-md);"></div>
+            </div>
+            <div id="cstats-player-stats" style="display:none;margin-top:1.2rem;">
+                <div id="cstats-player-info" style="display:flex;align-items:center;gap:.8rem;margin-bottom:1rem;background:linear-gradient(135deg,rgba(16,185,129,.08),rgba(59,130,246,.05));border:1.5px solid rgba(16,185,129,.2);border-radius:12px;padding:.8rem 1rem;"></div>
+            </div>
+        </div>
+
+        <!-- PO WYBORZE: staty+osiągnięcia (lewa) | edycja (prawa) -->
+        <div id="cstats-player-content" style="display:grid;grid-template-columns:1.6fr 1fr;gap:1.2rem;margin-bottom:1.2rem;">
+            <!-- Lewa: statystyki + osiągnięcia -->
+            <div>
+                <div class="table-card" style="padding:1.2rem;margin-bottom:1.2rem;">
+                    <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.8rem;">
+                        <i class="fa-solid fa-chart-line" style="color:#3b82f6;"></i> Statystyki gracza
+                    </div>
+                    <div id="cstats-player-statgrid" style="color:var(--text-secondary);text-align:center;padding:2rem;font-size:.88rem;">
+                        Wpisz nick powyżej, aby zobaczyć statystyki.
+                    </div>
+                </div>
+                <div class="table-card" style="padding:1.2rem;">
+                    <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.8rem;display:flex;align-items:center;justify-content:space-between;">
+                        <span><i class="fa-solid fa-award" style="color:#8b5cf6;"></i> Osiągnięcia</span>
+                        <span id="cstats-ach-player" style="font-size:.8rem;font-weight:700;color:var(--text-primary);"></span>
+                    </div>
+                    <div id="cstats-achievements" style="color:var(--text-secondary);text-align:center;padding:1.5rem;font-size:.85rem;">Wpisz nick powyżej.</div>
+                </div>
+            </div>
+            <!-- Prawa: edycja statystyki -->
+            <div class="table-card" style="padding:1.2rem;align-self:start;position:sticky;top:1rem;">
+                <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.8rem;">
+                    <i class="fa-solid fa-pen-to-square" style="color:#f59e0b;"></i> Edycja statystyki
+                </div>
+                <div style="display:flex;flex-direction:column;gap:.6rem;">
+                    <select id="cstats-stat-name" style="width:100%;padding:.6rem .7rem;border:1.5px solid var(--border);border-radius:8px;font-size:.85rem;background:var(--bg);color:var(--text-primary);font-family:var(--font);">
+                        <option value="kills">Zabójstwa</option><option value="deaths">Śmierci</option>
+                        <option value="killstreak">Killstreak</option><option value="max_killstreak">Max Killstreak</option>
+                        <option value="blocks_mined">Wykopane bloki</option><option value="stone_mined">Wykopany kamień</option>
+                        <option value="ores_mined">Wykopane rudy</option><option value="mobs_killed">Zabite moby</option>
+                        <option value="damage_dealt">Zadane obrażenia</option><option value="distance">Dystans</option>
+                        <option value="jumps">Skoki</option><option value="playtime">Czas gry (sek.)</option>
+                        <option value="points">Punkty</option><option value="koksy">Koksy</option>
+                        <option value="refile">Refile</option><option value="potions">Mikstury</option>
+                        <option value="premium_chests">Skrzynki Premium</option><option value="events_won">Wygrane eventy</option>
+                    </select>
+                    <input type="number" id="cstats-stat-value" placeholder="Nowa wartość" min="0"
+                        style="width:100%;padding:.6rem .7rem;border:1.5px solid var(--border);border-radius:8px;font-size:.9rem;background:var(--bg);color:var(--text-primary);font-family:var(--font);">
+                    <button onclick="cstatsSaveStat()" style="width:100%;padding:.7rem;background:linear-gradient(135deg,#3b82f6,#10b981);color:#fff;border:none;border-radius:8px;font-weight:800;cursor:pointer;font-family:var(--font);font-size:.88rem;">
+                        <i class="fa-solid fa-floppy-disk"></i> Zapisz statystykę
+                    </button>
+                    <div id="cstats-edit-msg" style="display:none;margin-top:.2rem;padding:.5rem .7rem;border-radius:6px;font-size:.8rem;font-weight:600;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- DÓŁ: historia edycji + topki (obok siebie) -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;">
+            <div class="table-card" style="overflow:hidden;">
+                <div style="padding:.8rem 1.2rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+                    <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;"><i class="fa-solid fa-clock-rotate-left" style="color:#ef4444;"></i> Historia edycji</div>
+                    <button class="tbl-btn" onclick="loadCStatsEditLog()" style="font-size:.72rem;"><i class="fa-solid fa-rotate-right"></i></button>
+                </div>
+                <div id="cstats-editlog-list" style="max-height:340px;overflow-y:auto;">
+                    <div style="text-align:center;padding:2rem;color:var(--text-secondary);font-size:.85rem;"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</div>
+                </div>
+            </div>
             <div class="table-card" style="padding:1.2rem;">
-                <div style="font-size:.75rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.7rem;display:flex;align-items:center;justify-content:space-between;">
+                <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.8rem;display:flex;align-items:center;justify-content:space-between;">
                     <span><i class="fa-solid fa-trophy" style="color:#f59e0b;"></i> Top rankingi</span>
-                    <select id="cstats-top-stat" onchange="loadCStatsTop()" style="padding:.3rem .6rem;border:1px solid var(--border);border-radius:6px;font-size:.78rem;background:var(--bg);color:var(--text-primary);font-family:var(--font);">
+                    <select id="cstats-top-stat" onchange="loadCStatsTop()" style="padding:.35rem .6rem;border:1px solid var(--border);border-radius:6px;font-size:.78rem;background:var(--bg);color:var(--text-primary);font-family:var(--font);">
                         <option value="kills">Zabójstwa</option><option value="deaths">Śmierci</option>
                         <option value="blocks_mined">Wykopane bloki</option><option value="playtime">Czas gry</option>
                         <option value="points">Punkty</option><option value="mobs_killed">Zabite moby</option>
                         <option value="damage_dealt">Zadane obrażenia</option><option value="kdr">KDR</option>
                     </select>
                 </div>
-                <div id="cstats-top-list" style="max-height:300px;overflow-y:auto;"></div>
-            </div>
-            <div class="table-card" style="padding:1.2rem;">
-                <div style="font-size:.75rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.7rem;"><i class="fa-solid fa-pen-to-square" style="color:#3b82f6;"></i> Edycja statystyk gracza</div>
-                <div style="position:relative;margin-bottom:.6rem;">
-                    <input type="text" id="cstats-edit-nick" placeholder="Nick gracza..." autocomplete="off" oninput="cstatsSearchPlayer(this.value)"
-                        style="width:100%;padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
-                    <div id="cstats-suggestions" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg-card);border:1.5px solid var(--border);border-top:none;border-radius:0 0 8px 8px;max-height:160px;overflow-y:auto;z-index:50;box-shadow:var(--shadow-md);"></div>
-                </div>
-                <div id="cstats-player-stats" style="display:none;">
-                    <div id="cstats-player-info" style="display:flex;align-items:center;gap:.6rem;margin-bottom:.7rem;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:.55rem .8rem;"></div>
-                    <div style="display:flex;gap:.5rem;margin-bottom:.5rem;">
-                        <select id="cstats-stat-name" style="flex:1;padding:.5rem .6rem;border:1.5px solid var(--border);border-radius:8px;font-size:.82rem;background:var(--bg);color:var(--text-primary);font-family:var(--font);">
-                            <option value="kills">Zabójstwa</option><option value="deaths">Śmierci</option>
-                            <option value="killstreak">Killstreak</option><option value="max_killstreak">Max Killstreak</option>
-                            <option value="blocks_mined">Wykopane bloki</option><option value="stone_mined">Wykopany kamień</option>
-                            <option value="ores_mined">Wykopane rudy</option><option value="mobs_killed">Zabite moby</option>
-                            <option value="damage_dealt">Zadane obrażenia</option><option value="distance">Dystans</option>
-                            <option value="jumps">Skoki</option><option value="playtime">Czas gry (sek.)</option>
-                            <option value="points">Punkty</option><option value="koksy">Koksy</option>
-                            <option value="refile">Refile</option><option value="potions">Mikstury</option>
-                            <option value="premium_chests">Skrzynki Premium</option><option value="events_won">Wygrane eventy</option>
-                        </select>
-                        <input type="number" id="cstats-stat-value" placeholder="Wartość" min="0"
-                            style="width:100px;padding:.5rem .6rem;border:1.5px solid var(--border);border-radius:8px;font-size:.85rem;background:var(--bg);color:var(--text-primary);">
-                    </div>
-                    <button onclick="cstatsSaveStat()" style="width:100%;padding:.6rem;background:#3b82f6;color:#fff;border:none;border-radius:8px;font-weight:800;cursor:pointer;font-family:var(--font);font-size:.85rem;">
-                        <i class="fa-solid fa-floppy-disk"></i> Zapisz
-                    </button>
-                    <div id="cstats-edit-msg" style="display:none;margin-top:.4rem;padding:.45rem .7rem;border-radius:6px;font-size:.8rem;font-weight:600;"></div>
-                </div>
-            </div>
-        </div>
-        <div class="table-card" style="padding:1.2rem;margin-bottom:1.2rem;">
-            <div style="font-size:.75rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.7rem;display:flex;align-items:center;justify-content:space-between;">
-                <span><i class="fa-solid fa-award" style="color:#8b5cf6;"></i> Osiągnięcia gracza</span>
-                <span id="cstats-ach-player" style="font-size:.82rem;font-weight:700;color:var(--text-primary);"></span>
-            </div>
-            <div id="cstats-achievements" style="color:var(--text-secondary);text-align:center;padding:1.5rem;font-size:.88rem;">Wybierz gracza powyżej.</div>
-        </div>
-        <div class="table-card" style="overflow:hidden;">
-            <div style="padding:.8rem 1.2rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
-                <div style="font-size:.75rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;"><i class="fa-solid fa-clock-rotate-left" style="color:#ef4444;"></i> Historia edycji</div>
-                <button class="tbl-btn" onclick="loadCStatsEditLog()" style="font-size:.72rem;"><i class="fa-solid fa-rotate-right"></i></button>
-            </div>
-            <div id="cstats-editlog-list" style="max-height:280px;overflow-y:auto;">
-                <div style="text-align:center;padding:2rem;color:var(--text-secondary);font-size:.85rem;"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</div>
+                <div id="cstats-top-list" style="max-height:340px;overflow-y:auto;"></div>
             </div>
         </div>
     </div>
@@ -1048,9 +1074,12 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="table-card" style="padding:1rem;">
                 <div style="font-size:.72rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.5rem;"><i class="fa-solid fa-circle-info"></i> Status</div>
                 <div style="font-size:.8rem;display:flex;flex-direction:column;gap:.3rem;">
-                    <div><span style="color:var(--text-secondary);">Model:</span> <b>Gemini 2.0 Flash</b></div>
+                    <div><span style="color:var(--text-secondary);">Model:</span> <b>Gemini 2.5 Flash</b></div>
                     <div><span style="color:var(--text-secondary);">Klucz:</span> <span id="ai-key-status" style="font-weight:700;color:#ef4444;">Nie skonfigurowany</span></div>
                     <div><span style="color:var(--text-secondary);">Zapytania dziś:</span> <b id="ai-usage-count">0</b></div>
+                    <button id="ai-test-btn" onclick="window.testAiKey()" style="margin-top:.5rem;padding:.5rem;background:transparent;border:1.5px solid rgba(139,92,246,.3);border-radius:8px;color:#8b5cf6;font-weight:700;font-size:.78rem;cursor:pointer;font-family:var(--font);">
+                        <i class="fa-solid fa-vial"></i> Testuj klucz API
+                    </button>
                 </div>
             </div>
         </div>

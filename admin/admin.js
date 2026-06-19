@@ -953,11 +953,11 @@ function _invSlotHtml(item, showTooltipPopup = false) {
         ? `<span class="inv-slot-amt">${amt}</span>`
         : '';
 
-    // ─── Ikona itemu z mc-heads.net (Problem 4) ───────────────────────────
+    // ─── Ikona itemu z minecraftitemids.com (działający serwis ikon) ──────
     // Material lowercase, np. DIAMOND_SWORD → diamond_sword → URL.
-    // Fallback: emoji jeśli obrazek się nie załaduje (onerror).
+    // Fallback: emoji jeśli obrazek się nie załaduje (onerror → pokaż emoji).
     const matLower = mat.toLowerCase();
-    const iconUrl  = `https://mc-heads.net/items/${encodeURIComponent(matLower)}.png`;
+    const iconUrl  = `https://minecraftitemids.com/item/64/${encodeURIComponent(matLower)}.png`;
     const iconHtml = `<img class="inv-slot-img" src="${iconUrl}" alt="${escapeHtml(mat)}" loading="lazy"
                           onerror="this.style.display='none';this.parentElement.querySelector('.inv-slot-emoji-fallback').style.display='';">
                      <span class="inv-slot-emoji-fallback" style="display:none;">${emoji}</span>`;
@@ -2703,6 +2703,51 @@ window.cstatsSearchPlayer = async function(val) {
     }
 };
 
+/** Renderuje siatkę kart statystyk gracza w div #cstats-player-statgrid */
+function renderCStatsGrid(p) {
+    const grid = document.getElementById('cstats-player-statgrid');
+    if (!grid) return;
+    const fmt = v => (v === undefined || v === null) ? '0' : (typeof v === 'number' ? Math.round(v).toLocaleString('pl-PL') : v);
+    // Karty: [ikona, etykieta, wartość, kolor]
+    const cards = [
+        ['⚔️', 'Zabójstwa',    fmt(p.kills),        '#dc2626'],
+        ['💀', 'Śmierci',      fmt(p.deaths),       '#9ca3af'],
+        ['🔥', 'Killstreak',   fmt(p.killstreak),   '#f59e0b'],
+        ['⭐', 'Max Streak',   fmt(p.maxKillstreak),'#8b5cf6'],
+        ['⛏️', 'Wykopane',     fmt(p.blocksMined),  '#38bdf8'],
+        ['💎', 'Rudy',         fmt(p.oresMined),    '#22d3ee'],
+        ['🧱', 'Postawione',   fmt(p.blocksPlaced), '#84cc16'],
+        ['🧟', 'Zabite moby',  fmt(p.mobsKilled),   '#a3e635'],
+        ['💥', 'Zadane dmg',   fmt(p.damageDealt),  '#f43f5e'],
+        ['🛡️', 'Otrzymane',    fmt(p.damageReceived),'#fb923c'],
+        ['🏃', 'Dystans',      fmt(p.distanceTraveled) + ' m', '#60a5fa'],
+        ['🦘', 'Skoki',        fmt(p.jumps),        '#34d399'],
+        ['⏱️', 'Czas gry',     fmtPlaytime(p.playtime||0), '#eab308'],
+        ['🎯', 'Punkty',       fmt(p.points),       '#f59e0b'],
+        ['🍏', 'Koksy',        fmt(p.koksyEaten),   '#ef4444'],
+        ['🥇', 'Refy',         fmt(p.refyEaten),    '#fbbf24'],
+        ['🧪', 'Mikstury',     fmt(p.potionsDrunk), '#a78bfa'],
+        ['🔮', 'Perły',        fmt(p.pearlsThrown), '#c084fc'],
+        ['🏹', 'Strzały',      fmt(p.arrowsShot),   '#fbbf24'],
+        ['💬', 'Wiadomości',   fmt(p.messagesSent), '#94a3b8'],
+        ['⌨️', 'Komendy',      fmt(p.commandsUsed), '#64748b'],
+        ['🛠️', 'Craftowane',   fmt(p.itemsCrafted), '#fb923c'],
+        ['📦', 'Skrzynie prem.',fmt(p.premiumChests),'#ec4899'],
+        ['🏆', 'Wygrane eventy',fmt(p.eventsWon),   '#f59e0b'],
+    ];
+    grid.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:.6rem;">` +
+        cards.map(([icon, label, val, color]) =>
+            `<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:.7rem .6rem;text-align:center;transition:transform .12s,border-color .12s;"
+                  onmouseenter="this.style.transform='translateY(-2px)';this.style.borderColor='${color}';"
+                  onmouseleave="this.style.transform='';this.style.borderColor='var(--border)';">
+                <div style="font-size:1.3rem;margin-bottom:.2rem;">${icon}</div>
+                <div style="font-size:.65rem;color:var(--text-secondary);text-transform:uppercase;font-weight:600;margin-bottom:.15rem;">${escapeHtml(label)}</div>
+                <div style="font-size:.95rem;font-weight:800;color:${color};">${escapeHtml(String(val))}</div>
+            </div>`
+        ).join('') +
+        `</div>`;
+}
+
 window.cstatsSelectPlayer = async function(name, uuid) {
     const sug = document.getElementById('cstats-suggestions');
     const input = document.getElementById('cstats-edit-nick');
@@ -2721,15 +2766,23 @@ window.cstatsSelectPlayer = async function(name, uuid) {
         _cstatsSelectedPlayer = { name, uuid, stats: p };
 
         infoDiv.innerHTML = `
-            <img src="https://mc-heads.net/avatar/${encodeURIComponent(name)}/32" style="width:32px;height:32px;border-radius:6px;image-rendering:pixelated;">
-            <div>
-                <div style="font-weight:800;">${escapeHtml(name)}</div>
-                <div style="font-size:.72rem;color:var(--text-secondary);">
-                    Kille: <b>${(p.kills||0).toLocaleString('pl-PL')}</b> •
+            <img src="https://mc-heads.net/avatar/${encodeURIComponent(name)}/40" style="width:40px;height:40px;border-radius:8px;image-rendering:pixelated;">
+            <div style="flex:1;">
+                <div style="font-weight:800;font-size:1rem;">${escapeHtml(name)}</div>
+                <div style="font-size:.74rem;color:var(--text-secondary);margin-top:.15rem;">
+                    Kille: <b style="color:#dc2626;">${(p.kills||0).toLocaleString('pl-PL')}</b> •
+                    Śmierci: <b>${(p.deaths||0).toLocaleString('pl-PL')}</b> •
+                    KDR: <b style="color:#8b5cf6;">${(p.deaths > 0 ? (p.kills/p.deaths).toFixed(2) : (p.kills||0)).toString()}</b>
+                </div>
+                <div style="font-size:.74rem;color:var(--text-secondary);margin-top:.1rem;">
                     Czas: <b>${fmtPlaytime(p.playtime||0)}</b> •
-                    Punkty: <b>${Math.round(p.points||0).toLocaleString('pl-PL')}</b>
+                    Punkty: <b style="color:#f59e0b;">${Math.round(p.points||0).toLocaleString('pl-PL')}</b>
                 </div>
             </div>`;
+
+        // Renderuj siatkę statystyk (nowy div)
+        renderCStatsGrid(p);
+
         statsDiv.style.display = 'block';
 
         // Załaduj osiągnięcia
@@ -3105,6 +3158,49 @@ window.saveAiApiKey = function() {
     window.loadAiPage();
 };
 
+/** Test klucza API — wysyła proste zapytanie i pokazuje wynik */
+window.testAiKey = async function() {
+    const key = localStorage.getItem('critmc_ai_key');
+    const btn = document.getElementById('ai-test-btn');
+    if (!key) { showToast('error', 'Najpierw wpisz i zapisz klucz API.'); return; }
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Testuję...'; }
+
+    try {
+        const response = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(key)}`,
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ role: 'user', parts: [{ text: 'Odpowiedz tylko slowem OK' }] }],
+                    generationConfig: { temperature: 0, maxOutputTokens: 10 }
+                })
+            }
+        );
+        if (response.ok) {
+            const data = await response.json();
+            const txt = data.candidates?.[0]?.content?.parts?.[0]?.text || '(pusta)';
+            showToast('success', '✅ Klucz działa! Odpowiedź: ' + txt.substring(0, 40));
+        } else if (response.status === 400 || response.status === 403) {
+            const err = await response.json().catch(() => ({}));
+            const msg = err.error?.message || '';
+            if (msg.includes('API_KEY_INVALID') || msg.includes('API key not valid')) {
+                showToast('error', '❌ Klucz jest nieprawidłowy. Wygeneruj nowy na aistudio.google.com.');
+            } else {
+                showToast('error', '❌ Błąd API: ' + msg.substring(0, 100));
+            }
+        } else if (response.status === 429) {
+            showToast('error', '⏳ Limit zapytań wyczerpany. Poczekaj chwilę.');
+        } else {
+            showToast('error', '❌ Błąd HTTP ' + response.status);
+        }
+    } catch (e) {
+        showToast('error', '🌐 Błąd sieci: ' + (e.message || 'nieznany') + '. Sprawdź połączenie.');
+    } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-vial"></i> Testuj klucz API'; }
+    }
+};
+
 window._aiUseExample = function(el) {
     const input = document.getElementById('ai-input');
     if (input) { input.value = el.textContent.replace(/^[^\s]+\s/, ''); input.focus(); }
@@ -3144,30 +3240,47 @@ window.sendAiMessage = async function() {
     hist.scrollTop = hist.scrollHeight;
 
     try {
-        // Wywołaj Gemini API
-        const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,
-            {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [
-                        { role: 'user', parts: [{ text: AI_SYSTEM_PROMPT }] },
-                        { role: 'model', parts: [{ text: '{"action":"ready"}' }] },
-                        ..._aiHistory.slice(-10),
-                        { role: 'user', parts: [{ text }] }
-                    ],
-                    generationConfig: { temperature: 0.1, maxOutputTokens: 512 }
-                })
-            }
-        );
+        // Wywołaj Gemini API — systemInstruction (poprawne) zamiast wkładania promptu w contents.
+        // Lista modeli sprawdzana po kolei: jeśli pierwszy 404 (nieznany model), próbuj następnego.
+        const MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+        let data = null, lastErr = null;
 
-        if (!response.ok) {
-            const err = await response.json().catch(() => ({}));
-            throw new Error(err.error?.message || `HTTP ${response.status}`);
+        for (const model of MODELS) {
+            try {
+                const response = await fetch(
+                    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`,
+                    {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            systemInstruction: { parts: [{ text: AI_SYSTEM_PROMPT }] },
+                            contents: [
+                                { role: 'user', parts: [{ text: '{"action":"ready"}' }] },
+                                { role: 'model', parts: [{ text: '{"action":"ready"}' }] },
+                                ..._aiHistory.slice(-10),
+                                { role: 'user', parts: [{ text }] }
+                            ],
+                            generationConfig: { temperature: 0.1, maxOutputTokens: 512, responseMimeType: 'application/json' }
+                        })
+                    }
+                );
+                if (response.status === 404) { lastErr = new Error(`Model ${model} nie istnieje (404)`); continue; }
+                if (!response.ok) {
+                    const err = await response.json().catch(() => ({}));
+                    // 400 z "API_KEY_INVALID" lub 403 — nie próbuj innych modeli, to problem klucza
+                    throw new Error(err.error?.message || `HTTP ${response.status}`);
+                }
+                data = await response.json();
+                break; // sukces
+            } catch (e) {
+                lastErr = e;
+                // Błąd klucza / quota — nie próbuj innych modeli
+                if (e.message && (e.message.includes('API_KEY') || e.message.includes('API key') || e.message.includes('quota'))) break;
+            }
         }
 
-        const data = await response.json();
+        if (!data) throw lastErr || new Error('Nie udało się wywołać Gemini API.');
+
         const raw  = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
 
         // Zapisz w historii
@@ -3197,14 +3310,18 @@ window.sendAiMessage = async function() {
 
     } catch(err) {
         document.getElementById(typingId)?.remove();
-        let errMsg = err.message;
+        let errMsg = err.message || 'Nieznany błąd';
         // Czytelne komunikaty po polsku
-        if (errMsg.includes('quota') || errMsg.includes('Quota') || errMsg.includes('RESOURCE_EXHAUSTED')) {
+        if (errMsg.includes('Failed to fetch') || errMsg.includes('NetworkError') || errMsg.includes('network')) {
+            errMsg = '🌐 Błąd sieci — sprawdź połączenie z internetem lub czy przeglądarka nie blokuje żądania.';
+        } else if (errMsg.includes('quota') || errMsg.includes('Quota') || errMsg.includes('RESOURCE_EXHAUSTED')) {
             errMsg = '⏳ Przekroczono limit zapytań Gemini API. Poczekaj kilka sekund i spróbuj ponownie. Jeśli problem się powtarza — limit dzienny się wyczerpał (reset o północy UTC).';
-        } else if (errMsg.includes('API_KEY') || errMsg.includes('API key') || errMsg.includes('401')) {
-            errMsg = '🔑 Błędny klucz API. Sprawdź klucz w ustawieniach (przycisk Konfiguruj).';
+        } else if (errMsg.includes('API_KEY') || errMsg.includes('API key') || errMsg.includes('API_KEY_INVALID') || errMsg.includes('401') || errMsg.includes('403')) {
+            errMsg = '🔑 Błędny lub nieaktywny klucz API. Wejdź na aistudio.google.com, wygeneruj nowy klucz i zaktualizuj go w ustawieniach (przycisk "Zmień klucz").';
         } else if (errMsg.includes('429')) {
             errMsg = '⏳ Za dużo zapytań naraz. Poczekaj chwilę i spróbuj ponownie.';
+        } else if (errMsg.includes('404') || errMsg.includes('nie istnieje')) {
+            errMsg = '⚠️ Model AI jest tymczasowo niedostępny. Spróbuj ponownie za chwilę.';
         }
         _aiAppendMsg('ai', errMsg, '🤖');
     } finally {

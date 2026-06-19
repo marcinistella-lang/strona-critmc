@@ -2053,45 +2053,53 @@ select:focus {
 
 /* ── Ekwipunek gracza — sloty ── */
 .inv-slot {
-    width: 36px;
-    height: 36px;
-    border: 1px solid var(--border);
-    border-radius: 5px;
+    width: 42px;
+    height: 42px;
+    border: 2px solid #1a1a2e;
+    border-radius: 4px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     position: relative;
     flex-shrink: 0;
     cursor: default;
-    overflow: hidden;
-    transition: border-color .15s, transform .1s;
-    background: var(--bg);
+    overflow: visible; /* żeby tooltip wystawał */
+    transition: border-color .12s, transform .1s, box-shadow .12s;
+    background: #0d0d1a;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.04), inset 0 -2px 4px rgba(0,0,0,.4);
 }
 .inv-slot:hover {
-    border-color: var(--accent-blue);
-    transform: scale(1.12);
-    z-index: 2;
-    box-shadow: 0 2px 8px rgba(0,0,0,.2);
+    border-color: #ffffff;
+    transform: scale(1.15);
+    z-index: 50;
+    box-shadow: 0 4px 14px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.2);
 }
 .inv-slot-empty {
     color: var(--text-secondary);
-    font-size: .72rem;
-    opacity: .35;
+    font-size: .6rem;
+    opacity: .2;
+    border-color: #15151f;
+}
+.inv-slot-empty:hover {
+    border-color: #15151f;
+    transform: none;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.04), inset 0 -2px 4px rgba(0,0,0,.4);
 }
 .inv-slot-emoji {
-    font-size: .9rem;
+    font-size: 1.1rem;
     line-height: 1;
     user-select: none;
 }
 .inv-slot-amt {
     position: absolute;
-    bottom: 1px;
-    right: 2px;
-    font-size: .52rem;
+    bottom: -1px;
+    right: 1px;
+    font-size: .68rem;
     font-weight: 800;
     color: #fff;
-    text-shadow: 0 0 3px #000, 0 0 3px #000;
+    text-shadow: 1px 1px 0 #000, -1px 1px 0 #000, 1px -1px 0 #000, -1px -1px 0 #000;
     pointer-events: none;
+    font-family: 'Segoe UI', sans-serif;
 }
 
 /* Kolory tła wg tier */
@@ -2103,65 +2111,74 @@ select:focus {
 .inv-slot-weapon    { background: rgba(239,68,68,.1);    border-color: rgba(239,68,68,.25); }
 .inv-slot-armor     { background: rgba(59,130,246,.1);   border-color: rgba(59,130,246,.25); }
 .inv-slot-utility   { background: rgba(99,102,241,.12);  border-color: rgba(99,102,241,.3); }
-.inv-slot-normal    { background: var(--bg); }
+/* Mocniejsze kolory tier — wyraźne tła jak w MC */
+.inv-slot-netherite { background: #2a1a3e; border-color: #4c1d95; box-shadow: inset 0 0 0 1px rgba(139,92,246,.3), inset 0 -2px 4px rgba(0,0,0,.5); }
+.inv-slot-diamond   { background: #0f2a3a; border-color: #0e7490; box-shadow: inset 0 0 0 1px rgba(56,189,248,.3), inset 0 -2px 4px rgba(0,0,0,.5); }
+.inv-slot-gold      { background: #3a2f0f; border-color: #a16207; box-shadow: inset 0 0 0 1px rgba(251,191,36,.3), inset 0 -2px 4px rgba(0,0,0,.5); }
+.inv-slot-iron      { background: #2a2a2a; border-color: #525252; box-shadow: inset 0 0 0 1px rgba(156,163,175,.25), inset 0 -2px 4px rgba(0,0,0,.5); }
+.inv-slot-special   { background: #3a1f0a; border-color: #c2410c; box-shadow: inset 0 0 0 1px rgba(245,158,11,.35), inset 0 -2px 4px rgba(0,0,0,.5); }
+.inv-slot-weapon    { background: #2a0f0f; border-color: #991b1b; box-shadow: inset 0 0 0 1px rgba(239,68,68,.25), inset 0 -2px 4px rgba(0,0,0,.5); }
+.inv-slot-armor     { background: #0f1a2a; border-color: #1e40af; box-shadow: inset 0 0 0 1px rgba(59,130,246,.25), inset 0 -2px 4px rgba(0,0,0,.5); }
+.inv-slot-utility   { background: #1a1a2e; border-color: #4338ca; box-shadow: inset 0 0 0 1px rgba(99,102,241,.3), inset 0 -2px 4px rgba(0,0,0,.5); }
+.inv-slot-normal    { background: #0d0d1a; }
 
-/* ─── Nowy ekwipunek (Problem 4): ikony itemów + tooltip CSS ────────────────── */
+/* ─── Nowy ekwipunek: ikony itemów + tooltip CSS ────────────────── */
 .inv-slot-img {
-    width: 28px;
-    height: 28px;
+    width: 32px;
+    height: 32px;
     image-rendering: pixelated;
     object-fit: contain;
     pointer-events: none;
-    filter: drop-shadow(0 1px 1px rgba(0,0,0,.4));
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,.6));
 }
 .inv-slot-emoji-fallback {
-    font-size: .95rem;
+    font-size: 1.05rem;
     line-height: 1;
     user-select: none;
 }
 
-/* Tooltip CSS-only — pokazuje się przy :hover na slocie */
+/* Tooltip CSS-only — pokazuje się przy :hover na slocie (styl MC) */
 .inv-tooltip {
     display: none;
     position: absolute;
-    bottom: calc(100% + 6px);
+    bottom: calc(100% + 8px);
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(16,0,16,.96);
-    border: 2px solid rgba(16,0,16,1);
-    box-shadow: 0 4px 16px rgba(0,0,0,.6), 0 0 0 1px rgba(80,0,80,.5);
+    background: #100014;
+    border: 2px solid #1a0028;
+    box-shadow: 0 6px 20px rgba(0,0,0,.8), inset 0 0 0 1px #2a0040;
     border-radius: 0;
-    padding: .5rem .65rem;
-    min-width: 160px;
-    max-width: 240px;
+    padding: .55rem .7rem;
+    min-width: 170px;
+    max-width: 250px;
     z-index: 9999;
     font-family: 'Segoe UI', sans-serif;
-    font-size: .72rem;
+    font-size: .74rem;
     color: #fff;
-    line-height: 1.45;
+    line-height: 1.5;
     pointer-events: none;
     white-space: pre-wrap;
     text-align: left;
 }
-.inv-tooltip-name    { font-weight: 700; margin-bottom: .2rem; }
-.inv-tooltip-enchant { color: #b4a7ff; }
+.inv-tooltip-name    { font-weight: 700; margin-bottom: .25rem; font-size: .82rem; }
+.inv-tooltip-enchant { color: #b4a7ff; font-size: .7rem; }
 .inv-tooltip-lore    { color: #ff7bff; font-style: italic; font-size: .68rem; }
-.inv-tooltip-meta    { color: #aaa; font-size: .66rem; margin-top: .2rem; }
+.inv-tooltip-meta    { color: #888; font-size: .66rem; margin-top: .3rem; border-top: 1px solid #2a0040; padding-top: .25rem; }
 .inv-slot:hover .inv-tooltip { display: block; }
-/* Hotbar — żółta ramka */
-.inv-grid-hotbar .inv-slot { border-color: rgba(251,191,36,.25); }
-.inv-grid-hotbar .inv-slot:hover { border-color: rgba(251,191,36,.8); }
+/* Hotbar — złota ramka jak w MC */
+.inv-grid-hotbar .inv-slot { border-color: #78350f; box-shadow: inset 0 0 0 1px rgba(251,191,36,.2), inset 0 -2px 4px rgba(0,0,0,.5); }
+.inv-grid-hotbar .inv-slot:hover { border-color: #fbbf24; }
 
 /* Layout grida ekwipunku jak w Minecraft */
 .inv-grid {
     display: grid;
-    grid-template-columns: repeat(9, 36px);
-    gap: 3px;
+    grid-template-columns: repeat(9, 42px);
+    gap: 4px;
 }
 .inv-grid-armor {
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    gap: 4px;
 }
 
 /* Modal szczegółów gracza — powiększony (Problem 4) */
