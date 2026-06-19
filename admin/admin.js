@@ -2,7 +2,7 @@
 import {
     getFirestore, collection, getDocs, doc, getDoc,
     setDoc, updateDoc, deleteDoc, addDoc, onSnapshot,
-    query, orderBy, where, serverTimestamp, Timestamp
+    query, orderBy, where, limit, serverTimestamp, Timestamp
 } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
 
 // ─── Firebase ────────────────────────────────────────────────────────────────
@@ -130,8 +130,9 @@ function applyPermissions() {
 }
 
 function loadAll() {
-    loadPlayers(); loadBans(); loadMutes(); loadLogs();
-    loadRolePermissionsFromStore();
+    // Wszystkie zapytania Firestore równolegle — nie czekaj na siebie nawzajem
+    Promise.allSettled([loadBans(), loadMutes(), loadLogs(), loadRolePermissionsFromStore()]);
+    loadPlayers(); // real-time listener, non-blocking
 }
 
 // Przycisk odświeżania w topbarze — resetuje listenery i przeładowuje dane
@@ -342,7 +343,7 @@ window.filterPlayers = function() {
 // ─── KARY: BANY ───────────────────────────────────────────────────────────────
 async function loadBans() {
     try {
-        const snap = await getDocs(query(collection(db, 'bans'), orderBy('date', 'desc')));
+        const snap = await getDocs(query(collection(db, 'bans'), orderBy('date', 'desc'), limit(500)));
         allBans = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         renderBans(allBans);
         const el = document.getElementById('badge-bans'); if (el) el.textContent = allBans.length;
@@ -393,7 +394,7 @@ window.quickUnban = async function(nick, banId) {
 // ─── KARY: MUTY ───────────────────────────────────────────────────────────────
 async function loadMutes() {
     try {
-        const snap = await getDocs(query(collection(db, 'mutes'), orderBy('date', 'desc')));
+        const snap = await getDocs(query(collection(db, 'mutes'), orderBy('date', 'desc'), limit(500)));
         allMutes = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         renderMutes(allMutes);
         const el = document.getElementById('badge-mutes'); if (el) el.textContent = allMutes.length;
@@ -447,7 +448,7 @@ function _updatePenaltiesBadge() {
 // ─── LOGI ─────────────────────────────────────────────────────────────────────
 async function loadLogs() {
     try {
-        const snap = await getDocs(query(collection(db, 'admin_logs'), orderBy('date', 'desc')));
+        const snap = await getDocs(query(collection(db, 'admin_logs'), orderBy('date', 'desc'), limit(500)));
         allLogs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         renderLogs(allLogs);
         buildAdminFilter();
@@ -952,10 +953,73 @@ function _invSlotHtml(item, showTooltipPopup = false) {
         ? `<span class="inv-slot-amt">${amt}</span>`
         : '';
 
-    return `<div class="inv-slot inv-slot-${tier||'normal'}" title="${escapeHtml(tooltip)}" data-item='${escapeHtml(JSON.stringify({type:item.type,amount:amt,name:item.displayName||'',enchants:item.enchants||item.enchantments||null,lore:item.lore||null}))}'>
-        <span class="inv-slot-emoji">${emoji}</span>
+    // ─── Ikona itemu z mc-heads.net (Problem 4) ───────────────────────────
+    // Material lowercase, np. DIAMOND_SWORD → diamond_sword → URL.
+    // Fallback: emoji jeśli obrazek się nie załaduje (onerror).
+    const matLower = mat.toLowerCase();
+    const iconUrl  = `https://mc-heads.net/items/${encodeURIComponent(matLower)}.png`;
+    const iconHtml = `<img class="inv-slot-img" src="${iconUrl}" alt="${escapeHtml(mat)}" loading="lazy"
+                          onerror="this.style.display='none';this.parentElement.querySelector('.inv-slot-emoji-fallback').style.display='';">
+                     <span class="inv-slot-emoji-fallback" style="display:none;">${emoji}</span>`;
+
+    // ─── Tooltip CSS-only (Problem 4) ─────────────────────────────────────
+    const tt = _buildTooltipHtml(item, mat);
+
+    return `<div class="inv-slot inv-slot-${tier||'normal'}" data-item='${escapeHtml(JSON.stringify({type:item.type,amount:amt,name:item.displayName||'',enchants:item.enchants||item.enchantments||null,lore:item.lore||null}))}'>
+        ${iconHtml}
         ${amtHtml}
+        ${tt}
     </div>`;
+}
+
+/** Buduje HTML tooltipa (CSS-only hover) — Problem 4 */
+function _buildTooltipHtml(item, mat) {
+    const amt  = (item.amount || 1);
+    const name = item.displayNameClean || (item.displayName ? _stripColor(item.displayName) : '') || mat.replace(/_/g,' ');
+    const nameColor = _rarirtColorClass(mat);
+    let html = `<div class="inv-tooltip"><div class="inv-tooltip-name ${nameColor}">${escapeHtml(name)}${amt > 1 ? ' ×'+amt : ''}</div>`;
+
+    // Enchanty
+    const enchs = item.enchants || item.enchantments;
+    if (enchs && typeof enchs === 'object' && !Array.isArray(enchs)) {
+        const parts = Object.entries(enchs).map(([k,v]) => {
+            const n = k.replace('minecraft:','').replace(/_/g,' ');
+            return `<div class="inv-tooltip-enchant">${escapeHtml(n)} ${escapeHtml(String(v))}</div>`;
+        });
+        if (parts.length) html += parts.join('');
+    } else if (Array.isArray(enchs) && enchs.length) {
+        const parts = enchs.map(e => {
+            const n = _stripColor(String(e.type||e)).replace('minecraft:','').replace(/_/g,' ');
+            return `<div class="inv-tooltip-enchant">${escapeHtml(n)} ${escapeHtml(String(e.level||''))}</div>`;
+        });
+        if (parts.length) html += parts.join('');
+    }
+
+    // Lore
+    if (Array.isArray(item.lore) && item.lore.length) {
+        html += '<div style="margin-top:.2rem;">';
+        item.lore.forEach(l => html += `<div class="inv-tooltip-lore">${escapeHtml(String(l))}</div>`);
+        html += '</div>';
+    }
+
+    // Meta
+    const metaParts = [];
+    if (item.damage > 0) metaParts.push('Zniszczenie: ' + item.damage);
+    if (item.customModelData) metaParts.push('CMD: ' + item.customModelData);
+    metaParts.push(mat);
+    if (metaParts.length) html += `<div class="inv-tooltip-meta">${escapeHtml(metaParts.join(' • '))}</div>`;
+
+    html += '</div>';
+    return html;
+}
+
+/** Klasa koloru nazwy wg rzadkości materiału (dla tooltipa) */
+function _rarirtColorClass(mat) {
+    if (mat.includes('NETHERITE'))   return 'inv-rarity-netherite';
+    if (mat.includes('DIAMOND'))      return 'inv-rarity-diamond';
+    if (mat.includes('GOLDEN') || mat === 'ENCHANTED_GOLDEN_APPLE') return 'inv-rarity-gold';
+    if (mat === 'TOTEM_OF_UNDYING' || mat === 'NETHER_STAR' || mat === 'DRAGON_EGG') return 'inv-rarity-special';
+    return 'inv-rarity-common';
 }
 
 /** Buduje sekcję tekstową z listą itemów */
@@ -994,27 +1058,27 @@ window.renderInventoryDisplay = function(containerId, inventoryData, armorData, 
     const offhand = Array.isArray(offhandData)      ? offhandData     : (offhandData ? [offhandData] : []);
     const ender   = Array.isArray(enderchestData)   ? enderchestData  : [];
 
-    // Sekcja zbroi (odwrócona kolejność: hełm na górze)
-    const armorLabels = ['🪖 Hełm','🦺 Napierśnik','👖 Spodnie','👟 Buty'];
-    const armorHtml = `<div style="display:flex;gap:5px;flex-wrap:wrap;">` +
-        [3,2,1,0].map(i => `<div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+    // Sekcja zbroi — pionowo jak w MC: hełm u góry, buty na dole
+    const armorLabels = ['Hełm','Napierśnik','Spodnie','Buty'];
+    const armorHtml = `<div class="inv-grid-armor">` +
+        [3,2,1,0].map(i => `<div style="display:flex;align-items:center;gap:6px;">
             ${_invSlotHtml(armor[i]||null)}
-            <span style="font-size:.5rem;color:var(--text-secondary);text-align:center;">${armorLabels[i]}</span>
+            <span style="font-size:.62rem;color:var(--text-secondary);">${armorLabels[i]}</span>
         </div>`).join('') +
         `</div>`;
 
     const offhandHtml = _invSlotHtml(offhand[0]||null);
 
-    // Główny ekwipunek — podzielony jak MC: hotbar (0-8) + górne rzędy
-    const hotbarHtml = `<div style="display:flex;gap:3px;flex-wrap:nowrap;overflow-x:auto;">` +
-        Array.from({length:9}, (_,i) => _invSlotHtml(inv[i]||null)).join('') +
-        `</div>`;
-    const mainInvHtml = `<div style="display:grid;grid-template-columns:repeat(9,36px);gap:3px;">` +
+    // Główny ekwipunek — podzielony jak MC: górne rzędy (9-35) + hotbar (0-8)
+    const mainInvHtml = `<div class="inv-grid">` +
         Array.from({length:27}, (_,i) => _invSlotHtml(inv[i+9]||null)).join('') +
+        `</div>`;
+    const hotbarHtml = `<div class="inv-grid inv-grid-hotbar">` +
+        Array.from({length:9}, (_,i) => _invSlotHtml(inv[i]||null)).join('') +
         `</div>`;
 
     // Enderchest
-    const enderHtml = `<div style="display:grid;grid-template-columns:repeat(9,36px);gap:3px;">` +
+    const enderHtml = `<div class="inv-grid">` +
         Array.from({length:27}, (_,i) => _invSlotHtml(ender[i]||null)).join('') +
         `</div>`;
 
@@ -1027,21 +1091,26 @@ window.renderInventoryDisplay = function(containerId, inventoryData, armorData, 
         _buildItemList('EnderChest', ender, 27);
 
     cont.innerHTML = `
-        <div style="display:flex;gap:1.2rem;flex-wrap:wrap;align-items:flex-start;margin-bottom:.75rem;">
+        <!-- Górny wiersz: armor (pionowo) + offhand | główny ekwipunek -->
+        <div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-start;margin-bottom:.75rem;">
             <!-- Zbroja + offhand -->
-            <div>
-                <div style="font-size:.65rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.3rem;">⚔️ Zbroja</div>
+            <div style="display:flex;flex-direction:column;gap:.4rem;">
+                <div style="font-size:.65rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.2rem;">⚔️ Zbroja</div>
                 ${armorHtml}
-                <div style="font-size:.65rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin:.5rem 0 .3rem;">✋ Lewa ręka</div>
-                <div style="display:flex;align-items:center;gap:5px;">${offhandHtml}</div>
+                <div style="font-size:.65rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin:.4rem 0 .2rem;">✋ Lewa ręka</div>
+                <div>${offhandHtml}</div>
             </div>
-            <!-- Hotbar -->
+            <!-- Główny ekwipunek (10-36) -->
             <div style="flex:1;min-width:0;">
-                <div style="font-size:.65rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.3rem;">🎮 Hotbar (sloty 1-9)</div>
-                ${hotbarHtml}
-                <div style="font-size:.65rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin:.5rem 0 .3rem;">🎒 Plecak (sloty 10-36)</div>
+                <div style="font-size:.65rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.3rem;">🎒 Plecak (sloty 10-36)</div>
                 ${mainInvHtml}
             </div>
+        </div>
+
+        <!-- Hotbar (osobno, żółta ramka) -->
+        <div style="margin-bottom:.75rem;">
+            <div style="font-size:.65rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.3rem;">🎮 Hotbar (sloty 1-9)</div>
+            ${hotbarHtml}
         </div>
 
         <!-- Enderchest (domyślnie zwinięty) -->
@@ -2965,7 +3034,30 @@ window.loadAiPage = function() {
     const setupDiv = document.getElementById('ai-api-setup');
     const keyStatus = document.getElementById('ai-key-status');
     const usageEl = document.getElementById('ai-usage-count');
-    if (setupDiv) setupDiv.style.display = key ? 'none' : 'block';
+    // Sekcja setup jest ZAWSZE widoczna — w środku przełączamy stany (zapisany/brak/formularz)
+    if (setupDiv) setupDiv.style.display = 'block';
+
+    // Przełącz widok wewnętrzny: jeśli jest klucz → pokaż podgląd (zwinięty), jeśli brak → formularz
+    const savedView = document.getElementById('ai-key-saved-view');
+    const formView = document.getElementById('ai-key-form-view');
+    const cancelBtn = document.getElementById('ai-cancel-btn');
+    const formTitle = document.getElementById('ai-key-form-title');
+    if (key) {
+        if (savedView) savedView.style.display = 'block';
+        if (formView) formView.style.display = 'none';
+        // Zamaskowany podgląd: AIza + 4 gwiazdki + ostatnie 4 znaki
+        const masked = key.length > 8 ? `AIza****…${key.slice(-4)}` : 'AIza****';
+        const maskedEl = document.getElementById('ai-key-masked');
+        if (maskedEl) maskedEl.textContent = masked;
+    } else {
+        if (savedView) savedView.style.display = 'none';
+        if (formView) formView.style.display = 'block';
+        if (cancelBtn) cancelBtn.style.display = 'none';
+        if (formTitle) formTitle.innerHTML = '<i class="fa-solid fa-key" style="color:#8b5cf6;"></i> Skonfiguruj klucz Gemini API';
+        const input = document.getElementById('ai-api-key-input');
+        if (input) input.value = '';
+    }
+
     if (keyStatus) { keyStatus.textContent = key ? 'Skonfigurowany ✓' : 'Nie skonfigurowany'; keyStatus.style.color = key ? '#10b981' : '#ef4444'; }
     if (usageEl) usageEl.textContent = _aiUsageToday;
 
@@ -2976,9 +3068,38 @@ window.loadAiPage = function() {
     if (ecoChip && currentUser?.role === 'Zarządzający') ecoChip.style.display = '';
 };
 
+// Rozwiń formularz zmiany klucza (z podglądu zwiniętego)
+window.showAiKeyForm = function() {
+    const savedView = document.getElementById('ai-key-saved-view');
+    const formView = document.getElementById('ai-key-form-view');
+    const formTitle = document.getElementById('ai-key-form-title');
+    const cancelBtn = document.getElementById('ai-cancel-btn');
+    if (savedView) savedView.style.display = 'none';
+    if (formView) formView.style.display = 'block';
+    if (formTitle) formTitle.innerHTML = '<i class="fa-solid fa-key" style="color:#8b5cf6;"></i> Zmień klucz Gemini API';
+    if (cancelBtn) cancelBtn.style.display = '';
+    const input = document.getElementById('ai-api-key-input');
+    if (input) { input.value = ''; input.focus(); }
+};
+
+// Anuluj edycję klucza (wróć do zwiniętego podglądu) — tylko jeśli klucz już istnieje
+window.cancelAiKeyEdit = function() {
+    const key = localStorage.getItem('critmc_ai_key');
+    if (!key) return; // brak klucza = nie można anulować, zostaw formularz
+    window.loadAiPage();
+};
+
+window.removeAiApiKey = function() {
+    localStorage.removeItem('critmc_ai_key');
+    showToast('success', 'Klucz usunięty.');
+    window.loadAiPage();
+};
+
 window.saveAiApiKey = function() {
     const val = document.getElementById('ai-api-key-input')?.value?.trim();
+    // Walidacja: musi zaczynać się od AIza i mieć min. 30 znaków (realne klucze mają ~39)
     if (!val || !val.startsWith('AIza')) { showToast('error', 'Nieprawidłowy klucz Gemini (musi zaczynać się od AIza)'); return; }
+    if (val.length < 30) { showToast('error', 'Klucz jest zbyt krótki (min. 30 znaków).'); return; }
     localStorage.setItem('critmc_ai_key', val);
     showToast('success', 'Klucz zapisany!');
     window.loadAiPage();
@@ -2999,7 +3120,7 @@ window.sendAiMessage = async function() {
     if (!text) return;
 
     const key = localStorage.getItem('critmc_ai_key');
-    if (!key) { showToast('error', 'Skonfiguruj klucz Gemini API!'); document.getElementById('ai-api-setup').style.display = 'block'; return; }
+    if (!key) { showToast('error', 'Skonfiguruj klucz Gemini API!'); window.loadAiPage(); const inp = document.getElementById('ai-api-key-input'); if (inp) inp.focus(); return; }
 
     if (!requirePermission('check', 'AI asystent')) return;
 
@@ -3025,7 +3146,7 @@ window.sendAiMessage = async function() {
     try {
         // Wywołaj Gemini API
         const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,
             {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

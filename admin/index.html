@@ -973,14 +973,33 @@ document.addEventListener('DOMContentLoaded', function() {
         <p>Zarządzaj serwerem głosem — wpisz polecenie po polsku</p>
     </div>
     <div id="ai-api-setup" style="display:none;background:rgba(139,92,246,.08);border:1.5px solid rgba(139,92,246,.25);border-radius:16px;padding:1.2rem;margin-bottom:1.2rem;">
-        <div style="font-weight:800;font-size:.92rem;margin-bottom:.5rem;"><i class="fa-solid fa-key" style="color:#8b5cf6;"></i> Skonfiguruj klucz Gemini API</div>
-        <p style="font-size:.82rem;color:var(--text-secondary);margin-bottom:.7rem;">Wejdź na <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:#8b5cf6;font-weight:700;">aistudio.google.com</a> i wygeneruj darmowy klucz (1500 req/dzień).</p>
-        <div style="display:flex;gap:.6rem;">
-            <input type="password" id="ai-api-key-input" placeholder="AIzaSy..." autocomplete="off"
-                style="flex:1;padding:.65rem .9rem;border:1.5px solid var(--border);border-radius:8px;font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
-            <button onclick="saveAiApiKey()" style="padding:.65rem 1.2rem;background:#8b5cf6;color:#fff;border:none;border-radius:8px;font-size:.88rem;font-weight:800;cursor:pointer;font-family:var(--font);">
-                <i class="fa-solid fa-floppy-disk"></i> Zapisz
-            </button>
+        <!-- Stan: klucz zapisany (zwinięty podgląd) -->
+        <div id="ai-key-saved-view" style="display:none;">
+            <div style="font-weight:800;font-size:.92rem;margin-bottom:.5rem;"><i class="fa-solid fa-key" style="color:#8b5cf6;"></i> Klucz Gemini API</div>
+            <div style="font-size:.85rem;margin-bottom:.8rem;">Aktywny klucz: <b id="ai-key-masked" style="font-family:monospace;color:#8b5cf6;">AIza****</b></div>
+            <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+                <button onclick="window.showAiKeyForm()" style="padding:.55rem 1.1rem;background:#8b5cf6;color:#fff;border:none;border-radius:8px;font-size:.82rem;font-weight:800;cursor:pointer;font-family:var(--font);">
+                    <i class="fa-solid fa-pen"></i> Zmień klucz
+                </button>
+                <button onclick="window.removeAiApiKey()" style="padding:.55rem 1.1rem;background:transparent;color:#ef4444;border:1.5px solid rgba(239,68,68,.3);border-radius:8px;font-size:.82rem;font-weight:800;cursor:pointer;font-family:var(--font);">
+                    <i class="fa-solid fa-trash"></i> Usuń klucz
+                </button>
+            </div>
+        </div>
+        <!-- Stan: formularz (brak klucza lub zmiana) -->
+        <div id="ai-key-form-view">
+            <div id="ai-key-form-title" style="font-weight:800;font-size:.92rem;margin-bottom:.5rem;"><i class="fa-solid fa-key" style="color:#8b5cf6;"></i> Skonfiguruj klucz Gemini API</div>
+            <p style="font-size:.82rem;color:var(--text-secondary);margin-bottom:.7rem;">Wejdź na <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:#8b5cf6;font-weight:700;">aistudio.google.com</a> i wygeneruj darmowy klucz (1500 req/dzień).</p>
+            <div style="display:flex;gap:.6rem;flex-wrap:wrap;">
+                <input type="password" id="ai-api-key-input" placeholder="AIzaSy..." autocomplete="off"
+                    style="flex:1;min-width:200px;padding:.65rem .9rem;border:1.5px solid var(--border);border-radius:8px;font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                <button onclick="saveAiApiKey()" style="padding:.65rem 1.2rem;background:#8b5cf6;color:#fff;border:none;border-radius:8px;font-size:.88rem;font-weight:800;cursor:pointer;font-family:var(--font);">
+                    <i class="fa-solid fa-floppy-disk"></i> Zapisz
+                </button>
+                <button id="ai-cancel-btn" onclick="window.cancelAiKeyEdit()" style="display:none;padding:.65rem 1.2rem;background:transparent;color:var(--text-secondary);border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;font-weight:800;cursor:pointer;font-family:var(--font);">
+                    Anuluj
+                </button>
+            </div>
         </div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 300px;gap:1.2rem;align-items:start;">
@@ -1083,11 +1102,11 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
 </div>
 
-<!-- MODAL: SZCZEGÓŁY GRACZA -->
+<!-- MODAL: SZCZEGÓŁY GRACZA (Problem 4: powiększony do ~1100px) -->
 <div class="modal-overlay" id="player-detail-modal" onclick="closeModal(event)">
-    <div class="modal-box" style="max-width:520px;">
+    <div class="modal-box" style="max-width:92vw;width:1100px;max-height:92vh;">
         <div class="modal-header"><div class="modal-title">Szczegóły gracza</div><button class="modal-close" onclick="closePlayerDetail()"><i class="fa-solid fa-xmark"></i></button></div>
-        <div class="modal-body" id="player-detail-body"></div>
+        <div class="modal-body" id="player-detail-body" style="max-height:80vh;overflow-y:auto;"></div>
     </div>
 </div>
 
