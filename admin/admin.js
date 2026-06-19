@@ -3378,15 +3378,79 @@ window.saveAiApiKey = function() {
 };
 
 /** Lista modeli do wypróbowania w kolejności. Pierwszy działający wygrywa. */
-const AI_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-flash-latest'];
+// Pełna lista modeli — każdy ma OSOBNY dzienny limit (przydatne gdy jeden się wyczerpie).
+// Kolejność: najlepsze/najszybsze najpierw, lżejsze (lite) jako fallback.
+const AI_MODELS = [
+    'gemini-2.5-flash',          // główny, najlepszy stosunek jako/limit
+    'gemini-3.5-flash',          // nowszy, często dostępny
+    'gemini-3-flash-preview',    // preview 3.x
+    'gemini-flash-latest',       // zawsze dostępny alias
+    'gemini-2.0-flash',          // stabilny 2.0
+    'gemini-2.0-flash-001',      // konkretna wersja = osobny limit!
+    'gemini-2.5-flash-lite',     // lżejszy, często ma limit gdy reszta padła
+    'gemini-2.0-flash-lite',     // lite 2.0
+    'gemini-2.0-flash-lite-001', // konkretna wersja lite
+    'gemini-3.1-flash-lite',     // lite 3.1
+    'gemini-flash-lite-latest',  // alias lite
+];
 
-/** Zwraca pierwszy model, który odpowie 200. Zapisuje go w localStorage. */
-async function _aiPickWorkingModel(key) {
-    // Spróbuj zapamiętany model najpierw (szybka ścieżka)
+/** Zwraca dzisiejszy klucz oznaczania wyczerpanych modeli (resetuje się o północy). */
+function _aiExhaustedKey() {
+    return 'critmc_ai_exhausted_' + new Date().toDateString();
+}
+
+/** Oznacz model jako wyczerpany dzisiaj (429) — pomijany do północy. */
+function _aiMarkExhausted(model) {
+    try {
+        const k = _aiExhaustedKey();
+        const list = JSON.parse(localStorage.getItem(k) || '[]');
+        if (!list.includes(model)) { list.push(model); localStorage.setItem(k, JSON.stringify(list)); }
+        console.log('[AI] Model wyczerpany dzisiaj:', model);
+    } catch(e) {}
+}
+
+/** Czyści stare listy wyczerpanych modeli (z poprzednich dni). */
+function _aiCleanupExhausted() {
+    try {
+        const today = _aiExhaustedKey();
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+            const k = localStorage.key(i);
+            if (k && k.startsWith('critmc_ai_exhausted_') && k !== today) localStorage.removeItem(k);
+        }
+    } catch(e) {}
+}
+
+/** Lista modeli wyczerpanych dzisiaj. */
+function _aiGetExhausted() {
+    try { return JSON.parse(localStorage.getItem(_aiExhaustedKey()) || '[]'); } catch(e) { return []; }
+}
+
+/**
+ * Zwraca pierwszy DZIAŁAJĄCY model.
+ * - Pomija modele wyczerpane dzisiaj (zapamiętane w localStorage z 429).
+ * - Pomija modele które nie istnieją (404) lub są niedostępne (503).
+ * - Przy 429 oznacza model jako wyczerpany i próbuje następnego.
+ * - Zwraca {model, status, msg}.
+ */
+async function _aiPickWorkingModel(key, skipTest = false) {
+    _aiCleanupExhausted();
+    const exhausted = _aiGetExhausted();
+    // Szybka ścieżka: zapamiętany działający model (jeśli nie jest wyczerpany)
     const cached = localStorage.getItem('critmc_ai_model');
-    const order = cached ? [cached, ...AI_MODELS.filter(m => m !== cached)] : AI_MODELS;
+    const candidates = [];
+    if (cached && !exhausted.includes(cached)) candidates.push(cached);
+    for (const m of AI_MODELS) {
+        if (!candidates.includes(m) && !exhausted.includes(m)) candidates.push(m);
+    }
+    console.log('[AI] Kandydaci:', candidates, '| wyczerpane:', exhausted);
+
+    if (skipTest && cached && !exhausted.includes(cached)) {
+        // Szybka ścieżka dla sendAiMessage — ufamy cache, testujemy dopiero gdy wywali
+        return { model: cached, status: 200 };
+    }
+
     let lastStatus = 0, lastMsg = '';
-    for (const model of order) {
+    for (const model of candidates) {
         try {
             const r = await fetch(
                 `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`,
@@ -3401,23 +3465,29 @@ async function _aiPickWorkingModel(key) {
             );
             if (r.ok) {
                 localStorage.setItem('critmc_ai_model', model);
+                console.log('[AI] Działający model:', model);
                 return { model, status: 200 };
             }
             lastStatus = r.status;
-            // 429 = quota dla tego modelu — spróbuj następnego
-            // 404 = model nie istnieje — spróbuj następnego
-            // 400/403 = problem klucza — nie próbuj dalej
+            if (r.status === 429) {
+                // Quota — oznacz jako wyczerpany i próbuj następnego (osobny limit per model!)
+                _aiMarkExhausted(model);
+                continue;
+            }
+            if (r.status === 404 || r.status === 503) {
+                // Model nie istnieje lub niedostępny — spróbuj następnego
+                continue;
+            }
             if (r.status === 400 || r.status === 403) {
+                // Problem klucza — nie próbuj dalej (to nie wina modelu)
                 const e = await r.json().catch(() => ({}));
                 return { model, status: r.status, msg: e.error?.message || '' };
             }
-            // 429 lub 404 — kontynuuj do następnego modelu
         } catch (e) {
             lastStatus = -1; // błąd sieci
             lastMsg = e.message || '';
         }
     }
-    // Żaden model nie zadziałał — zwróć ostatni status (429 = wszystkie quota, 0 = nieznany)
     return { model: null, status: lastStatus, msg: lastMsg };
 }
 
@@ -3436,7 +3506,13 @@ window.testAiKey = async function() {
         console.log('[AI Test] Wynik _aiPickWorkingModel:', result);
 
         if (result.status === 200 && result.model) {
-            showToast('success', '✅ Klucz działa! Model: ' + result.model);
+            const exhausted = _aiGetExhausted();
+            const totalModels = AI_MODELS.length;
+            const availModels = totalModels - exhausted.length;
+            const extra = exhausted.length > 0
+                ? ` | ${availModels}/${totalModels} modeli aktywnych (${exhausted.length} wyczerpanych)`
+                : ` | wszystkie ${totalModels} modeli aktywne`;
+            showToast('success', '✅ Klucz działa! Model: ' + result.model + extra);
             const modelEl = document.getElementById('ai-active-model');
             if (modelEl) modelEl.textContent = result.model;
         } else if (result.status === 400 || result.status === 403) {
@@ -3448,7 +3524,7 @@ window.testAiKey = async function() {
                 showToast('error', '❌ Błąd API (' + result.status + '): ' + msg.substring(0, 80));
             }
         } else if (result.status === 429) {
-            showToast('error', '⏳ Wszystkie modele mają wyczerpany limit dzienny (429). Spróbuj jutro.');
+            showToast('error', '⏳ Wszystkie modele (' + AI_MODELS.length + ') mają wyczerpany limit dzienny. Spróbuj jutro (reset o północy UTC).');
         } else if (result.status === -1) {
             showToast('error', '🌐 Błąd sieci — sprawdź połączenie. Konsola (F12) ma szczegóły.');
         } else {
@@ -3501,46 +3577,73 @@ window.sendAiMessage = async function() {
     hist.scrollTop = hist.scrollHeight;
 
     try {
-        // Krok 1: znajdź działający model (cache w localStorage, szybka ścieżka)
-        const picked = await _aiPickWorkingModel(key);
-        if (picked.status !== 200 || !picked.model) {
-            // Wyświetl konkretny błąd na podstawie statusu
-            if (picked.status === 400 || picked.status === 403) {
-                throw new Error('API_KEY_INVALID: ' + (picked.msg || 'nieprawidłowy klucz'));
-            } else if (picked.status === 429) {
-                throw new Error('RESOURCE_EXHAUSTED: wszystkie modele mają wyczerpany limit');
-            } else {
-                throw new Error('Nie udało się połączyć z żadnym modelem Gemini (status ' + picked.status + ')');
+        // Wyślij zapytanie z automatyczną rotacją modeli przy 429/503.
+        // Max 4 próby — za każdym razem nowy model z _aiPickWorkingModel.
+        let data = null, usedModel = null, lastErr = null;
+        for (let attempt = 0; attempt < 4; attempt++) {
+            // Znajdź działający model (pomija wyczerpane dzisiaj)
+            const picked = await _aiPickWorkingModel(key, attempt > 0); // skipTest=true od 2. próby
+            if (!picked.model || picked.status !== 200) {
+                // Pierwsza próba bez modelu = problem klucza
+                if (attempt === 0) {
+                    if (picked.status === 400 || picked.status === 403) {
+                        throw new Error('API_KEY_INVALID: ' + (picked.msg || 'nieprawidłowy klucz'));
+                    } else if (picked.status === 429) {
+                        throw new Error('RESOURCE_EXHAUSTED: wszystkie modele mają wyczerpany limit dzienny. Spróbuj jutro lub włącz plan płatny.');
+                    } else {
+                        throw new Error('Nie udało się połączyć z żadnym modelem Gemini (status ' + picked.status + ')');
+                    }
+                }
+                break; // kolejna próba nie ma sensu
+            }
+            usedModel = picked.model;
+            try {
+                const response = await fetch(
+                    `https://generativelanguage.googleapis.com/v1beta/models/${usedModel}:generateContent?key=${encodeURIComponent(key)}`,
+                    {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            systemInstruction: { parts: [{ text: AI_SYSTEM_PROMPT }] },
+                            contents: [
+                                ..._aiHistory.slice(-8),
+                                { role: 'user', parts: [{ text }] }
+                            ],
+                            generationConfig: { temperature: 0.1, maxOutputTokens: 512, responseMimeType: 'application/json' }
+                        })
+                    }
+                );
+                if (response.ok) {
+                    data = await response.json();
+                    break; // sukces!
+                }
+                if (response.status === 429) {
+                    // Ten model wyczerpany — oznacz i próbuj następnego
+                    _aiMarkExhausted(usedModel);
+                    lastErr = new Error('Model ' + usedModel + ' wyczerpany (429) — przełączam...');
+                    continue;
+                }
+                if (response.status === 503 || response.status === 500) {
+                    // Serwer niedostępny — spróbuj następnego modelu
+                    lastErr = new Error('Model ' + usedModel + ' niedostępny (' + response.status + ') — próbuję inny...');
+                    continue;
+                }
+                // Inny błąd (400/403) — nie próbuj dalej
+                const err = await response.json().catch(() => ({}));
+                throw new Error(err.error?.message || `HTTP ${response.status}`);
+            } catch (e) {
+                lastErr = e;
+                // Błąd sieci — spróbuj następnego modelu
+                if (attempt < 3) continue;
+                throw e;
             }
         }
-        const model = picked.model;
-
-        // Krok 2: wyślij właściwe zapytanie z wybranym modelem
-        // UWAGA: nie wkładamy sztucznych wiadomości "ready" do contents — to myliło model.
-        // systemInstruction wystarczy. Historia = prawdziwe pytania + odpowiedzi.
-        const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`,
-            {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    systemInstruction: { parts: [{ text: AI_SYSTEM_PROMPT }] },
-                    contents: [
-                        ..._aiHistory.slice(-8),
-                        { role: 'user', parts: [{ text }] }
-                    ],
-                    generationConfig: { temperature: 0.1, maxOutputTokens: 512, responseMimeType: 'application/json' }
-                })
-            }
-        );
-        if (!response.ok) {
-            const err = await response.json().catch(() => ({}));
-            throw new Error(err.error?.message || `HTTP ${response.status}`);
+        if (!data) {
+            throw lastErr || new Error('Nie udało się uzyskać odpowiedzi od żadnego modelu.');
         }
-        const data = await response.json();
-        const raw  = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-        console.log('[AI Chat] Pytanie:', text);
-        console.log('[AI Chat] Surowa odpowiedź modelu:', raw);
+        const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+        console.log('[AI Chat] Pytanie:', text, '| model:', usedModel);
+        console.log('[AI Chat] Surowa odpowiedź:', raw);
 
         // Zapisz w historii
         _aiHistory.push({ role: 'user',  parts: [{ text }] });
