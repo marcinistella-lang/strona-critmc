@@ -2050,3 +2050,57 @@ select:focus {
     0%, 80%, 100% { transform: scale(.7); opacity: .5; }
     40%           { transform: scale(1);  opacity: 1; }
 }
+
+/* ── Ekwipunek gracza — sloty ── */
+.inv-slot {
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    flex-shrink: 0;
+    cursor: default;
+    overflow: hidden;
+    transition: border-color .15s, transform .1s;
+    background: var(--bg);
+}
+.inv-slot:hover {
+    border-color: var(--accent-blue);
+    transform: scale(1.12);
+    z-index: 2;
+    box-shadow: 0 2px 8px rgba(0,0,0,.2);
+}
+.inv-slot-empty {
+    color: var(--text-secondary);
+    font-size: .72rem;
+    opacity: .35;
+}
+.inv-slot-emoji {
+    font-size: .9rem;
+    line-height: 1;
+    user-select: none;
+}
+.inv-slot-amt {
+    position: absolute;
+    bottom: 1px;
+    right: 2px;
+    font-size: .52rem;
+    font-weight: 800;
+    color: #fff;
+    text-shadow: 0 0 3px #000, 0 0 3px #000;
+    pointer-events: none;
+}
+
+/* Kolory tła wg tier */
+.inv-slot-netherite { background: rgba(139,92,246,.18); border-color: rgba(139,92,246,.4); }
+.inv-slot-diamond   { background: rgba(56,189,248,.15); border-color: rgba(56,189,248,.35); }
+.inv-slot-gold      { background: rgba(251,191,36,.15);  border-color: rgba(251,191,36,.35); }
+.inv-slot-iron      { background: rgba(156,163,175,.15); border-color: rgba(156,163,175,.3); }
+.inv-slot-special   { background: rgba(245,158,11,.18);  border-color: rgba(245,158,11,.4); }
+.inv-slot-weapon    { background: rgba(239,68,68,.1);    border-color: rgba(239,68,68,.25); }
+.inv-slot-armor     { background: rgba(59,130,246,.1);   border-color: rgba(59,130,246,.25); }
+.inv-slot-utility   { background: rgba(99,102,241,.12);  border-color: rgba(99,102,241,.3); }
+.inv-slot-normal    { background: var(--bg); }

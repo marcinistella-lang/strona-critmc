@@ -811,117 +811,324 @@ window.addEventListener('openPlayerDetail', async (e) => {
             const dispEl   = document.getElementById('player-inventory-display');
             if (invSnap.exists()) {
                 const inv = invSnap.data();
-                if (statusEl) { statusEl.textContent = 'Dane z CStats'; statusEl.style.color = '#10b981'; }
+                const upd = inv.updatedAt ? new Date(inv.updatedAt).toLocaleTimeString('pl-PL') : '—';
+                if (statusEl) { statusEl.textContent = `Aktualizacja: ${upd}`; statusEl.style.color = '#10b981'; }
                 renderInventoryDisplay('player-inventory-display', inv.inventory||[], inv.armor||[], inv.offhand||[], inv.enderchest||[]);
+                // Uruchom auto-odświeżanie co 5s
+                window._startInvAutoRefresh(uuid, 'player-inventory-display');
             } else {
-                if (statusEl) { statusEl.textContent = 'Brak danych'; statusEl.style.color = 'var(--text-secondary)'; }
-                if (dispEl) dispEl.innerHTML = '<div style="font-size:.82rem;color:var(--text-secondary);padding:.5rem 0;">Brak danych ekwipunku (gracz musi mieć plugin CStats)</div>';
+                if (statusEl) { statusEl.textContent = 'Brak danych CStats'; statusEl.style.color = 'var(--text-secondary)'; }
+                if (dispEl) dispEl.innerHTML = '<div style="font-size:.82rem;color:var(--text-secondary);padding:.5rem 0;">Brak danych ekwipunku — zainstaluj plugin CStats na serwerze.</div>';
             }
         } catch(invErr) {
             const statusEl = document.getElementById('player-inv-status');
             const dispEl   = document.getElementById('player-inventory-display');
-            if (statusEl) { statusEl.textContent = 'Błąd'; statusEl.style.color = '#ef4444'; }
-            if (dispEl) dispEl.innerHTML = '<div style="font-size:.82rem;color:#ef4444;padding:.5rem 0;">Błąd ładowania ekwipunku: ' + escapeHtml(invErr.message) + '</div>';
+            if (statusEl) { statusEl.textContent = 'Błąd: ' + invErr.message.substring(0,30); statusEl.style.color = '#ef4444'; }
+            if (dispEl) dispEl.innerHTML = '<div style="font-size:.82rem;color:#ef4444;padding:.5rem 0;">Błąd ładowania ekwipunku.</div>';
         }
     } catch(e) { body.innerHTML = '<p style="color:#ef4444;">Błąd: '+e.message+'</p>'; }
 });
 
 // ─── EKWIPUNEK GRACZA ────────────────────────────────────────────────────────
 
+// ─── EKWIPUNEK GRACZA — ulepszona wersja ─────────────────────────────────────
+
+// Timer auto-odświeżania ekwipunku gdy modal otwarty
+let _invRefreshInterval = null;
+let _invCurrentUuid    = null;
+
+// Rozszerzona mapa emoji
 const _MAT_EMOJI = {
-    DIAMOND_SWORD:'⚔️', NETHERITE_SWORD:'⚔️', IRON_SWORD:'🗡️', STONE_SWORD:'🗡️', GOLDEN_SWORD:'🗡️', WOODEN_SWORD:'🗡️',
-    DIAMOND_PICKAXE:'⛏️', NETHERITE_PICKAXE:'⛏️', IRON_PICKAXE:'⛏️', STONE_PICKAXE:'⛏️', GOLDEN_PICKAXE:'⛏️', WOODEN_PICKAXE:'⛏️',
-    DIAMOND_AXE:'🪓', NETHERITE_AXE:'🪓', IRON_AXE:'🪓',
+    // Miecze
+    DIAMOND_SWORD:'⚔️', NETHERITE_SWORD:'⚔️', IRON_SWORD:'🗡️',
+    STONE_SWORD:'🗡️', GOLDEN_SWORD:'🗡️', WOODEN_SWORD:'🗡️',
+    // Kilofy
+    DIAMOND_PICKAXE:'⛏️', NETHERITE_PICKAXE:'⛏️', IRON_PICKAXE:'⛏️',
+    STONE_PICKAXE:'⛏️', GOLDEN_PICKAXE:'⛏️', WOODEN_PICKAXE:'⛏️',
+    // Siekiery
+    DIAMOND_AXE:'🪓', NETHERITE_AXE:'🪓', IRON_AXE:'🪓', STONE_AXE:'🪓', WOODEN_AXE:'🪓',
+    // Zbroja diamentowa
     DIAMOND_HELMET:'💎', DIAMOND_CHESTPLATE:'💎', DIAMOND_LEGGINGS:'💎', DIAMOND_BOOTS:'💎',
+    // Zbroja netherite
     NETHERITE_HELMET:'🌑', NETHERITE_CHESTPLATE:'🌑', NETHERITE_LEGGINGS:'🌑', NETHERITE_BOOTS:'🌑',
-    IRON_HELMET:'🔧', IRON_CHESTPLATE:'🔧', IRON_LEGGINGS:'🔧', IRON_BOOTS:'🔧',
+    // Zbroja żelazna
+    IRON_HELMET:'🔩', IRON_CHESTPLATE:'🔩', IRON_LEGGINGS:'🔩', IRON_BOOTS:'🔩',
+    // Zbroja złota
     GOLDEN_HELMET:'✨', GOLDEN_CHESTPLATE:'✨', GOLDEN_LEGGINGS:'✨', GOLDEN_BOOTS:'✨',
+    // Zbroja chainmail
     CHAINMAIL_HELMET:'⛓️', CHAINMAIL_CHESTPLATE:'⛓️', CHAINMAIL_LEGGINGS:'⛓️', CHAINMAIL_BOOTS:'⛓️',
+    // Zbroja skórzana
     LEATHER_HELMET:'🟫', LEATHER_CHESTPLATE:'🟫', LEATHER_LEGGINGS:'🟫', LEATHER_BOOTS:'🟫',
+    // Jedzenie premium
     ENCHANTED_GOLDEN_APPLE:'⭐', GOLDEN_APPLE:'🍎',
-    POTION:'🧪', SPLASH_POTION:'🧪', LINGERING_POTION:'🧪',
-    ENDER_PEARL:'🔮', BOW:'🏹', CROSSBOW:'🏹', ARROW:'➡️', SPECTRAL_ARROW:'➡️', TIPPED_ARROW:'➡️',
+    COOKED_BEEF:'🥩', COOKED_PORKCHOP:'🥩', COOKED_CHICKEN:'🍗',
+    BREAD:'🍞', CAKE:'🎂', COOKED_SALMON:'🐟',
+    // Mikstury i narzędzia
+    POTION:'🧪', SPLASH_POTION:'💦', LINGERING_POTION:'🌫️',
+    ENDER_PEARL:'🔮', CHORUS_FRUIT:'🍇',
+    BOW:'🏹', CROSSBOW:'🏹',
+    ARROW:'➡️', SPECTRAL_ARROW:'✴️', TIPPED_ARROW:'💘',
     SHIELD:'🛡️', TOTEM_OF_UNDYING:'🪬',
-    COOKED_BEEF:'🥩', COOKED_PORKCHOP:'🥩', COOKED_CHICKEN:'🍗', BREAD:'🍞', CAKE:'🎂',
-    TNT:'💥', OBSIDIAN:'⬛', DIAMOND:'💎', EMERALD:'💚', GOLD_INGOT:'🟡', IRON_INGOT:'⚙️',
-    ELYTRA:'🪂', TRIDENT:'🔱', FISHING_ROD:'🎣', FLINT_AND_STEEL:'🔥',
-    WATER_BUCKET:'💧', LAVA_BUCKET:'🌋', BUCKET:'🪣',
+    ELYTRA:'🪂', TRIDENT:'🔱',
+    FISHING_ROD:'🎣', FLINT_AND_STEEL:'🔥',
+    WATER_BUCKET:'💧', LAVA_BUCKET:'🌋', BUCKET:'🪣', MILK_BUCKET:'🥛',
+    TNT:'💥', OBSIDIAN:'⬛', END_CRYSTAL:'💜',
+    DIAMOND:'💎', EMERALD:'💚', GOLD_INGOT:'🟡', IRON_INGOT:'⚙️',
+    NETHERITE_INGOT:'🌑', AMETHYST_SHARD:'🪩',
+    BLAZE_ROD:'🔥', GHAST_TEAR:'👻',
+    NETHER_STAR:'⭐', BEACON:'🔦',
+    COMPASS:'🧭', CLOCK:'⏰', MAP:'🗺️',
+    BOOK:'📖', ENCHANTED_BOOK:'📕', WRITTEN_BOOK:'📗',
+    NAME_TAG:'🏷️', LEAD:'🪢',
+    SADDLE:'🐎', HORSE_ARMOR_DIAMOND:'💎',
 };
 
-function _matEmoji(mat) {
-    if (!mat) return '❓';
-    return _MAT_EMOJI[mat.toUpperCase()] || (mat.charAt(0).toUpperCase());
+/** Czyści kody kolorów Minecraft (§x) */
+function _stripColor(s) {
+    return (s||'').replace(/§[0-9a-fk-or]/gi, '').trim();
 }
 
-function _invSlotHtml(item) {
-    if (!item || !item.type || item.type === 'AIR') {
-        return '<div style="width:36px;height:36px;border:1px solid var(--border);border-radius:4px;background:var(--bg);display:inline-flex;align-items:center;justify-content:center;font-size:.7rem;color:var(--text-secondary);cursor:default;" title="Pusty slot">—</div>';
+/** Buduje tooltip dla itemu */
+function _buildItemTooltip(item) {
+    if (!item || !item.type || item.type === 'AIR') return 'Pusty slot';
+    const mat  = (item.type||item.material||'').replace(/_/g,' ');
+    // Użyj czystej nazwy jeśli dostępna
+    const name = item.displayNameClean || (item.displayName ? _stripColor(item.displayName) : mat);
+    const amt  = (item.amount || 1);
+    const lines = [`${name}${amt > 1 ? ' ×'+amt : ''}`];
+
+    // Enchanty — format: { "minecraft:sharpness": 5 }
+    const enchs = item.enchants || item.enchantments;
+    if (enchs && typeof enchs === 'object' && !Array.isArray(enchs)) {
+        const enchLines = Object.entries(enchs).map(([k,v]) => {
+            const n = k.replace('minecraft:','').replace(/_/g,' ');
+            return `  ✦ ${n} ${v}`;
+        });
+        if (enchLines.length) lines.push(...enchLines);
+    } else if (Array.isArray(enchs) && enchs.length) {
+        enchs.forEach(e => {
+            const n = _stripColor(String(e.type||e)).replace('minecraft:','').replace(/_/g,' ');
+            lines.push(`  ✦ ${n} ${e.level||''}`);
+        });
     }
-    const mat = (item.type||'').toUpperCase();
-    const amt = item.amount > 1 ? item.amount : '';
-    const enchants = Array.isArray(item.enchantments)
-        ? item.enchantments.map(e => (e.type||e)+(e.level?' '+e.level:'')).join(', ')
-        : (item.enchantments ? String(item.enchantments) : '');
-    const lore = Array.isArray(item.lore) ? item.lore.join('\n') : (item.lore||'');
-    const displayName = item.displayName ? item.displayName.replace(/§[0-9a-fk-or]/g,'') : '';
-    const titleParts = [displayName||mat, amt ? 'x'+amt : '', enchants, lore].filter(Boolean);
-    const title = escapeHtml(titleParts.join('\n'));
 
-    // Kolor tła wg kategorii
-    let bg = 'var(--bg)';
-    if (mat.includes('DIAMOND'))    bg = 'rgba(56,189,248,.15)';
-    else if (mat.includes('NETHERITE')) bg = 'rgba(139,92,246,.18)';
-    else if (mat.includes('GOLDEN') || mat.includes('GOLD')) bg = 'rgba(251,191,36,.15)';
-    else if (mat.includes('IRON'))  bg = 'rgba(156,163,175,.15)';
-    else if (mat === 'TOTEM_OF_UNDYING') bg = 'rgba(245,158,11,.2)';
-    else if (mat === 'ENCHANTED_GOLDEN_APPLE') bg = 'rgba(251,191,36,.25)';
-    else if (mat.includes('SWORD') || mat.includes('AXE') || mat.includes('BOW') || mat.includes('PICKAXE')) bg = 'rgba(239,68,68,.12)';
-    else if (mat === 'SHIELD' || mat.includes('ARMOR') || mat.includes('HELMET') || mat.includes('CHESTPLATE') || mat.includes('LEGGINGS') || mat.includes('BOOTS')) bg = 'rgba(59,130,246,.12)';
+    // Lore (już czyste po stronie pluginu)
+    const lore = item.lore;
+    if (Array.isArray(lore) && lore.length) {
+        lines.push('─────');
+        lore.forEach(l => lines.push(String(l)));
+    }
 
-    const emoji = _matEmoji(mat);
-    return `<div style="width:36px;height:36px;border:1px solid var(--border);border-radius:4px;background:${bg};display:inline-flex;align-items:center;justify-content:center;font-size:.55rem;text-align:center;cursor:default;overflow:hidden;position:relative;flex-shrink:0;" title="${title}">
-        <span style="font-size:.85rem;line-height:1;">${emoji}</span>
-        ${amt ? `<span style="position:absolute;bottom:1px;right:2px;font-size:.52rem;font-weight:700;color:var(--text-primary);text-shadow:0 0 2px var(--bg);">${amt}</span>` : ''}
+    // Trwałość i damage
+    if (item.damage > 0) lines.push(`  Zniszczenie: ${item.damage}`);
+    if (item.customModelData) lines.push(`  CustomModelData: ${item.customModelData}`);
+
+    return lines.join('\n');
+}
+
+/** Pojedynczy slot eq — slot 36×36 z emoji i tooltipem */
+function _invSlotHtml(item, showTooltipPopup = false) {
+    if (!item || !item.type || item.type === 'AIR' || item.empty) {
+        return `<div class="inv-slot inv-slot-empty" title="Pusty">—</div>`;
+    }
+
+    const mat  = (item.type||'').toUpperCase();
+    const amt  = (item.amount || 1);
+    const emoji = _MAT_EMOJI[mat] || mat.charAt(0);
+    const tooltip = _buildItemTooltip(item);
+
+    // Kolor tła wg tier
+    let tier = '';
+    if (mat.includes('NETHERITE'))   tier = 'netherite';
+    else if (mat.includes('DIAMOND')) tier = 'diamond';
+    else if (mat.includes('GOLDEN') || mat === 'ENCHANTED_GOLDEN_APPLE') tier = 'gold';
+    else if (mat.includes('IRON'))    tier = 'iron';
+    else if (mat === 'TOTEM_OF_UNDYING' || mat === 'NETHER_STAR') tier = 'special';
+    else if (mat.includes('SWORD') || mat.includes('AXE') || mat.includes('BOW')) tier = 'weapon';
+    else if (mat.includes('HELMET') || mat.includes('CHESTPLATE') || mat.includes('LEGGINGS') || mat.includes('BOOTS')) tier = 'armor';
+    else if (mat.includes('POTION') || mat.includes('ENDER_PEARL')) tier = 'utility';
+
+    const amtHtml = amt > 1
+        ? `<span class="inv-slot-amt">${amt}</span>`
+        : '';
+
+    return `<div class="inv-slot inv-slot-${tier||'normal'}" title="${escapeHtml(tooltip)}" data-item='${escapeHtml(JSON.stringify({type:item.type,amount:amt,name:item.displayName||'',enchants:item.enchants||item.enchantments||null,lore:item.lore||null}))}'>
+        <span class="inv-slot-emoji">${emoji}</span>
+        ${amtHtml}
     </div>`;
 }
 
-window.renderInventoryDisplay = function(containerId, inventoryData, armorData, offhandData, enderchestData) {
-    const cont = document.getElementById(containerId); if (!cont) return;
-
-    const rowLabel = (txt) => `<div style="font-size:.68rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin:0.55rem 0 .25rem;letter-spacing:.04em;">${txt}</div>`;
-    const slotGrid = (items, count) => {
-        let html = '<div style="display:flex;flex-wrap:wrap;gap:3px;">';
-        for (let i = 0; i < count; i++) {
-            html += _invSlotHtml(items[i]||null);
+/** Buduje sekcję tekstową z listą itemów */
+function _buildItemList(label, items, count) {
+    const nonEmpty = [];
+    for (let i = 0; i < Math.min((items||[]).length, count); i++) {
+        const item = items[i];
+        if (item && item.type && item.type !== 'AIR' && !item.empty) {
+            const mat  = _stripColor(item.displayName||'') || item.type.replace(/_/g,' ');
+            const amt  = item.amount > 1 ? ` ×${item.amount}` : '';
+            const enchs = item.enchants || item.enchantments;
+            let enchStr = '';
+            if (enchs && typeof enchs === 'object') {
+                const parts = Array.isArray(enchs)
+                    ? enchs.map(e => `${_stripColor(String(e.type||e))} ${e.level||''}`.trim())
+                    : Object.entries(enchs).map(([k,v]) => `${k.replace('minecraft:','').replace(/_/g,' ')} ${v}`);
+                if (parts.length) enchStr = ` <span style="color:#8b5cf6;font-size:.68rem;">[${parts.join(', ')}]</span>`;
+            }
+            nonEmpty.push(`<span style="font-size:.78rem;">${escapeHtml(mat)}${amt}</span>${enchStr}`);
         }
-        html += '</div>';
-        return html;
-    };
-
-    const ARMOR_LABELS = ['Hełm','Napierśnik','Spodnie','Buty'];
-    let armorHtml = '<div style="display:flex;gap:3px;">';
-    for (let i = 0; i < 4; i++) {
-        const item = Array.isArray(armorData) ? armorData[i] : null;
-        const slot = _invSlotHtml(item);
-        const lbl  = ARMOR_LABELS[i];
-        armorHtml += `<div style="display:flex;flex-direction:column;align-items:center;gap:2px;">${slot}<span style="font-size:.5rem;color:var(--text-secondary);">${lbl}</span></div>`;
     }
-    armorHtml += '</div>';
+    if (!nonEmpty.length) return '';
+    return `<div style="margin-top:.5rem;">
+        <div style="font-size:.65rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.25rem;">${label}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:.3rem;">${nonEmpty.map(i=>`<span style="background:var(--bg);border:1px solid var(--border);padding:.1rem .4rem;border-radius:4px;">${i}</span>`).join('')}</div>
+    </div>`;
+}
 
-    const offhandItem  = Array.isArray(offhandData) ? offhandData[0] : offhandData;
-    const offhandHtml  = `<div style="display:flex;gap:3px;align-items:center;">${_invSlotHtml(offhandItem)}</div>`;
+/** Główna funkcja renderowania ekwipunku */
+window.renderInventoryDisplay = function(containerId, inventoryData, armorData, offhandData, enderchestData) {
+    const cont = document.getElementById(containerId);
+    if (!cont) return;
 
-    cont.innerHTML =
-        rowLabel('Zbroja (4 sloty)')
-        + armorHtml
-        + `<div style="display:flex;gap:1rem;align-items:flex-start;flex-wrap:wrap;">
-            <div><div style="font-size:.68rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin:.55rem 0 .25rem;">Lewa ręka</div>${offhandHtml}</div>
-           </div>`
-        + rowLabel('Ekwipunek (36 slotów)')
-        + slotGrid(Array.isArray(inventoryData) ? inventoryData : [], 36)
-        + rowLabel('Skrzynka końca (27 slotów)')
-        + slotGrid(Array.isArray(enderchestData) ? enderchestData : [], 27);
+    const inv     = Array.isArray(inventoryData)   ? inventoryData   : [];
+    const armor   = Array.isArray(armorData)        ? armorData       : [];
+    const offhand = Array.isArray(offhandData)      ? offhandData     : (offhandData ? [offhandData] : []);
+    const ender   = Array.isArray(enderchestData)   ? enderchestData  : [];
+
+    // Sekcja zbroi (odwrócona kolejność: hełm na górze)
+    const armorLabels = ['🪖 Hełm','🦺 Napierśnik','👖 Spodnie','👟 Buty'];
+    const armorHtml = `<div style="display:flex;gap:5px;flex-wrap:wrap;">` +
+        [3,2,1,0].map(i => `<div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+            ${_invSlotHtml(armor[i]||null)}
+            <span style="font-size:.5rem;color:var(--text-secondary);text-align:center;">${armorLabels[i]}</span>
+        </div>`).join('') +
+        `</div>`;
+
+    const offhandHtml = _invSlotHtml(offhand[0]||null);
+
+    // Główny ekwipunek — podzielony jak MC: hotbar (0-8) + górne rzędy
+    const hotbarHtml = `<div style="display:flex;gap:3px;flex-wrap:nowrap;overflow-x:auto;">` +
+        Array.from({length:9}, (_,i) => _invSlotHtml(inv[i]||null)).join('') +
+        `</div>`;
+    const mainInvHtml = `<div style="display:grid;grid-template-columns:repeat(9,36px);gap:3px;">` +
+        Array.from({length:27}, (_,i) => _invSlotHtml(inv[i+9]||null)).join('') +
+        `</div>`;
+
+    // Enderchest
+    const enderHtml = `<div style="display:grid;grid-template-columns:repeat(9,36px);gap:3px;">` +
+        Array.from({length:27}, (_,i) => _invSlotHtml(ender[i]||null)).join('') +
+        `</div>`;
+
+    // Sekcja tekstowa — co ma gracz
+    const textSummary =
+        _buildItemList('Zbroja', [armor[3],armor[2],armor[1],armor[0]], 4) +
+        _buildItemList('Lewa ręka', offhand, 1) +
+        _buildItemList('Hotbar (1-9)', inv.slice(0,9), 9) +
+        _buildItemList('Ekwipunek', inv.slice(9), 27) +
+        _buildItemList('EnderChest', ender, 27);
+
+    cont.innerHTML = `
+        <div style="display:flex;gap:1.2rem;flex-wrap:wrap;align-items:flex-start;margin-bottom:.75rem;">
+            <!-- Zbroja + offhand -->
+            <div>
+                <div style="font-size:.65rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.3rem;">⚔️ Zbroja</div>
+                ${armorHtml}
+                <div style="font-size:.65rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin:.5rem 0 .3rem;">✋ Lewa ręka</div>
+                <div style="display:flex;align-items:center;gap:5px;">${offhandHtml}</div>
+            </div>
+            <!-- Hotbar -->
+            <div style="flex:1;min-width:0;">
+                <div style="font-size:.65rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.3rem;">🎮 Hotbar (sloty 1-9)</div>
+                ${hotbarHtml}
+                <div style="font-size:.65rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin:.5rem 0 .3rem;">🎒 Plecak (sloty 10-36)</div>
+                ${mainInvHtml}
+            </div>
+        </div>
+
+        <!-- Enderchest (domyślnie zwinięty) -->
+        <details style="margin-bottom:.5rem;">
+            <summary style="font-size:.68rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;cursor:pointer;margin-bottom:.3rem;user-select:none;">
+                📦 Skrzynka Końca (27 slotów)
+            </summary>
+            <div style="margin-top:.3rem;">${enderHtml}</div>
+        </details>
+
+        <!-- Lista tekstowa -->
+        ${textSummary ? `<details style="margin-top:.4rem;">
+            <summary style="font-size:.68rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;cursor:pointer;user-select:none;">
+                📋 Lista itemów (opis tekstowy)
+            </summary>
+            <div style="margin-top:.4rem;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:.6rem .8rem;">
+                ${textSummary}
+            </div>
+        </details>` : ''}
+
+        <!-- Przycisk AI -->
+        <button onclick="_askAiAboutInventory(this)" style="margin-top:.6rem;width:100%;padding:.5rem;background:linear-gradient(135deg,rgba(139,92,246,.15),rgba(59,130,246,.1));border:1px solid rgba(139,92,246,.3);border-radius:8px;color:#8b5cf6;font-weight:700;font-size:.8rem;cursor:pointer;font-family:var(--font);">
+            <i class="fa-solid fa-robot"></i> Zapytaj AI o ekwipunek gracza
+        </button>`;
 };
+
+/** Zapytaj AI o ekwipunek — wysyła summary do chatu AI */
+window._askAiAboutInventory = function(btn) {
+    // Zbierz summary eq
+    const slots = document.querySelectorAll('.inv-slot:not(.inv-slot-empty)');
+    if (!slots.length) { showToast('info', 'Brak danych ekwipunku.'); return; }
+    const items = [];
+    slots.forEach(s => {
+        try {
+            const d = JSON.parse(s.getAttribute('data-item') || '{}');
+            if (d.type) items.push(`${d.name||d.type}${d.amount>1?' x'+d.amount:''}`);
+        } catch(e) {}
+    });
+    const playerName = document.querySelector('#player-detail-body .player-name')?.textContent || 'gracza';
+    const prompt = `Przeanalizuj ekwipunek gracza ${playerName}: ${items.slice(0,20).join(', ')}. Co możesz powiedzieć o tym graczu? Czy ma coś wartościowego? Czy można coś zabrać/dać?`;
+
+    // Przełącz na stronę AI i wstaw prompt
+    document.getElementById('player-detail-modal')?.classList.remove('open');
+    switchPage('ai');
+    loadAiPage?.();
+    const input = document.getElementById('ai-input');
+    if (input) { input.value = prompt; input.focus(); }
+    showToast('info', 'Prompt wstawiony do AI — naciśnij Enter żeby wysłać');
+};
+
+/** Auto-odświeżanie ekwipunku gdy szczegóły gracza są otwarte */
+window._startInvAutoRefresh = function(uuid, containerId) {
+    _invCurrentUuid = uuid;
+    if (_invRefreshInterval) clearInterval(_invRefreshInterval);
+    _invRefreshInterval = setInterval(async () => {
+        // Sprawdź czy modal nadal otwarty
+        if (!document.getElementById('player-detail-modal')?.classList.contains('open')) {
+            clearInterval(_invRefreshInterval);
+            _invRefreshInterval = null;
+            return;
+        }
+        try {
+            const snap = await getDoc(doc(db, 'cstats_inventory', uuid));
+            if (snap.exists()) {
+                const inv = snap.data();
+                const statusEl = document.getElementById('player-inv-status');
+                if (statusEl) {
+                    const upd = inv.updatedAt ? new Date(inv.updatedAt).toLocaleTimeString('pl-PL') : '—';
+                    statusEl.textContent = `Aktualizacja: ${upd}`;
+                    statusEl.style.color = '#10b981';
+                }
+                window.renderInventoryDisplay(containerId, inv.inventory||[], inv.armor||[], inv.offhand||[], inv.enderchest||[]);
+            }
+        } catch(e) { /* cicho — nie przerywaj */ }
+    }, 5000); // co 5s
+};
+
+window._stopInvAutoRefresh = function() {
+    if (_invRefreshInterval) { clearInterval(_invRefreshInterval); _invRefreshInterval = null; }
+};
+
+// Zatrzymaj auto-refresh gdy modal zamknięty
+document.addEventListener('click', function(e) {
+    if (e.target?.classList?.contains('modal-overlay') || e.target?.classList?.contains('modal-close')) {
+        _stopInvAutoRefresh();
+    }
+});
 
 // ─── PLIKI ────────────────────────────────────────────────────────────────────
 window.loadFilesPage = async function() {
@@ -2869,7 +3076,16 @@ window.sendAiMessage = async function() {
 
     } catch(err) {
         document.getElementById(typingId)?.remove();
-        _aiAppendMsg('ai', `⚠️ Błąd API: ${err.message}`, '🤖');
+        let errMsg = err.message;
+        // Czytelne komunikaty po polsku
+        if (errMsg.includes('quota') || errMsg.includes('Quota') || errMsg.includes('RESOURCE_EXHAUSTED')) {
+            errMsg = '⏳ Przekroczono limit zapytań Gemini API. Poczekaj kilka sekund i spróbuj ponownie. Jeśli problem się powtarza — limit dzienny się wyczerpał (reset o północy UTC).';
+        } else if (errMsg.includes('API_KEY') || errMsg.includes('API key') || errMsg.includes('401')) {
+            errMsg = '🔑 Błędny klucz API. Sprawdź klucz w ustawieniach (przycisk Konfiguruj).';
+        } else if (errMsg.includes('429')) {
+            errMsg = '⏳ Za dużo zapytań naraz. Poczekaj chwilę i spróbuj ponownie.';
+        }
+        _aiAppendMsg('ai', errMsg, '🤖');
     } finally {
         btn.disabled = false;
         btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i>';
