@@ -1195,8 +1195,8 @@ window.renderInventoryDisplay = function(containerId, inventoryData, armorData, 
         _buildItemList('EnderChest', ender, 27);
 
     cont.innerHTML = `
-      <!-- Cały ekwipunek przesunięty w prawo (padding-left) + przycisk odświeżania u góry -->
-      <div style="padding-left:2rem;border-left:1px solid var(--border);">
+      <!-- Cały ekwipunek przesunięty mocniej w prawo (4rem) + przycisk odświeżania u góry -->
+      <div style="padding-left:4rem;border-left:2px solid rgba(139,92,246,.2);margin-left:1rem;">
         <!-- Pasek z info + przycisk odświeżania -->
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;flex-wrap:wrap;gap:.5rem;">
             <div style="font-size:.72rem;color:var(--text-secondary);"><i class="fa-solid fa-circle-info" style="color:#8b5cf6;"></i> Najedź na slot aby zobaczyć pełne dane (ID, enchanty, atrybuty, efekty, lore)</div>
@@ -2759,19 +2759,39 @@ async function loadCStatsTop() {
         }
 
         const medals = ['🥇','🥈','🥉'];
+        const activeUuid = _cstatsSelectedPlayer?.uuid;
         list.innerHTML = entries.map((e, i) => {
             const rankIcon = i < 3 ? medals[i] : `<span style="color:var(--text-secondary);font-size:.78rem;">#${e.rank}</span>`;
             const val = stat === 'playtime' ? fmtPlaytime(e.value)
                       : stat === 'kdr'     ? Number(e.value).toFixed(2)
                       : stat.includes('damage') ? Math.round(e.value).toLocaleString('pl-PL')
                       : Math.round(e.value).toLocaleString('pl-PL');
-            return `<div style="display:flex;align-items:center;gap:.6rem;padding:.45rem .6rem;border-bottom:1px solid var(--border);font-size:.82rem;" onmouseenter="this.style.background='var(--bg)'" onmouseleave="this.style.background=''">
+            const isActive = activeUuid === e.uuid;
+            const bg = isActive ? 'rgba(139,92,246,.12)' : '';
+            return `<div class="cstats-top-entry" data-name="${escapeHtml(e.player||'')}" data-uuid="${escapeHtml(e.uuid||'')}"
+                        style="display:flex;align-items:center;gap:.6rem;padding:.5rem .65rem;border-bottom:1px solid var(--border);font-size:.84rem;cursor:pointer;background:${bg};border-left:${isActive ? '3px solid #8b5cf6;' : '3px solid transparent;'}padding-left:calc(.65rem - 3px);transition:background .1s;"
+                        onmouseenter="if(!this.dataset.active)this.style.background='rgba(139,92,246,.06)'"
+                        onmouseleave="if(!this.dataset.active)this.style.background='${bg}'">
                 <span style="width:28px;text-align:center;flex-shrink:0;">${rankIcon}</span>
-                <img src="https://mc-heads.net/avatar/${encodeURIComponent(e.player||'Steve')}/22" style="width:22px;height:22px;border-radius:4px;image-rendering:pixelated;flex-shrink:0;">
+                <img src="https://mc-heads.net/avatar/${encodeURIComponent(e.player||'Steve')}/24" style="width:24px;height:24px;border-radius:5px;image-rendering:pixelated;flex-shrink:0;">
                 <span style="flex:1;font-weight:700;">${escapeHtml(e.player||'?')}</span>
                 <span style="color:var(--accent-blue);font-weight:800;">${val}</span>
+                <i class="fa-solid fa-arrow-up-right-from-square" style="color:var(--text-secondary);font-size:.65rem;opacity:.6;"></i>
             </div>`;
         }).join('');
+        // Podłącz click — klik na gracza w topce = wyszukaj i otwórz
+        list.querySelectorAll('.cstats-top-entry').forEach(el => {
+            if (activeUuid === el.getAttribute('data-uuid')) el.dataset.active = '1';
+            el.onclick = () => {
+                const n = el.getAttribute('data-name');
+                const u = el.getAttribute('data-uuid');
+                if (n && u) {
+                    document.getElementById('cstats-edit-nick').value = n;
+                    cstatsSelectPlayer(n, u);
+                    showToast('info', '📊 Wczytano ' + n + ' z rankingu');
+                }
+            };
+        });
     } catch(err) {
         list.innerHTML = `<div style="padding:.8rem;color:#ef4444;font-size:.82rem;">Błąd: ${err.message}</div>`;
     }
@@ -2789,34 +2809,110 @@ function fmtPlaytime(secs) {
 
 // ── Wyszukiwanie gracza CStats ────────────────────────────────────────────────
 
-window.cstatsSearchPlayer = async function(val) {
+// Debounce dla wyszukiwarki gracza — nie pobieraj Firestore przy każdej literze
+let _cstatsSearchTimer = null;
+let _cstatsAllPlayers = null; // cache całej listy graczy (jedno pobranie)
+
+/** Wyczyść wybór gracza — ukryj staty, wyczyść input */
+window.cstatsClearPlayer = function() {
+    _cstatsSelectedPlayer = null;
+    const input = document.getElementById('cstats-edit-nick');
+    if (input) input.value = '';
+    const statsDiv = document.getElementById('cstats-player-stats');
+    if (statsDiv) statsDiv.style.display = 'none';
+    const sug = document.getElementById('cstats-suggestions');
+    if (sug) sug.style.display = 'none';
+    const grid = document.getElementById('cstats-player-statgrid');
+    if (grid) grid.innerHTML = '<div style="color:var(--text-secondary);text-align:center;padding:2rem;font-size:.88rem;">Wpisz nick powyżej, aby zobaczyć statystyki.</div>';
+    const achDiv = document.getElementById('cstats-achievements');
+    if (achDiv) achDiv.innerHTML = '<div style="color:var(--text-secondary);text-align:center;padding:1.5rem;font-size:.85rem;">Wpisz nick powyżej.</div>';
+    const achName = document.getElementById('cstats-ach-player');
+    if (achName) achName.textContent = '';
+    loadCStatsTop(); // odśwież topkę (usuń podświetlenie)
+    if (input) input.focus();
+};
+
+window.cstatsSearchPlayer = function(val) {
     const sug = document.getElementById('cstats-suggestions');
     if (!sug) return;
-    if (!val || val.length < 2) { sug.style.display = 'none'; return; }
-
-    // Szukaj w cstats_players
-    try {
-        const snap = await getDocs(collection(db, 'cstats_players'));
-        const matches = snap.docs
-            .map(d => ({ id: d.id, ...d.data() }))
-            .filter(p => (p.name || '').toLowerCase().includes(val.toLowerCase()))
-            .slice(0, 8);
-
-        if (!matches.length) { sug.style.display = 'none'; return; }
-        sug.style.display = 'block';
-        sug.innerHTML = matches.map(p =>
-            `<div style="padding:.5rem .8rem;cursor:pointer;display:flex;align-items:center;gap:.6rem;font-size:.85rem;font-weight:600;border-bottom:1px solid var(--border);"
-                onmouseenter="this.style.background='var(--bg)'" onmouseleave="this.style.background=''"
-                onclick="cstatsSelectPlayer('${escapeHtml(p.name)}','${p.uuid||p.id}')">
-                <img src="https://mc-heads.net/avatar/${encodeURIComponent(p.name||'Steve')}/24" style="width:24px;height:24px;border-radius:4px;image-rendering:pixelated;">
-                ${escapeHtml(p.name || p.id)}
-                <span style="margin-left:auto;font-size:.72rem;color:var(--text-secondary);">${Math.round((p.kills||0))} kills</span>
-            </div>`
-        ).join('');
-    } catch(e) {
-        sug.style.display = 'none';
-    }
+    // Debounce 200ms — czeka aż user skończy pisać
+    clearTimeout(_cstatsSearchTimer);
+    if (!val || val.trim().length < 1) { sug.style.display = 'none'; return; }
+    _cstatsSearchTimer = setTimeout(() => _cstatsDoSearch(val.trim()), 200);
 };
+
+async function _cstatsDoSearch(val) {
+    const sug = document.getElementById('cstats-suggestions');
+    if (!sug) return;
+    sug.innerHTML = '<div style="padding:.6rem .8rem;color:var(--text-secondary);font-size:.8rem;"><i class="fa-solid fa-spinner fa-spin"></i> Szukam...</div>';
+    sug.style.display = 'block';
+
+    try {
+        // Pobierz cache graczy raz (z cstats_players) — potem filtruj lokalnie
+        if (!_cstatsAllPlayers) {
+            const snap = await getDocs(query(collection(db, 'cstats_players'), limit(2000)));
+            _cstatsAllPlayers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        }
+        const q = val.toLowerCase();
+        // Pasuje po name, nick, uuid — posortowane: dokładne > zaczyna się od > zawiera
+        const all = _cstatsAllPlayers.map(p => {
+            const n = (p.name || p.nick || p.id || '').toLowerCase();
+            let score = -1;
+            if (n === q) score = 100;
+            else if (n.startsWith(q)) score = 80;
+            else if (n.includes(q)) score = 60;
+            else if ((p.uuid||'').toLowerCase().includes(q)) score = 40;
+            return { p, score, name: p.name || p.nick || p.id };
+        }).filter(x => x.score > 0)
+          .sort((a, b) => b.score - a.score)
+          .slice(0, 10);
+
+        if (!all.length) {
+            sug.innerHTML = `<div style="padding:.7rem .8rem;color:var(--text-secondary);font-size:.82rem;text-align:center;">❌ Brak gracza "${escapeHtml(val)}"</div>`;
+            return;
+        }
+
+        sug.innerHTML = all.map(({p, name}) => {
+            // Bezpieczne przekazanie danych — używamy data-attr zamiast onclick string
+            const uuid = p.uuid || p.id;
+            const kills = Math.round(p.kills||0);
+            // Podświetl pasujący fragment
+            const hl = _highlightMatch(name, val);
+            return `<div class="cstats-sug-item" data-name="${escapeHtml(name)}" data-uuid="${escapeHtml(uuid)}"
+                        style="padding:.55rem .8rem;cursor:pointer;display:flex;align-items:center;gap:.6rem;font-size:.88rem;font-weight:600;border-bottom:1px solid var(--border);transition:background .1s;"
+                        onmouseenter="this.style.background='rgba(139,92,246,.1)';this.style.borderLeft='3px solid #8b5cf6';this.style.paddingLeft='calc(.8rem - 3px)';"
+                        onmouseleave="this.style.background='';this.style.borderLeft='';this.style.paddingLeft='.8rem';">
+                    <img src="https://mc-heads.net/avatar/${encodeURIComponent(name||'Steve')}/28" style="width:28px;height:28px;border-radius:5px;image-rendering:pixelated;flex-shrink:0;">
+                    <span style="flex:1;">${hl}</span>
+                    <span style="font-size:.72rem;color:#dc2626;font-weight:700;">⚔ ${kills}</span>
+                    <i class="fa-solid fa-chevron-right" style="color:var(--text-secondary);font-size:.7rem;"></i>
+                </div>`;
+        }).join('');
+
+        // Podłącz click przez event delegation (bezpieczne — bez onclick string)
+        sug.querySelectorAll('.cstats-sug-item').forEach(el => {
+            el.onclick = () => {
+                const n = el.getAttribute('data-name');
+                const u = el.getAttribute('data-uuid');
+                cstatsSelectPlayer(n, u);
+            };
+        });
+    } catch(e) {
+        console.error('[CStats] search error:', e);
+        sug.innerHTML = `<div style="padding:.6rem .8rem;color:#ef4444;font-size:.8rem;">Błąd: ${escapeHtml(e.message)}</div>`;
+    }
+}
+
+/** Podświetla pasujący fragment pogrubieniem */
+function _highlightMatch(name, query) {
+    if (!name || !query) return escapeHtml(name||'');
+    const n = String(name);
+    const idx = n.toLowerCase().indexOf(query.toLowerCase());
+    if (idx < 0) return escapeHtml(n);
+    return escapeHtml(n.substring(0, idx))
+         + '<b style="color:#8b5cf6;">' + escapeHtml(n.substring(idx, idx + query.length)) + '</b>'
+         + escapeHtml(n.substring(idx + query.length));
+}
 
 /** Renderuje siatkę kart statystyk gracza w div #cstats-player-statgrid */
 function renderCStatsGrid(p) {
@@ -3174,24 +3270,31 @@ window.loadInfoPage = async function() {
 
 // ─── AI ASYSTENT ──────────────────────────────────────────────────────────────
 
-const AI_SYSTEM_PROMPT = `Jesteś asystentem administratora serwera Minecraft CritMC.
-Twoim zadaniem jest parsować polecenia po polsku i zwracać JSON z akcją do wykonania.
+const AI_SYSTEM_PROMPT = `Jesteś CritAI — asystentem AI administratora serwera Minecraft CritMC.
+Rozmawiasz naturalnie po polsku, jesteś pomocny, miły i świadomy kontekstu (serwer survival/PvP Minecraft).
+Potrafisz rozmawiać o wszystkim: o serwerze, zasadach, graczach, pluginach, konfiguracji, eventach, a nawet żartować.
 
-Dostępne akcje:
-- ban: { action: "ban", player: "nick", reason: "powód", duration: "7d" }
-- unban: { action: "unban", player: "nick" }  
-- mute: { action: "mute", player: "nick", reason: "powód", duration: "1h" }
-- unmute: { action: "unmute", player: "nick" }
-- kick: { action: "kick", player: "nick", reason: "powód" }
-- warn: { action: "warn", player: "nick", reason: "powód" }
-- grant_rank: { action: "shop_grant", player: "nick", itemType: "ranga", itemId: "vip|boss|crit", qty: 1 }
-- grant_keys: { action: "shop_grant", player: "nick", itemType: "klucz", itemId: "zwykly|rzadki|epicki|crit|premium|losowy", qty: N }
-- broadcast: { action: "broadcast", message: "treść" }
-- message: { action: "message", player: "nick", message: "treść" }
-- unknown: { action: "unknown", message: "nie rozumiem" }
+ZASADY ODPOWIEDZI (zawsze zwracaj JSON, jeden z dwóch wariantów):
+
+1. ZWYKŁA ROZMOWA (gdy user pisze "cześć", pyta o coś, prosi o radę, gada):
+{"reply": "Twoja pełna, naturalna odpowiedź po polsku"}
+
+2. AKCJA ADMINA (gdy user WPROST prosi o wykonanie: zbanuj, zmutuj, wyrzuć, odbanuj, daj rangę, daj klucze, broadcast):
+{"reply": "krótkie potwierdzenie co zrobisz", "action": "ban|unban|mute|unmute|kick|warn|shop_grant|broadcast", ...pola}
+
+Szczegóły akcji:
+- ban/unban: {action:"ban", player:"nick", reason:"powód", duration:"7d"}
+- mute/unmute: {action:"mute", player:"nick", reason:"powód", duration:"1h"}
+- kick: {action:"kick", player:"nick", reason:"powód"}
+- warn: {action:"warn", player:"nick", reason:"powód"}
+- shop_grant (ranga): {action:"shop_grant", player:"nick", itemType:"ranga", itemId:"vip|boss|crit", qty:1}
+- shop_grant (klucze): {action:"shop_grant", player:"nick", itemType:"klucz", itemId:"zwykly|rzadki|epicki|crit|premium|losowy", qty:N}
+- broadcast: {action:"broadcast", message:"treść"}
 
 Czas trwania: 1h, 6h, 12h, 1d, 3d, 7d, 14d, 30d, permanent
-Odpowiadaj TYLKO czystym JSON bez markdown.`;
+ZAWSZE pole "reply" z sensowną odpowiedzią (nawet przy akcji).
+Gdy brakuje danych (np. nick gracza) — w "reply" poproś o uzupełnienie, bez pola action.
+Odpowiadaj TYLKO czystym JSON, bez markdown.`;
 
 let _aiHistory = [];
 let _aiUsageToday = parseInt(localStorage.getItem('ai_usage_' + new Date().toDateString()) || '0');
@@ -3413,6 +3516,8 @@ window.sendAiMessage = async function() {
         const model = picked.model;
 
         // Krok 2: wyślij właściwe zapytanie z wybranym modelem
+        // UWAGA: nie wkładamy sztucznych wiadomości "ready" do contents — to myliło model.
+        // systemInstruction wystarczy. Historia = prawdziwe pytania + odpowiedzi.
         const response = await fetch(
             `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`,
             {
@@ -3421,9 +3526,7 @@ window.sendAiMessage = async function() {
                 body: JSON.stringify({
                     systemInstruction: { parts: [{ text: AI_SYSTEM_PROMPT }] },
                     contents: [
-                        { role: 'user', parts: [{ text: '{"action":"ready"}' }] },
-                        { role: 'model', parts: [{ text: '{"action":"ready"}' }] },
-                        ..._aiHistory.slice(-10),
+                        ..._aiHistory.slice(-8),
                         { role: 'user', parts: [{ text }] }
                     ],
                     generationConfig: { temperature: 0.1, maxOutputTokens: 512, responseMimeType: 'application/json' }
@@ -3436,6 +3539,8 @@ window.sendAiMessage = async function() {
         }
         const data = await response.json();
         const raw  = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+        console.log('[AI Chat] Pytanie:', text);
+        console.log('[AI Chat] Surowa odpowiedź modelu:', raw);
 
         // Zapisz w historii
         _aiHistory.push({ role: 'user',  parts: [{ text }] });
@@ -3450,17 +3555,25 @@ window.sendAiMessage = async function() {
         // Usuń typing
         document.getElementById(typingId)?.remove();
 
-        // Parsuj JSON
+        // Parsuj JSON — CritAI zawsze zwraca {reply: "..."} + opcjonalnie {action: "..."}
         let parsed;
-        try { parsed = JSON.parse(raw.replace(/```json|```/g, '').trim()); }
-        catch(e) { parsed = { action: 'unknown', message: 'Nie mogłem sparsować odpowiedzi.' }; }
-
-        // Pokaż kartę potwierdzenia
-        if (parsed.action && parsed.action !== 'unknown' && parsed.action !== 'ready') {
-            _aiShowConfirmCard(parsed, text);
-        } else {
-            _aiAppendMsg('ai', parsed.message || 'Nie rozumiem tego polecenia. Spróbuj inaczej.', '🤖');
+        try {
+            parsed = JSON.parse(raw.replace(/```json|```/g, '').trim());
+        } catch(e) {
+            // Jeśli model nie zwrócił JSON (np. zwykły tekst), traktuj jako zwykłą odpowiedź
+            console.log('[AI Chat] Nie-JSON odpowiedź, traktuję jako tekst:', raw);
+            parsed = { reply: raw };
         }
+
+        // ZAWSZE pokaż tekstową odpowiedź (reply) — to jest normalna rozmowa
+        const replyText = parsed.reply || parsed.message || '...';
+        _aiAppendMsg('ai', replyText, '🤖');
+
+        // DODATKOWO — jeśli model wykrył akcję admina, pokaż kartę potwierdzenia pod odpowiedzią
+        if (parsed.action && parsed.action !== 'unknown' && parsed.action !== 'ready' && parsed.action !== 'chat') {
+            _aiShowConfirmCard(parsed, text);
+        }
+
 
     } catch(err) {
         document.getElementById(typingId)?.remove();
