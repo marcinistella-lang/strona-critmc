@@ -2398,22 +2398,147 @@ window.loadGuidesPage = function() {
 };
 
 
+// ─── SKLEP — MODAL PRODUKTU ──────────────────────────────────────────────────
 
+let _shopCurrentRarity = 1;
 
+window.openShopItemModal = function(id) {
+    const modal = document.getElementById('shop-item-modal');
+    const titleEl = document.getElementById('shop-item-modal-title');
+    if (!modal) return;
+    // Reset pól
+    document.getElementById('shop-item-id').value        = id || '';
+    document.getElementById('shop-item-name').value      = '';
+    document.getElementById('shop-item-desc').value      = '';
+    document.getElementById('shop-item-price').value     = '';
+    document.getElementById('shop-item-old-price').value = '';
+    document.getElementById('shop-item-order').value     = '99';
+    document.getElementById('shop-item-items').value     = '';
+    document.getElementById('shop-item-media-url').value = '';
+    document.getElementById('shop-item-active').checked  = true;
+    document.getElementById('shop-item-featured').checked= false;
+    const fileInput = document.getElementById('shop-item-media-file');
+    if (fileInput) fileInput.value = '';
+    const preview = document.getElementById('shop-item-media-preview');
+    if (preview) preview.innerHTML = '';
+    const msg = document.getElementById('shop-item-msg');
+    if (msg) msg.style.display = 'none';
+    _shopCurrentRarity = 1;
+    window.setShopRarity(1);
 
+    if (id) {
+        titleEl.textContent = 'Edytuj produkt';
+        // Wczytaj dane z Firestore
+        getDoc(doc(db, 'shop_items', id)).then(snap => {
+            if (!snap.exists()) return;
+            const d = snap.data();
+            document.getElementById('shop-item-name').value      = d.name || '';
+            document.getElementById('shop-item-desc').value      = d.desc || '';
+            document.getElementById('shop-item-price').value     = d.price ?? '';
+            document.getElementById('shop-item-old-price').value = d.oldPrice ?? '';
+            document.getElementById('shop-item-order').value     = d.order ?? 99;
+            document.getElementById('shop-item-items').value     = (d.items || []).join('\n');
+            document.getElementById('shop-item-media-url').value = d.mediaUrl || '';
+            document.getElementById('shop-item-active').checked  = d.active !== false;
+            document.getElementById('shop-item-featured').checked = !!d.featured;
+            const typeEl = document.getElementById('shop-item-type');
+            if (typeEl) { typeEl.value = d.type || 'ranga'; window.shopModalOnTypeChange(); }
+            window.setShopRarity(d.rarity || 1);
+            if (d.mediaUrl) window.previewShopItemMedia();
+        }).catch(e => console.error('openShopItemModal:', e));
+    } else {
+        titleEl.textContent = 'Dodaj produkt';
+        const typeEl = document.getElementById('shop-item-type');
+        if (typeEl) { typeEl.value = 'ranga'; window.shopModalOnTypeChange(); }
+    }
+    modal.classList.add('open');
+};
 
-;
+// Pokaż/ukryj pola w zależności od kategorii
+window.shopModalOnTypeChange = function() {
+    const type = document.getElementById('shop-item-type')?.value || '';
+    const rarityField = document.getElementById('shop-rarity-field');
+    const subcatField = document.getElementById('shop-subcategory-field');
+    if (rarityField) rarityField.style.display = (type === 'klucz') ? 'block' : 'none';
+    if (subcatField) subcatField.style.display = (type === 'zestaw') ? 'block' : 'none';
+};
 
-// Nadpisanie openShopItemModal — pola z nowego modala
-;
+// Ustawienie rzadkości gwiazdkami
+window.setShopRarity = function(val) {
+    _shopCurrentRarity = val;
+    const hidden = document.getElementById('shop-item-rarity');
+    if (hidden) hidden.value = val;
+    document.querySelectorAll('.rarity-star').forEach(star => {
+        star.classList.toggle('active', parseInt(star.getAttribute('data-val')) <= val);
+    });
+};
 
-;
+// Podgląd pliku wybranego z dysku
+window.previewShopMediaInput = function() {
+    const file = document.getElementById('shop-item-media-file')?.files?.[0];
+    const preview = document.getElementById('shop-item-media-preview');
+    if (!preview || !file) return;
+    const url = URL.createObjectURL(file);
+    if (file.type.startsWith('image/') || file.type === 'image/gif') {
+        preview.innerHTML = `<img src="${url}" style="max-width:100%;max-height:200px;border-radius:8px;object-fit:contain;" alt="Podgląd">`;
+    } else if (file.type.startsWith('video/')) {
+        preview.innerHTML = `<video src="${url}" controls style="max-width:100%;max-height:200px;border-radius:8px;"></video>`;
+    } else {
+        preview.innerHTML = `<span style="font-size:.85rem;color:var(--text-secondary);">${escapeHtml(file.name)}</span>`;
+    }
+};
 
-// Zaktualizowany previewShopMediaInput
-;
+// Podgląd URL wpisanego ręcznie
+window.previewShopItemMedia = function() {
+    const url = (document.getElementById('shop-item-media-url')?.value || '').trim();
+    const preview = document.getElementById('shop-item-media-preview');
+    if (!preview) return;
+    if (!url) { preview.innerHTML = ''; return; }
+    if (/\.(mp4|webm|mov)/i.test(url)) {
+        preview.innerHTML = `<video src="${escapeHtml(url)}" controls style="max-width:100%;max-height:200px;border-radius:8px;"></video>`;
+    } else {
+        preview.innerHTML = `<img src="${escapeHtml(url)}" style="max-width:100%;max-height:200px;border-radius:8px;object-fit:contain;" alt="Podgląd" onerror="this.parentElement.innerHTML='<span style=\\'color:#ef4444;font-size:.82rem;\\'>Błąd ładowania obrazka</span>'">`;
+    }
+};
 
-// Zaktualizowany previewShopItemMedia
-;
+// Zapis produktu sklepu do Firestore
+window.saveShopItem = async function() {
+    if (!requirePermission('shop', 'zarządzanie sklepem')) return;
+    const id       = document.getElementById('shop-item-id')?.value?.trim();
+    const name     = document.getElementById('shop-item-name')?.value?.trim();
+    const type     = document.getElementById('shop-item-type')?.value || 'ranga';
+    const desc     = document.getElementById('shop-item-desc')?.value?.trim() || '';
+    const price    = parseFloat(document.getElementById('shop-item-price')?.value) || 0;
+    const oldPrice = parseFloat(document.getElementById('shop-item-old-price')?.value) || null;
+    const order    = parseInt(document.getElementById('shop-item-order')?.value) || 99;
+    const items    = (document.getElementById('shop-item-items')?.value || '').split('\n').map(l => l.trim()).filter(Boolean);
+    const mediaUrl = document.getElementById('shop-item-media-url')?.value?.trim() || '';
+    const active   = document.getElementById('shop-item-active')?.checked ?? true;
+    const featured = document.getElementById('shop-item-featured')?.checked ?? false;
+    const rarity   = _shopCurrentRarity || 1;
+    const msg      = document.getElementById('shop-item-msg');
+
+    if (!name) { if(msg){msg.style.display='block';msg.className='modal-msg error';msg.textContent='Podaj nazwę produktu!';} return; }
+
+    const data = { name, type, desc, price, oldPrice, order, items, mediaUrl, active, featured, rarity, updatedAt: serverTimestamp(), updatedBy: currentUser?.displayName || 'Panel' };
+
+    try {
+        if (id) {
+            await updateDoc(doc(db, 'shop_items', id), data);
+        } else {
+            data.createdAt = serverTimestamp();
+            await addDoc(collection(db, 'shop_items'), data);
+        }
+        if(msg){msg.style.display='block';msg.className='modal-msg success';msg.textContent='✓ Zapisano!';}
+        setTimeout(() => {
+            document.getElementById('shop-item-modal')?.classList.remove('open');
+            window.loadShopPage?.();
+        }, 800);
+        await logAction('shop_item_' + (id ? 'edit' : 'add'), name, currentUser?.displayName || 'Panel', '', '');
+    } catch(e) {
+        if(msg){msg.style.display='block';msg.className='modal-msg error';msg.textContent='Błąd: '+e.message;}
+    }
+};
 
 // ─── SKLEP — CENY PRODUKTÓW ───────────────────────────────────────────────────
 const SHOP_PRICES = {
