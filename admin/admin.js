@@ -3087,36 +3087,7 @@ function _buildCShopTabHtml() {
                 </tbody>
             </table>
         </div>
-    </div>
-    <!-- Zarządzanie przedmiotami sklepu -->
-    <div class="table-card" style="overflow:hidden;margin-bottom:1.2rem;">
-        <div style="padding:.8rem 1.2rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;">
-            <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;">
-                <i class="fa-solid fa-tags" style="color:#f59e0b;"></i> Zarządzanie przedmiotami sklepu
-            </div>
-            <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;">
-                <div id="cshop-items-cat-tabs" style="display:flex;gap:.3rem;flex-wrap:wrap;">
-                    <button class="tbl-btn" style="font-size:.72rem;background:rgba(245,158,11,.12);color:#d97706;border-color:rgba(245,158,11,.3);" onclick="cshopShowItemsCat('')">Wszystkie</button>
-                    <button class="tbl-btn" style="font-size:.72rem;" onclick="cshopShowItemsCat('ksiazki')">📚 Książki</button>
-                    <button class="tbl-btn" style="font-size:.72rem;" onclick="cshopShowItemsCat('przydatne')">⭐ Przydatne</button>
-                    <button class="tbl-btn" style="font-size:.72rem;" onclick="cshopShowItemsCat('czas')">⏱️ Czas</button>
-                    <button class="tbl-btn" style="font-size:.72rem;" onclick="cshopShowItemsCat('rudy')">💎 Rudy</button>
-                    <button class="tbl-btn" style="font-size:.72rem;" onclick="cshopShowItemsCat('inne')">📦 Inne</button>
-                </div>
-                <button class="tbl-btn" onclick="loadCShopItemsManager()" style="font-size:.72rem;">
-                    <i class="fa-solid fa-rotate-right"></i> Odśwież
-                </button>
-            </div>
-        </div>
-        <div id="cshop-items-manager" style="overflow-x:auto;">
-            <table class="data-table">
-                <thead><tr><th>Kategoria</th><th>Slot</th><th>Material</th><th>Cena kupna ($)</th><th>Cena sprzedaży ($)</th><th>Akcja</th></tr></thead>
-                <tbody id="cshop-items-tbody">
-                    <tr><td colspan="6" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>
-                </tbody>
-            </table>
-        </div>
-        <div style="padding:.6rem 1.2rem;font-size:.72rem;color:var(--text-secondary);border-top:1px solid var(--border);">
+        <div style="padding:.6rem 0 0;font-size:.72rem;color:var(--text-secondary);border-top:1px solid var(--border);margin-top:.8rem;">
             <i class="fa-solid fa-circle-info" style="color:#f59e0b;"></i> Zmiany cen są pobierane przez plugin CShop co ~60 sekund. Dane pobierane z <code>cshop_config/items</code>.
         </div>
     </div>
@@ -3527,6 +3498,7 @@ async function loadCShopTopList(stat, containerId, color, unit) {
 }
 
 async function loadCShopHistory() {
+    const tbody = document.getElementById('cshop-history-tbody');
     if (!tbody) return;
     tbody.innerHTML = '<tr><td colspan="7" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>';
     try {
