@@ -1,4 +1,4 @@
-﻿﻿import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
 import {
     getFirestore, collection, getDocs, doc, getDoc,
     setDoc, updateDoc, deleteDoc, addDoc, onSnapshot,
@@ -31,29 +31,36 @@ const ROLE_PERMISSIONS = {
     'ChatMod':      ['mute', 'warn', 'check'],
     'Pomocnik':     ['mute', 'warn', 'check', 'players'],
     'Moderator':    ['ban', 'mute', 'kick', 'warn', 'check', 'players', 'logs', 'evidence_view'],
-    'Admin':        ['ban', 'unban', 'mute', 'unmute', 'kick', 'warn', 'check', 'players', 'logs', 'notes', 'site', 'shop', 'media_manage', 'evidence_view', 'evidence_delete'],
+    'Admin':        ['ban', 'unban', 'mute', 'unmute', 'kick', 'warn', 'check', 'players', 'logs', 'notes', 'site', 'shop', 'media_manage', 'evidence_view', 'evidence_delete', 'ai_actions', 'stats_edit'],
     'Zarządzający': ['all']
 };
-const ROLE_ORDER = ['ChatMod', 'Moderator', 'Admin', 'Pomocnik', 'Zarządzający'];
+const ROLE_ORDER = ['ChatMod', 'Pomocnik', 'Moderator', 'Admin', 'Zarządzający'];
 const PERMISSIONS_PL = {
-    players: { label: 'Podgląd graczy', desc: 'Może przeglądać listę graczy.' },
-    ban: { label: 'Bany', desc: 'Może nadawać bany.' },
-    unban: { label: 'Odbanowanie', desc: 'Może odbanowywać graczy.' },
-    mute: { label: 'Muty', desc: 'Może nadawać muty.' },
-    unmute: { label: 'Odciszenie', desc: 'Może zdejmować muty.' },
-    kick: { label: 'Kick', desc: 'Może wyrzucać graczy.' },
-    warn: { label: 'Ostrzeżenia', desc: 'Może nadawać ostrzeżenia.' },
-    check: { label: 'Sprawdzanie', desc: 'Może wykonywać kontrole.' },
-    logs: { label: 'Logi', desc: 'Może przeglądać logi.' },
-    notes: { label: 'Notatki', desc: 'Może dodawać notatki.' },
-    site: { label: 'Strona', desc: 'Może edytować stronę.' },
-    shop: { label: 'Sklep', desc: 'Może edytować sklep.' },
-    media_manage: { label: 'Media', desc: 'Może zarządzać mediami.' },
-    evidence_view: { label: 'Podgląd plików', desc: 'Może otwierać załączniki.' },
-    evidence_delete: { label: 'Usuwanie plików', desc: 'Może usuwać pliki.' },
-    permissions_manage: { label: 'Uprawnienia', desc: 'Może edytować uprawnienia rang.' },
-    admins_manage: { label: 'Administratorzy', desc: 'Może zarządzać kontami adminów.' },
-    all: { label: 'Pełny dostęp', desc: 'Ma pełny dostęp do panelu.' }
+    players:       { label: 'Podgląd graczy',     desc: 'Może przeglądać listę graczy.' },
+    ban:           { label: 'Bany',               desc: 'Może nadawać bany.' },
+    unban:         { label: 'Odbanowanie',         desc: 'Może odbanowywać graczy.' },
+    mute:          { label: 'Muty',               desc: 'Może nadawać muty.' },
+    unmute:        { label: 'Odciszenie',          desc: 'Może zdejmować muty.' },
+    kick:          { label: 'Kick',               desc: 'Może wyrzucać graczy.' },
+    warn:          { label: 'Ostrzeżenia',         desc: 'Może nadawać ostrzeżenia.' },
+    check:         { label: 'Sprawdzanie',         desc: 'Może wykonywać kontrole.' },
+    logs:          { label: 'Logi',               desc: 'Może przeglądać logi.' },
+    notes:         { label: 'Notatki',             desc: 'Może dodawać notatki.' },
+    site:          { label: 'Strona',             desc: 'Może edytować stronę.' },
+    shop:          { label: 'Sklep',              desc: 'Może edytować sklep i nadawać produkty.' },
+    media_manage:  { label: 'Media',              desc: 'Może zarządzać mediami.' },
+    evidence_view: { label: 'Podgląd plików',     desc: 'Może otwierać załączniki.' },
+    evidence_delete:{ label: 'Usuwanie plików',   desc: 'Może usuwać pliki.' },
+    ai_actions:    { label: 'Akcje AI',           desc: 'Może wykonywać akcje przez AI Asystenta.' },
+    console:       { label: 'Konsola serwera',    desc: 'Może wysyłać dowolne komendy przez AI (console_cmd).' },
+    op_manage:     { label: 'Zarządzanie OP',     desc: 'Może dawać/zabierać OP graczom.' },
+    stats_edit:    { label: 'Edycja statystyk',   desc: 'Może edytować statystyki CStats graczy.' },
+    cshop_manage:  { label: 'Zarządzanie CShop',  desc: 'Może edytować ceny i przedmioty w CShop.' },
+    tax_manage:    { label: 'Podatki CShop',      desc: 'Może edytować progi podatkowe w sklepie.' },
+    rank_manage:   { label: 'Nadawanie rang',     desc: 'Może nadawać i zabierać rangi graczom.' },
+    permissions_manage: { label: 'Uprawnienia',  desc: 'Może edytować uprawnienia rang.' },
+    admins_manage: { label: 'Administratorzy',    desc: 'Może zarządzać kontami adminów.' },
+    all:           { label: 'Pełny dostęp',       desc: 'Ma pełny dostęp do panelu.' }
 };
 
 function hasPermission(perm) {
@@ -166,6 +173,19 @@ window.refreshAllData = async function() {
         if (activePage === 'stats')    loadStats?.();
         if (activePage === 'info')     loadInfoPage?.();
         if (activePage === 'site')     { /* switchSiteTab odświeży */ }
+        // Strona CStats — odśwież topki + historię edycji + aktualnie wybranego gracza
+        if (activePage === 'plugins') {
+            await Promise.allSettled([loadCStatsTop?.(), loadCStatsEditLog?.()]);
+            if (typeof _cstatsSelectedPlayer !== 'undefined' && _cstatsSelectedPlayer) {
+                // Odśwież dane aktualnie otwartego gracza (statystyki, osiągnięcia, ekwipunek)
+                cstatsSelectPlayer(_cstatsSelectedPlayer.name, _cstatsSelectedPlayer.uuid);
+            }
+        }
+        // Modal szczegółów gracza — odśwież ekwipunek jeśli otwarty
+        const detailModal = document.getElementById('player-detail-modal');
+        if (detailModal && detailModal.classList.contains('open') && _openDetailPlayerId) {
+            window.dispatchEvent(new CustomEvent('openPlayerDetail', { detail: _openDetailPlayerId }));
+        }
 
         showToast('success', 'Dane odświeżone!');
     } catch(e) {
@@ -760,8 +780,10 @@ window.submitNote = async function() {
 function showNoteMsg(type, text) { const el=document.getElementById('note-msg'); if(!el)return; el.className='modal-msg '+type; el.innerHTML=text; el.style.display='block'; }
 
 // ─── SZCZEGÓŁY GRACZA ─────────────────────────────────────────────────────────
+let _openDetailPlayerId = null; // zapamiętany ID gracza w otwartym modalu (dla refresh)
 window.addEventListener('openPlayerDetail', async (e) => {
     const playerId = e.detail;
+    _openDetailPlayerId = playerId; // zapamiętaj do refresh
     const modal = document.getElementById('player-detail-modal');
     const body  = document.getElementById('player-detail-body');
     body.innerHTML = '<div style="text-align:center;padding:2rem;"><i class="fa-solid fa-spinner fa-spin fa-2x"></i></div>';
@@ -792,6 +814,9 @@ window.addEventListener('openPlayerDetail', async (e) => {
             +'<div style="margin-bottom:1.5rem;"><div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.75rem;">Historia akcji ('+hist.length+')</div>'
             +(hist.length===0?'<div style="text-align:center;padding:1rem;color:var(--text-secondary);">Brak historii</div>':hist.slice(0,10).map(h=>'<div style="display:flex;align-items:center;gap:.75rem;padding:.6rem 0;border-bottom:1px solid var(--border);">'+actionBadge(h.action)+'<span style="font-size:.82rem;color:var(--text-secondary);flex:1;">'+escapeHtml(h.reason||'')+'</span><span style="font-size:.78rem;color:var(--text-secondary);">'+formatDate(h.date)+'</span></div>').join(''))
             +'</div>'
+            +'<div id="player-cstats-section" style="margin-bottom:1.5rem;"><div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.75rem;"><i class="fa-solid fa-chart-bar" style="color:#10b981;"></i> Statystyki CStats</div>'
+            +'<div id="player-cstats-grid" style="font-size:.82rem;color:var(--text-secondary);">Ładowanie...</div>'
+            +'</div>'
             +'<div style="margin-bottom:1.5rem;">'
             +'<div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.75rem;display:flex;align-items:center;justify-content:space-between;">'
             +'<span>Ekwipunek gracza</span>'
@@ -799,6 +824,7 @@ window.addEventListener('openPlayerDetail', async (e) => {
             +'</div>'
             +'<div id="player-inventory-display"></div>'
             +'</div>'
+            +'<div id="player-cstats-section" style="margin-bottom:1.5rem;"></div>'
             +'<div style="display:flex;gap:.75rem;">'
             +'<button class="login-btn" style="flex:1;" onclick="openActionModal(\''+escapeHtml(p.nick||p.id)+'\',\''+escapeHtml(p.uuid||'')+'\');document.getElementById(\'player-detail-modal\').classList.remove(\'open\')"><i class="fa-solid fa-gavel"></i> Wykonaj akcję</button>'
             +'<button class="login-btn" style="flex:1;background:var(--accent-yellow);color:#000;" onclick="openNoteModal(\''+escapeHtml(p.nick||p.id)+'\');document.getElementById(\'player-detail-modal\').classList.remove(\'open\')"><i class="fa-solid fa-note-sticky"></i> Dodaj notatkę</button>'
@@ -827,6 +853,18 @@ window.addEventListener('openPlayerDetail', async (e) => {
             if (statusEl) { statusEl.textContent = 'Błąd: ' + invErr.message.substring(0,30); statusEl.style.color = '#ef4444'; }
             if (dispEl) dispEl.innerHTML = '<div style="font-size:.82rem;color:#ef4444;padding:.5rem 0;">Błąd ładowania ekwipunku.</div>';
         }
+
+        // Zaladuj statystyki CStats dla tego gracza
+        try {
+            const csnap = await getDoc(doc(db, 'cstats_players', uuid));
+            const csSection = document.getElementById('player-cstats-section');
+            if (csSection) {
+                if (csnap.exists()) {
+                    const cs = csnap.data();
+                    const fmt = v => (v === undefined || v === null) ? '0' : Math.round(Number(v)).toLocaleString('pl-PL');
+                    const kdr = cs.deaths > 0 ? (cs.kills / cs.deaths).toFixed(2) : (cs.kills || 0).toString();
+                    const fmtPt = s => { s=Math.round(Number(s)||0); const h=Math.floor(s/3600),m=Math.floor((s%3600)/60); return h>0?`${h}h ${m}m`:`${m}m`; };
+                    const shopSpent = cs.shopSpent != null ? Number(cs.shopSpent).toFixed(2)+'
     } catch(e) { body.innerHTML = '<p style="color:#ef4444;">Błąd: '+e.message+'</p>'; }
 });
 
@@ -1031,42 +1069,72 @@ function _invSlotHtml(item, showTooltipPopup = false) {
     </div>`;
 }
 
-/** Buduje HTML tooltipa (CSS-only hover) — Problem 4 */
+/** Buduje HTML tooltipa (CSS-only hover) — pełne dane: nazwa, enchanty, lore, attributes, effects */
 function _buildTooltipHtml(item, mat) {
     const amt  = (item.amount || 1);
     const name = item.displayNameClean || (item.displayName ? _stripColor(item.displayName) : '') || mat.replace(/_/g,' ');
     const nameColor = _rarirtColorClass(mat);
-    let html = `<div class="inv-tooltip"><div class="inv-tooltip-name ${nameColor}">${escapeHtml(name)}${amt > 1 ? ' ×'+amt : ''}</div>`;
+    let html = `<div class="inv-tooltip">`;
+    html += `<div class="inv-tooltip-name ${nameColor}">${escapeHtml(name)}${amt > 1 ? ' <span style="color:#fff;opacity:.8;">×'+amt+'</span>' : ''}</div>`;
 
     // Enchanty
     const enchs = item.enchants || item.enchantments;
     if (enchs && typeof enchs === 'object' && !Array.isArray(enchs)) {
         const parts = Object.entries(enchs).map(([k,v]) => {
             const n = k.replace('minecraft:','').replace(/_/g,' ');
-            return `<div class="inv-tooltip-enchant">${escapeHtml(n)} ${escapeHtml(String(v))}</div>`;
+            return `<div class="inv-tooltip-enchant">✦ ${escapeHtml(n)} ${escapeHtml(String(v))}</div>`;
         });
         if (parts.length) html += parts.join('');
     } else if (Array.isArray(enchs) && enchs.length) {
         const parts = enchs.map(e => {
             const n = _stripColor(String(e.type||e)).replace('minecraft:','').replace(/_/g,' ');
-            return `<div class="inv-tooltip-enchant">${escapeHtml(n)} ${escapeHtml(String(e.level||''))}</div>`;
+            return `<div class="inv-tooltip-enchant">✦ ${escapeHtml(n)} ${escapeHtml(String(e.level||''))}</div>`;
         });
         if (parts.length) html += parts.join('');
     }
 
+    // AttributeModifiers (atak, obrona, prędkość) — pełne dane
+    if (Array.isArray(item.attributes) && item.attributes.length) {
+        html += '<div class="inv-tooltip-section">Atrybuty:</div>';
+        item.attributes.forEach(a => {
+            const attr = (a.attribute||'').replace(/_/g,' ');
+            const op = a.operation || '';
+            const sign = (a.amount||0) >= 0 ? '+' : '';
+            html += `<div class="inv-tooltip-attr">▸ ${escapeHtml(attr)} ${sign}${escapeHtml(String(a.amount||0))} <span style="opacity:.6;">(${escapeHtml(String(op))})</span>${a.slot && a.slot!=='ANY' ? ' ['+escapeHtml(String(a.slot))+']' : ''}</div>`;
+        });
+    }
+
+    // Potion effects (czas, amplituda, typ)
+    if (Array.isArray(item.potionEffects) && item.potionEffects.length) {
+        html += '<div class="inv-tooltip-section">Efekty mikstury:</div>';
+        item.potionEffects.forEach(eff => {
+            const t = (eff.type||'').replace(/_/g,' ');
+            const lvl = (eff.amplifier||0) + 1;
+            const dur = eff.duration > 0 ? Math.floor(eff.duration/20) + 's' : '∞';
+            html += `<div class="inv-tooltip-effect">◆ ${escapeHtml(t)} ${lvl} <span style="opacity:.6;">(${dur})</span></div>`;
+        });
+    }
+
     // Lore
     if (Array.isArray(item.lore) && item.lore.length) {
-        html += '<div style="margin-top:.2rem;">';
+        html += '<div style="margin-top:.25rem;">';
         item.lore.forEach(l => html += `<div class="inv-tooltip-lore">${escapeHtml(String(l))}</div>`);
         html += '</div>';
     }
 
-    // Meta
+    // Meta — ID, trwałość, custom model data, item flags
     const metaParts = [];
-    if (item.damage > 0) metaParts.push('Zniszczenie: ' + item.damage);
-    if (item.customModelData) metaParts.push('CMD: ' + item.customModelData);
-    metaParts.push(mat);
-    if (metaParts.length) html += `<div class="inv-tooltip-meta">${escapeHtml(metaParts.join(' • '))}</div>`;
+    metaParts.push(`<span style="color:#9ca3af;">ID:</span> <span style="font-family:monospace;color:#60a5fa;">${escapeHtml(mat)}</span>`);
+    if (item.damage > 0) {
+        metaParts.push(`<span style="color:#fbbf24;">Durability:</span> ${escapeHtml(String(item.damage))}`);
+    }
+    if (item.customModelData) {
+        metaParts.push(`<span style="color:#a78bfa;">CMD:</span> ${escapeHtml(String(item.customModelData))}`);
+    }
+    if (Array.isArray(item.itemFlags) && item.itemFlags.length) {
+        metaParts.push(`<span style="color:#34d399;">Flags:</span> ${escapeHtml(item.itemFlags.join(', ').replace(/HIDE_/g,''))}`);
+    }
+    if (metaParts.length) html += `<div class="inv-tooltip-meta">${metaParts.join(' • ')}</div>`;
 
     html += '</div>';
     return html;
@@ -1150,31 +1218,41 @@ window.renderInventoryDisplay = function(containerId, inventoryData, armorData, 
         _buildItemList('EnderChest', ender, 27);
 
     cont.innerHTML = `
+      <!-- Cały ekwipunek przesunięty mocniej w prawo (4rem) + przycisk odświeżania u góry -->
+      <div style="padding-left:4rem;border-left:2px solid rgba(139,92,246,.2);margin-left:1rem;">
+        <!-- Pasek z info + przycisk odświeżania -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;flex-wrap:wrap;gap:.5rem;">
+            <div style="font-size:.72rem;color:var(--text-secondary);"><i class="fa-solid fa-circle-info" style="color:#8b5cf6;"></i> Najedź na slot aby zobaczyć pełne dane (ID, enchanty, atrybuty, efekty, lore)</div>
+            <button onclick="window.dispatchEvent(new CustomEvent('openPlayerDetail',{detail:_openDetailPlayerId}));" style="padding:.45rem .9rem;background:linear-gradient(135deg,rgba(139,92,246,.15),rgba(59,130,246,.1));border:1.5px solid rgba(139,92,246,.3);border-radius:8px;color:#8b5cf6;font-size:.8rem;font-weight:800;cursor:pointer;font-family:var(--font);">
+                <i class="fa-solid fa-rotate-right"></i> Odśwież ekwipunek
+            </button>
+        </div>
+
         <!-- Górny wiersz: armor (pionowo) + offhand | główny ekwipunek -->
-        <div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-start;margin-bottom:.75rem;">
+        <div style="display:flex;gap:1.2rem;flex-wrap:wrap;align-items:flex-start;margin-bottom:.75rem;">
             <!-- Zbroja + offhand -->
             <div style="display:flex;flex-direction:column;gap:.4rem;">
-                <div style="font-size:.65rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.2rem;">⚔️ Zbroja</div>
+                <div style="font-size:.7rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.2rem;">⚔️ Zbroja</div>
                 ${armorHtml}
-                <div style="font-size:.65rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin:.4rem 0 .2rem;">✋ Lewa ręka</div>
+                <div style="font-size:.7rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin:.4rem 0 .2rem;">✋ Lewa ręka</div>
                 <div>${offhandHtml}</div>
             </div>
             <!-- Główny ekwipunek (10-36) -->
             <div style="flex:1;min-width:0;">
-                <div style="font-size:.65rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.3rem;">🎒 Plecak (sloty 10-36)</div>
+                <div style="font-size:.7rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.3rem;">🎒 Plecak (sloty 10-36)</div>
                 ${mainInvHtml}
             </div>
         </div>
 
         <!-- Hotbar (osobno, żółta ramka) -->
         <div style="margin-bottom:.75rem;">
-            <div style="font-size:.65rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.3rem;">🎮 Hotbar (sloty 1-9)</div>
+            <div style="font-size:.7rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.3rem;">🎮 Hotbar (sloty 1-9)</div>
             ${hotbarHtml}
         </div>
 
         <!-- Enderchest (domyślnie zwinięty) -->
         <details style="margin-bottom:.5rem;">
-            <summary style="font-size:.68rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;cursor:pointer;margin-bottom:.3rem;user-select:none;">
+            <summary style="font-size:.72rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;cursor:pointer;margin-bottom:.3rem;user-select:none;">
                 📦 Skrzynka Końca (27 slotów)
             </summary>
             <div style="margin-top:.3rem;">${enderHtml}</div>
@@ -1193,7 +1271,8 @@ window.renderInventoryDisplay = function(containerId, inventoryData, armorData, 
         <!-- Przycisk AI -->
         <button onclick="_askAiAboutInventory(this)" style="margin-top:.6rem;width:100%;padding:.5rem;background:linear-gradient(135deg,rgba(139,92,246,.15),rgba(59,130,246,.1));border:1px solid rgba(139,92,246,.3);border-radius:8px;color:#8b5cf6;font-weight:700;font-size:.8rem;cursor:pointer;font-family:var(--font);">
             <i class="fa-solid fa-robot"></i> Zapytaj AI o ekwipunek gracza
-        </button>`;
+        </button>
+      </div>`;
 };
 
 /** Zapytaj AI o ekwipunek — wysyła summary do chatu AI */
@@ -2286,7 +2365,6 @@ async function ensureDefaultAdmin() {
 }
 ensureDefaultAdmin();
 
-window.checkAlts = window.checkAlts;
 window._extendedApplyPermissions = function() {};
 
 
@@ -2313,10 +2391,6 @@ window.filterShopItems = function() {
     renderShopItems(filtered);
 };
 
-// Zaktualizuj loadShopPage żeby reset kategorię
-const _origLoadShopPage = window.loadShopPage;
-window.loadShopPage = function() { /* Sklep w przebudowie */ };
-
 // ─── PORADNIKI ────────────────────────────────────────────────────────────────
 window.loadGuidesPage = function() {
     // Strona poradników jest statyczna — nic do ładowania async
@@ -2340,12 +2414,6 @@ window.loadGuidesPage = function() {
 
 // Zaktualizowany previewShopItemMedia
 ;
-
-// Titles map update — dodaj guides
-
-window.loadShopPage = function() {
-    // Sklep w przebudowie
-};
 
 // ─── SKLEP — CENY PRODUKTÓW ───────────────────────────────────────────────────
 const SHOP_PRICES = {
@@ -2667,6 +2735,8 @@ let _cstatsSelectedPlayer = null; // { name, uuid, stats }
 window.loadPluginsPage = async function() {
     switchPluginTab('cstats');
     await Promise.allSettled([loadCStatsTop(), loadCStatsEditLog()]);
+    // Wstrzyknij zakładkę CShop jeśli jeszcze nie ma
+    _injectCShopTab();
 };
 
 window.switchPluginTab = function(tab) {
@@ -2677,7 +2747,849 @@ window.switchPluginTab = function(tab) {
         p.classList.toggle('sp-active', p.id === 'ptab-' + tab);
     });
     if (tab === 'pconnections') loadPluginConnections();
+    if (tab === 'cshop') loadCShopTab();
 };
+
+/** Wstrzykuje zakładkę CShop do strony Pluginy (tylko raz) */
+function _injectCShopTab() {
+    if (document.getElementById('ptab-cshop')) return;
+
+    // Dodaj przycisk zakładki
+    const tabBar = document.querySelector('#page-plugins .site-tab-btn[data-site-tab="pconnections"]');
+    if (tabBar) {
+        const btn = document.createElement('button');
+        btn.className = 'site-tab-btn';
+        btn.setAttribute('data-site-tab', 'cshop');
+        btn.setAttribute('onclick', "switchPluginTab('cshop')");
+        btn.innerHTML = '<i class="fa-solid fa-shop"></i> CShop';
+        tabBar.insertAdjacentElement('beforebegin', btn);
+    }
+
+    // Dodaj panel zakładki
+    const pluginsPage = document.getElementById('page-plugins');
+    if (!pluginsPage) return;
+    const panel = document.createElement('div');
+    panel.id = 'ptab-cshop';
+    panel.className = 'site-tab-panel';
+    panel.innerHTML = _buildCShopTabHtml();
+    pluginsPage.appendChild(panel);
+}
+
+// ── CShop Tab HTML ────────────────────────────────────────────────────────────
+
+function _buildCShopTabHtml() {
+    return `
+    <!-- STATYSTYKI DZIENNE — pasek kart u góry -->
+    <div id="cshop-daily-stats" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:.75rem;margin-bottom:1.2rem;">
+        <div style="text-align:center;padding:1.5rem;color:var(--text-secondary);font-size:.82rem;grid-column:1/-1;">
+            <i class="fa-solid fa-spinner fa-spin"></i> Ładowanie statystyk dziennych...
+        </div>
+    </div>
+
+    <!-- WYKRES AKTYWNOŚCI DZIENNEJ + TOP PRZEDMIOTY -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;margin-bottom:1.2rem;">
+        <!-- Top kupowanych dziś -->
+        <div class="table-card" style="padding:1rem;">
+            <div style="font-size:.72rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.6rem;display:flex;align-items:center;justify-content:space-between;">
+                <span><i class="fa-solid fa-fire" style="color:#ef4444;"></i> Dziś — najczęściej kupowane</span>
+                <span id="cshop-daily-date" style="font-size:.7rem;color:var(--text-secondary);font-weight:400;"></span>
+            </div>
+            <div id="cshop-today-buy-items" style="max-height:200px;overflow-y:auto;">
+                <div style="text-align:center;padding:1rem;color:var(--text-secondary);font-size:.8rem;"><i class="fa-solid fa-spinner fa-spin"></i></div>
+            </div>
+        </div>
+        <!-- Top sprzedawanych dziś -->
+        <div class="table-card" style="padding:1rem;">
+            <div style="font-size:.72rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.6rem;">
+                <i class="fa-solid fa-coins" style="color:#10b981;"></i> Dziś — najczęściej sprzedawane
+            </div>
+            <div id="cshop-today-sell-items" style="max-height:200px;overflow-y:auto;">
+                <div style="text-align:center;padding:1rem;color:var(--text-secondary);font-size:.8rem;"><i class="fa-solid fa-spinner fa-spin"></i></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOP ZARABIAJĄCYCH DZIŚ -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;margin-bottom:1.2rem;">
+        <div class="table-card" style="padding:1rem;">
+            <div style="font-size:.72rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.6rem;">
+                <i class="fa-solid fa-ranking-star" style="color:#f59e0b;"></i> Topka zarobków dziś (sprzedaż)
+            </div>
+            <div id="cshop-today-top-earners" style="max-height:220px;overflow-y:auto;">
+                <div style="text-align:center;padding:1rem;color:var(--text-secondary);font-size:.8rem;"><i class="fa-solid fa-spinner fa-spin"></i></div>
+            </div>
+        </div>
+        <div class="table-card" style="padding:1rem;">
+            <div style="font-size:.72rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.6rem;">
+                <i class="fa-solid fa-cart-shopping" style="color:#3b82f6;"></i> Topka wydatków dziś (kupno)
+            </div>
+            <div id="cshop-today-top-spenders" style="max-height:220px;overflow-y:auto;">
+                <div style="text-align:center;padding:1rem;color:var(--text-secondary);font-size:.8rem;"><i class="fa-solid fa-spinner fa-spin"></i></div>
+            </div>
+        </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;margin-bottom:1.2rem;">
+        <!-- Statystyki ogólne (wszystkie czasy) -->
+        <div class="table-card" style="padding:1.2rem;">
+            <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.8rem;">
+                <i class="fa-solid fa-chart-pie" style="color:#10b981;"></i> Statystyki sklepu (łącznie)
+            </div>
+            <div id="cshop-overview" style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;">
+                <div style="text-align:center;padding:1rem;color:var(--text-secondary);font-size:.82rem;grid-column:1/-1;">
+                    <i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...
+                </div>
+            </div>
+        </div>
+        <!-- System podatków -->
+        <div class="table-card" style="padding:1.2rem;">
+            <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.8rem;display:flex;align-items:center;justify-content:space-between;">
+                <span><i class="fa-solid fa-percent" style="color:#f59e0b;"></i> System podatków</span>
+                <div style="display:flex;align-items:center;gap:.5rem;">
+                    <span style="font-size:.72rem;color:var(--text-secondary);">Włączony</span>
+                    <label class="toggle-switch" style="position:relative;display:inline-block;width:36px;height:20px;">
+                        <input type="checkbox" id="cshop-tax-enabled" onchange="cshopSaveTaxEnabled(this.checked)"
+                            style="opacity:0;width:0;height:0;">
+                        <span style="position:absolute;cursor:pointer;inset:0;background:#374151;border-radius:20px;transition:.2s;" id="cshop-tax-slider">
+                            <span style="position:absolute;content:'';height:14px;width:14px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.2s;"></span>
+                        </span>
+                    </label>
+                </div>
+            </div>
+            <div id="cshop-tax-tiers" style="display:flex;flex-direction:column;gap:.5rem;">
+                <div style="text-align:center;padding:1rem;color:var(--text-secondary);font-size:.82rem;">
+                    <i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...
+                </div>
+            </div>
+            <button onclick="cshopAddTier()" style="width:100%;margin-top:.6rem;padding:.5rem;background:transparent;border:1.5px dashed var(--border);border-radius:8px;color:var(--text-secondary);font-size:.8rem;font-weight:700;cursor:pointer;font-family:var(--font);">
+                <i class="fa-solid fa-plus"></i> Dodaj próg podatkowy
+            </button>
+        </div>
+    </div>
+    <!-- Topki sklepu -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.2rem;margin-bottom:1.2rem;">
+        <div class="table-card" style="padding:1rem;">
+            <div style="font-size:.72rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.6rem;">
+                <i class="fa-solid fa-trophy" style="color:#ef4444;"></i> Top Wydatki
+            </div>
+            <div id="cshop-top-spent" style="max-height:260px;overflow-y:auto;">
+                <div style="text-align:center;padding:1rem;color:var(--text-secondary);font-size:.8rem;"><i class="fa-solid fa-spinner fa-spin"></i></div>
+            </div>
+        </div>
+        <div class="table-card" style="padding:1rem;">
+            <div style="font-size:.72rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.6rem;">
+                <i class="fa-solid fa-trophy" style="color:#10b981;"></i> Top Zarobki
+            </div>
+            <div id="cshop-top-earned" style="max-height:260px;overflow-y:auto;">
+                <div style="text-align:center;padding:1rem;color:var(--text-secondary);font-size:.8rem;"><i class="fa-solid fa-spinner fa-spin"></i></div>
+            </div>
+        </div>
+        <div class="table-card" style="padding:1rem;">
+            <div style="font-size:.72rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.6rem;">
+                <i class="fa-solid fa-list-ol" style="color:#8b5cf6;"></i> Top Transakcji
+            </div>
+            <div id="cshop-top-transactions" style="max-height:260px;overflow-y:auto;">
+                <div style="text-align:center;padding:1rem;color:var(--text-secondary);font-size:.8rem;"><i class="fa-solid fa-spinner fa-spin"></i></div>
+            </div>
+        </div>
+    </div>
+    <!-- Zarządzanie przedmiotami sklepu -->
+    <div class="table-card" style="margin-bottom:1.2rem; padding:1.2rem;">
+        <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.8rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;">
+            <span><i class="fa-solid fa-cubes" style="color:#f59e0b;"></i> Zarządzanie przedmiotami sklepu</span>
+            <div id="cshop-items-categories" style="display:flex;gap:.35rem;flex-wrap:wrap;">
+                <!-- Kategoria tabs: [Wszystkie] [Książki] [Przydatne] [Czas] [Rudy] [Inne] -->
+            </div>
+        </div>
+        <div style="overflow-x:auto;">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th style="width:120px;">Material</th>
+                        <th style="width:60px;text-align:center;">Ikona</th>
+                        <th>Nazwa</th>
+                        <th style="width:140px;">Kupno ($)</th>
+                        <th style="width:140px;">Sprzedaż ($)</th>
+                        <th style="width:80px;text-align:center;">Akcja</th>
+                    </tr>
+                </thead>
+                <tbody id="cshop-items-tbody">
+                    <tr><td colspan="6" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie przedmiotów...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <!-- Zarządzanie przedmiotami sklepu -->
+    <div class="table-card" style="overflow:hidden;margin-bottom:1.2rem;">
+        <div style="padding:.8rem 1.2rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;">
+            <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;">
+                <i class="fa-solid fa-tags" style="color:#f59e0b;"></i> Zarządzanie przedmiotami sklepu
+            </div>
+            <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;">
+                <div id="cshop-items-cat-tabs" style="display:flex;gap:.3rem;flex-wrap:wrap;">
+                    <button class="tbl-btn" style="font-size:.72rem;background:rgba(245,158,11,.12);color:#d97706;border-color:rgba(245,158,11,.3);" onclick="cshopShowItemsCat('')">Wszystkie</button>
+                    <button class="tbl-btn" style="font-size:.72rem;" onclick="cshopShowItemsCat('ksiazki')">📚 Książki</button>
+                    <button class="tbl-btn" style="font-size:.72rem;" onclick="cshopShowItemsCat('przydatne')">⭐ Przydatne</button>
+                    <button class="tbl-btn" style="font-size:.72rem;" onclick="cshopShowItemsCat('czas')">⏱️ Czas</button>
+                    <button class="tbl-btn" style="font-size:.72rem;" onclick="cshopShowItemsCat('rudy')">💎 Rudy</button>
+                    <button class="tbl-btn" style="font-size:.72rem;" onclick="cshopShowItemsCat('inne')">📦 Inne</button>
+                </div>
+                <button class="tbl-btn" onclick="loadCShopItemsManager()" style="font-size:.72rem;">
+                    <i class="fa-solid fa-rotate-right"></i> Odśwież
+                </button>
+            </div>
+        </div>
+        <div id="cshop-items-manager" style="overflow-x:auto;">
+            <table class="data-table">
+                <thead><tr><th>Kategoria</th><th>Slot</th><th>Material</th><th>Cena kupna ($)</th><th>Cena sprzedaży ($)</th><th>Akcja</th></tr></thead>
+                <tbody id="cshop-items-tbody">
+                    <tr><td colspan="6" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="padding:.6rem 1.2rem;font-size:.72rem;color:var(--text-secondary);border-top:1px solid var(--border);">
+            <i class="fa-solid fa-circle-info" style="color:#f59e0b;"></i> Zmiany cen są pobierane przez plugin CShop co ~60 sekund. Dane pobierane z <code>cshop_config/items</code>.
+        </div>
+    </div>
+    <!-- Historia transakcji -->
+    <div class="table-card" style="overflow:hidden;">
+        <div style="padding:.8rem 1.2rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;">
+            <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;">
+                <i class="fa-solid fa-clock-rotate-left" style="color:#3b82f6;"></i> Historia transakcji
+            </div>
+            <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;">
+                <input type="text" id="cshop-hist-search" placeholder="Szukaj gracza..." oninput="cshopFilterHistory()"
+                    style="padding:.35rem .7rem;border:1.5px solid var(--border);border-radius:6px;font-size:.8rem;background:var(--bg);color:var(--text-primary);outline:none;font-family:var(--font);width:150px;">
+                <select id="cshop-hist-type" onchange="cshopFilterHistory()"
+                    style="padding:.35rem .6rem;border:1.5px solid var(--border);border-radius:6px;font-size:.8rem;background:var(--bg);color:var(--text-primary);font-family:var(--font);">
+                    <option value="">Wszystkie</option>
+                    <option value="BUY">Kupno</option>
+                    <option value="SELL">Sprzedaż</option>
+                </select>
+                <button class="tbl-btn" onclick="loadCShopHistory()" style="font-size:.72rem;">
+                    <i class="fa-solid fa-rotate-right"></i> Odśwież
+                </button>
+            </div>
+        </div>
+        <div id="cshop-history-table" style="overflow-x:auto;">
+            <table class="data-table">
+                <thead><tr><th>Gracz</th><th>Przedmiot</th><th>Ilość</th><th>Cena</th><th>Typ</th><th>Kategoria</th><th>Data</th></tr></thead>
+                <tbody id="cshop-history-tbody">
+                    <tr><td colspan="7" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>`;
+}
+
+let _cshopAllHistory = [];
+let _cshopTaxTiers = [];
+let _cshopAllItemsData = {};
+let _cshopCurrentCategory = 'all';
+
+async function loadCShopTab() {
+    await Promise.allSettled([
+        loadCShopDailyStats(),
+        loadCShopOverview(),
+        loadCShopTaxConfig(),
+        loadCShopTopList('top_spent',        'cshop-top-spent',        '#ef4444', '$'),
+        loadCShopTopList('top_earned',       'cshop-top-earned',       '#10b981', '$'),
+        loadCShopTopList('top_transactions', 'cshop-top-transactions', '#8b5cf6', 'transakcji'),
+        loadCShopItemsManager(),
+        loadCShopHistory()
+    ]);
+}
+
+window.loadCShopItemsManager = async function() {
+    const tbody = document.getElementById('cshop-items-tbody');
+    const tabsContainer = document.getElementById('cshop-items-categories');
+    if (!tbody || !tabsContainer) return;
+
+    try {
+        const docSnap = await getDoc(doc(db, 'cshop_config', 'items'));
+        if (!docSnap.exists()) {
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:var(--text-secondary);">Brak danych przedmiotów. Uruchom serwer Minecraft z pluginem CShop, aby je zsynchronizować.</td></tr>`;
+            return;
+        }
+
+        const data = docSnap.data();
+        _cshopAllItemsData = data;
+
+        const categoriesSet = new Set();
+        Object.values(data).forEach(item => {
+            if (item && item.category) {
+                categoriesSet.add(item.category);
+            }
+        });
+        const categories = Array.from(categoriesSet).sort();
+        const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+
+        let tabsHtml = `<button class="tbl-btn ${(!_cshopCurrentCategory || _cshopCurrentCategory === 'all') ? 'active' : ''}" onclick="_cshopSetCategory('all')" style="margin-right:.25rem;margin-bottom:.25rem;font-size:.7rem;">Wszystkie</button>`;
+        categories.forEach(cat => {
+            const isActive = _cshopCurrentCategory === cat;
+            tabsHtml += `<button class="tbl-btn ${isActive ? 'active' : ''}" onclick="_cshopSetCategory('${cat}')" style="margin-right:.25rem;margin-bottom:.25rem;font-size:.7rem;">${capitalize(cat)}</button>`;
+        });
+        tabsContainer.innerHTML = tabsHtml;
+
+        _renderCShopItemsTable();
+
+    } catch (e) {
+        console.error('[CShop] Błąd loadCShopItemsManager:', e);
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:var(--danger);"><i class="fa-solid fa-circle-exclamation"></i> Błąd ładowania: ${escapeHtml(e.message)}</td></tr>`;
+    }
+};
+
+window._cshopSetCategory = function(cat) {
+    _cshopCurrentCategory = cat;
+    const tabsContainer = document.getElementById('cshop-items-categories');
+    if (tabsContainer) {
+        const buttons = tabsContainer.querySelectorAll('button');
+        buttons.forEach(btn => {
+            const isAll = cat === 'all' && btn.textContent.toLowerCase() === 'wszystkie';
+            const isCat = btn.textContent.toLowerCase() === cat.toLowerCase();
+            if (isAll || isCat) btn.classList.add('active');
+            else btn.classList.remove('active');
+        });
+    }
+    _renderCShopItemsTable();
+};
+
+function _renderCShopItemsTable() {
+    const tbody = document.getElementById('cshop-items-tbody');
+    if (!tbody || !_cshopAllItemsData) return;
+
+    let itemsArr = Object.entries(_cshopAllItemsData).map(([key, val]) => ({ key, ...val }));
+    itemsArr.sort((a, b) => {
+        const catComp = (a.category || '').localeCompare(b.category || '');
+        if (catComp !== 0) return catComp;
+        return (a.slot || 0) - (b.slot || 0);
+    });
+
+    if (_cshopCurrentCategory && _cshopCurrentCategory !== 'all') {
+        itemsArr = itemsArr.filter(item => item.category === _cshopCurrentCategory);
+    }
+
+    if (itemsArr.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:var(--text-secondary);">Brak przedmiotów w wybranej kategorii.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = itemsArr.map(item => {
+        const buyVal = item.buyPrice !== undefined && item.buyPrice !== null ? item.buyPrice : '';
+        const sellVal = item.sellPrice !== undefined && item.sellPrice !== null ? item.sellPrice : '';
+        const cleanName = (item.displayName || item.material || '').replace(/§[0-9a-fk-or]/gi, '');
+
+        return `<tr>
+            <td style="font-family:monospace;font-size:.78rem;color:var(--text-secondary);">${escapeHtml(item.material || '')}</td>
+            <td style="text-align:center;">
+                <img src="https://raw.githubusercontent.com/PrismarineJS/minecraft-assets/master/data/1.20/items_png/${(item.material || '').toLowerCase()}.png"
+                     onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' width=\'24\' height=\'24\' fill=\'none\' stroke=\'%23f59e0b\' stroke-width=\'2\'><path d=\'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z\'/></svg>'"
+                     style="width:24px;height:24px;image-rendering:pixelated;vertical-align:middle;">
+            </td>
+            <td style="font-weight:700;">${escapeHtml(cleanName)} <span style="font-size:.7rem;color:var(--text-secondary);font-weight:400;">(${escapeHtml(item.category)} #${item.slot})</span></td>
+            <td>
+                <input type="number" step="any" min="0" placeholder="Brak (brak kupna)" id="cshop-buy-${item.category}-${item.slot}" value="${buyVal}"
+                       style="width:100%;padding:.3rem .5rem;border:1.5px solid var(--border);border-radius:6px;font-size:.8rem;background:var(--bg);color:var(--text-primary);outline:none;font-family:var(--font);">
+            </td>
+            <td>
+                <input type="number" step="any" min="0" placeholder="Brak (brak sprzedaży)" id="cshop-sell-${item.category}-${item.slot}" value="${sellVal}"
+                       style="width:100%;padding:.3rem .5rem;border:1.5px solid var(--border);border-radius:6px;font-size:.8rem;background:var(--bg);color:var(--text-primary);outline:none;font-family:var(--font);">
+            </td>
+            <td style="text-align:center;">
+                <button class="tbl-btn" onclick="cshopSaveItemPrice('${escapeHtml(item.category)}', ${item.slot})" style="font-size:.72rem;padding:.3rem .6rem;">
+                    <i class="fa-solid fa-floppy-disk"></i> Zapisz
+                </button>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+window.cshopSaveItemPrice = async function(category, slot) {
+    const buyInput = document.getElementById(`cshop-buy-${category}-${slot}`);
+    const sellInput = document.getElementById(`cshop-sell-${category}-${slot}`);
+    if (!buyInput || !sellInput) return;
+
+    if (!requirePermission('shop', 'zmianę cen w CShop')) return;
+
+    const rawBuy = buyInput.value.trim();
+    const rawSell = sellInput.value.trim();
+
+    const buyPrice = rawBuy === '' ? null : parseFloat(rawBuy);
+    const sellPrice = rawSell === '' ? null : parseFloat(rawSell);
+
+    if (buyPrice !== null && isNaN(buyPrice)) { showToast('error', 'Niepoprawna cena kupna.'); return; }
+    if (sellPrice !== null && isNaN(sellPrice)) { showToast('error', 'Niepoprawna cena sprzedaży.'); return; }
+
+    const key = `${category}_${slot}`;
+
+    try {
+        await setDoc(doc(db, 'cshop_config', 'items'), {
+            [key]: {
+                buyPrice: buyPrice,
+                sellPrice: sellPrice
+            }
+        }, { merge: true });
+
+        if (_cshopAllItemsData[key]) {
+            _cshopAllItemsData[key].buyPrice = buyPrice;
+            _cshopAllItemsData[key].sellPrice = sellPrice;
+        }
+
+        showToast('success', 'Cena zapisana — plugin pobierze za ~60s');
+    } catch (e) {
+        console.error('[CShop] Błąd cshopSaveItemPrice:', e);
+        showToast('error', 'Błąd zapisu: ' + e.message);
+    }
+};
+
+async function loadCShopDailyStats() {
+    const dailyEl   = document.getElementById('cshop-daily-stats');
+    const dateEl    = document.getElementById('cshop-daily-date');
+    const buyItems  = document.getElementById('cshop-today-buy-items');
+    const sellItems = document.getElementById('cshop-today-sell-items');
+    const topEarn   = document.getElementById('cshop-today-top-earners');
+    const topSpend  = document.getElementById('cshop-today-top-spenders');
+    if (!dailyEl) return;
+
+    try {
+        const snap = await getDocs(query(collection(db, 'cshop_transactions'), orderBy('timestamp', 'desc')));
+        const all  = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+        const now       = Date.now();
+        const msHour    = 3600_000;
+        const msDay     = 86_400_000;
+        const msWeek    = 7  * msDay;
+        const msMonth   = 30 * msDay;
+
+        const todayStr  = new Date().toLocaleDateString('pl-PL');
+        if (dateEl) dateEl.textContent = todayStr;
+
+        // Filtruj po zakresie
+        const inRange = (tx, ms) => {
+            const t = tx.timestamp ? new Date(tx.timestamp).getTime() : 0;
+            return t > now - ms;
+        };
+
+        const txHour  = all.filter(tx => inRange(tx, msHour));
+        const txDay   = all.filter(tx => inRange(tx, msDay));
+        const txWeek  = all.filter(tx => inRange(tx, msWeek));
+        const txMonth = all.filter(tx => inRange(tx, msMonth));
+
+        // Pomocnik: zlicz wartości dla zakresu
+        const sum = (arr, type) => arr.filter(t => t.type === type).reduce((s,t) => s + (t.price||0), 0);
+        const cnt = (arr, type) => arr.filter(t => t.type === type).length;
+        const fmt$ = v => v.toLocaleString('pl-PL', {minimumFractionDigits:2, maximumFractionDigits:2}) + '$';
+
+        // ── Karty podsumowania ─────────────────────────────────────────────────
+        const periods = [
+            { label:'Ostatnia godzina', txns: txHour,  color:'#8b5cf6' },
+            { label:'Dziś',             txns: txDay,   color:'#3b82f6' },
+            { label:'Ten tydzień',      txns: txWeek,  color:'#10b981' },
+            { label:'Ten miesiąc',      txns: txMonth, color:'#f59e0b' },
+        ];
+
+        dailyEl.innerHTML = periods.map(p => {
+            const buyV  = sum(p.txns, 'BUY');
+            const sellV = sum(p.txns, 'SELL');
+            const buyC  = cnt(p.txns, 'BUY');
+            const sellC = cnt(p.txns, 'SELL');
+            const players = new Set(p.txns.map(t => t.uuid)).size;
+            return `
+            <div style="background:var(--bg-card);border:1.5px solid ${p.color}33;border-radius:12px;padding:1rem;border-top:3px solid ${p.color};">
+                <div style="font-size:.68rem;font-weight:700;color:${p.color};text-transform:uppercase;margin-bottom:.6rem;letter-spacing:.04em;">
+                    <i class="fa-solid fa-calendar-day"></i> ${p.label}
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem;">
+                    <div style="background:rgba(239,68,68,.07);border-radius:8px;padding:.5rem;text-align:center;">
+                        <div style="font-size:.6rem;color:var(--text-secondary);text-transform:uppercase;">Kupno</div>
+                        <div style="font-size:.88rem;font-weight:800;color:#ef4444;">${fmt$(buyV)}</div>
+                        <div style="font-size:.65rem;color:var(--text-secondary);">${buyC} transakcji</div>
+                    </div>
+                    <div style="background:rgba(16,185,129,.07);border-radius:8px;padding:.5rem;text-align:center;">
+                        <div style="font-size:.6rem;color:var(--text-secondary);text-transform:uppercase;">Sprzedaż</div>
+                        <div style="font-size:.88rem;font-weight:800;color:#10b981;">${fmt$(sellV)}</div>
+                        <div style="font-size:.65rem;color:var(--text-secondary);">${sellC} transakcji</div>
+                    </div>
+                </div>
+                <div style="margin-top:.4rem;font-size:.7rem;color:var(--text-secondary);text-align:center;">
+                    <i class="fa-solid fa-users" style="color:${p.color};"></i> ${players} aktywnych graczy •
+                    razem: <b style="color:${p.color};">${(buyV+sellV).toFixed(2)}$</b>
+                </div>
+            </div>`;
+        }).join('');
+
+        // ── Top kupowanych DZIŚ (po itemName, COUNT) ───────────────────────────
+        const buyMap = {};
+        txDay.filter(t => t.type === 'BUY').forEach(t => {
+            const k = t.itemName || t.category || '?';
+            if (!buyMap[k]) buyMap[k] = { count: 0, total: 0 };
+            buyMap[k].count += (t.amount || 1);
+            buyMap[k].total += (t.price  || 0);
+        });
+        const topBuy = Object.entries(buyMap).sort((a,b) => b[1].total - a[1].total).slice(0,8);
+        if (buyItems) {
+            buyItems.innerHTML = topBuy.length ? topBuy.map(([item, d], i) =>
+                `<div style="display:flex;align-items:center;gap:.5rem;padding:.35rem .5rem;border-bottom:1px solid var(--border);font-size:.8rem;">
+                    <span style="width:18px;text-align:center;font-size:.7rem;color:var(--text-secondary);flex-shrink:0;">#${i+1}</span>
+                    <span style="flex:1;font-weight:700;">${escapeHtml(item)}</span>
+                    <span style="color:var(--text-secondary);font-size:.72rem;">${d.count} szt.</span>
+                    <span style="font-weight:800;color:#ef4444;">${d.total.toFixed(2)}$</span>
+                </div>`).join('')
+            : '<div style="text-align:center;padding:1rem;color:var(--text-secondary);font-size:.8rem;">Brak kupna dziś</div>';
+        }
+
+        // ── Top sprzedawanych DZIŚ ─────────────────────────────────────────────
+        const sellMap = {};
+        txDay.filter(t => t.type === 'SELL').forEach(t => {
+            const k = t.itemName || t.category || '?';
+            if (!sellMap[k]) sellMap[k] = { count: 0, total: 0 };
+            sellMap[k].count += (t.amount || 1);
+            sellMap[k].total += (t.price  || 0);
+        });
+        const topSell = Object.entries(sellMap).sort((a,b) => b[1].total - a[1].total).slice(0,8);
+        if (sellItems) {
+            sellItems.innerHTML = topSell.length ? topSell.map(([item, d], i) =>
+                `<div style="display:flex;align-items:center;gap:.5rem;padding:.35rem .5rem;border-bottom:1px solid var(--border);font-size:.8rem;">
+                    <span style="width:18px;text-align:center;font-size:.7rem;color:var(--text-secondary);flex-shrink:0;">#${i+1}</span>
+                    <span style="flex:1;font-weight:700;">${escapeHtml(item)}</span>
+                    <span style="color:var(--text-secondary);font-size:.72rem;">${d.count} szt.</span>
+                    <span style="font-weight:800;color:#10b981;">${d.total.toFixed(2)}$</span>
+                </div>`).join('')
+            : '<div style="text-align:center;padding:1rem;color:var(--text-secondary);font-size:.8rem;">Brak sprzedaży dziś</div>';
+        }
+
+        // ── Topka zarabiających DZIŚ (sprzedaż) ───────────────────────────────
+        const earnMap = {};
+        txDay.filter(t => t.type === 'SELL').forEach(t => {
+            const k = t.playerName || '?';
+            if (!earnMap[k]) earnMap[k] = { total: 0, uuid: t.uuid };
+            earnMap[k].total += (t.price || 0);
+        });
+        const topEarners = Object.entries(earnMap).sort((a,b) => b[1].total - a[1].total).slice(0,8);
+        if (topEarn) {
+            const medals = ['🥇','🥈','🥉'];
+            topEarn.innerHTML = topEarners.length ? topEarners.map(([name, d], i) =>
+                `<div style="display:flex;align-items:center;gap:.5rem;padding:.4rem .5rem;border-bottom:1px solid var(--border);font-size:.82rem;">
+                    <span style="width:22px;text-align:center;flex-shrink:0;">${i<3 ? medals[i] : '<span style="font-size:.7rem;color:var(--text-secondary);">#'+(i+1)+'</span>'}</span>
+                    <img src="https://mc-heads.net/avatar/${encodeURIComponent(name)}/20" style="width:20px;height:20px;border-radius:4px;image-rendering:pixelated;flex-shrink:0;">
+                    <span style="flex:1;font-weight:700;">${escapeHtml(name)}</span>
+                    <span style="font-weight:800;color:#10b981;">${d.total.toFixed(2)}$</span>
+                </div>`).join('')
+            : '<div style="text-align:center;padding:1rem;color:var(--text-secondary);font-size:.8rem;">Brak sprzedaży dziś</div>';
+        }
+
+        // ── Topka wydających DZIŚ (kupno) ──────────────────────────────────────
+        const spendMap = {};
+        txDay.filter(t => t.type === 'BUY').forEach(t => {
+            const k = t.playerName || '?';
+            if (!spendMap[k]) spendMap[k] = { total: 0 };
+            spendMap[k].total += (t.price || 0);
+        });
+        const topSpenders = Object.entries(spendMap).sort((a,b) => b[1].total - a[1].total).slice(0,8);
+        if (topSpend) {
+            const medals = ['🥇','🥈','🥉'];
+            topSpend.innerHTML = topSpenders.length ? topSpenders.map(([name, d], i) =>
+                `<div style="display:flex;align-items:center;gap:.5rem;padding:.4rem .5rem;border-bottom:1px solid var(--border);font-size:.82rem;">
+                    <span style="width:22px;text-align:center;flex-shrink:0;">${i<3 ? medals[i] : '<span style="font-size:.7rem;color:var(--text-secondary);">#'+(i+1)+'</span>'}</span>
+                    <img src="https://mc-heads.net/avatar/${encodeURIComponent(name)}/20" style="width:20px;height:20px;border-radius:4px;image-rendering:pixelated;flex-shrink:0;">
+                    <span style="flex:1;font-weight:700;">${escapeHtml(name)}</span>
+                    <span style="font-weight:800;color:#ef4444;">${d.total.toFixed(2)}$</span>
+                </div>`).join('')
+            : '<div style="text-align:center;padding:1rem;color:var(--text-secondary);font-size:.8rem;">Brak kupna dziś</div>';
+        }
+
+    } catch(e) {
+        if (dailyEl) dailyEl.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:1rem;color:#ef4444;font-size:.82rem;">Błąd: ${escapeHtml(e.message)}</div>`;
+    }
+}
+
+async function loadCShopOverview() {
+    const el = document.getElementById('cshop-overview');
+    if (!el) return;
+    try {
+        // Policz z historii transakcji
+        const snap = await getDocs(query(collection(db, 'cshop_transactions'), orderBy('timestamp', 'desc')));
+        const txns = snap.docs.map(d => d.data());
+        const totalBuy  = txns.filter(t => t.type === 'BUY').reduce((s, t) => s + (t.price || 0), 0);
+        const totalSell = txns.filter(t => t.type === 'SELL').reduce((s, t) => s + (t.price || 0), 0);
+        const uniqPlayers = new Set(txns.map(t => t.uuid)).size;
+
+        el.innerHTML = [
+            ['fa-arrow-up-from-bracket', '#ef4444', 'Zakupy (łącznie)', totalBuy.toLocaleString('pl-PL', {minimumFractionDigits:2, maximumFractionDigits:2}) + '$'],
+            ['fa-arrow-down-to-bracket', '#10b981', 'Sprzedaż (łącznie)', totalSell.toLocaleString('pl-PL', {minimumFractionDigits:2, maximumFractionDigits:2}) + '$'],
+            ['fa-receipt', '#3b82f6', 'Transakcji', txns.length.toLocaleString('pl-PL')],
+            ['fa-users', '#8b5cf6', 'Aktywnych graczy', uniqPlayers.toString()]
+        ].map(([icon, color, label, value]) =>
+            `<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:.7rem;text-align:center;">
+                <i class="fa-solid ${icon}" style="color:${color};font-size:.9rem;"></i>
+                <div style="font-size:.62rem;color:var(--text-secondary);text-transform:uppercase;margin:.2rem 0 .1rem;">${label}</div>
+                <div style="font-size:.9rem;font-weight:800;color:${color};">${value}</div>
+            </div>`
+        ).join('');
+    } catch(e) {
+        el.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:1rem;color:#ef4444;font-size:.8rem;">Błąd: ${e.message}</div>`;
+    }
+}
+
+async function loadCShopTopList(stat, containerId, color, unit) {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    try {
+        const snap = await getDoc(doc(db, 'cshop_top', stat));
+        if (!snap.exists()) {
+            el.innerHTML = '<div style="text-align:center;padding:1rem;color:var(--text-secondary);font-size:.8rem;">Brak danych — plugin musi być uruchomiony.</div>';
+            return;
+        }
+        const entries = (snap.data().entries || []).slice(0, 10);
+        if (!entries.length) { el.innerHTML = '<div style="text-align:center;padding:.8rem;color:var(--text-secondary);font-size:.8rem;">Brak danych.</div>'; return; }
+        const medals = ['🥇','🥈','🥉'];
+        el.innerHTML = entries.map((e, i) => {
+            const val = typeof e.value === 'number' ? (Number.isInteger(e.value) ? e.value.toLocaleString('pl-PL') : e.value.toFixed(2)) : e.value;
+            return `<div style="display:flex;align-items:center;gap:.5rem;padding:.4rem .5rem;border-bottom:1px solid var(--border);font-size:.82rem;">
+                <span style="width:22px;text-align:center;flex-shrink:0;">${i < 3 ? medals[i] : '<span style="color:var(--text-secondary);font-size:.72rem;">#' + (i+1) + '</span>'}</span>
+                <img src="https://mc-heads.net/avatar/${encodeURIComponent(e.player||'Steve')}/20" style="width:20px;height:20px;border-radius:4px;image-rendering:pixelated;flex-shrink:0;">
+                <span style="flex:1;font-weight:700;">${escapeHtml(e.player||'?')}</span>
+                <span style="font-weight:800;color:${color};">${val} ${unit}</span>
+            </div>`;
+        }).join('');
+    } catch(e) {
+        el.innerHTML = `<div style="padding:.5rem;color:#ef4444;font-size:.75rem;">Błąd: ${e.message}</div>`;
+    }
+}
+
+async function loadCShopHistory() {
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="7" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>';
+    try {
+        const snap = await getDocs(query(collection(db, 'cshop_transactions'), orderBy('timestamp', 'desc')));
+        _cshopAllHistory = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        cshopFilterHistory();
+    } catch(e) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:1rem;color:#ef4444;font-size:.85rem;">Błąd: ${e.message}</td></tr>`;
+    }
+}
+
+window.cshopFilterHistory = function() {
+    const tbody = document.getElementById('cshop-history-tbody');
+    if (!tbody) return;
+    const s = (document.getElementById('cshop-hist-search')?.value || '').toLowerCase();
+    const t = document.getElementById('cshop-hist-type')?.value || '';
+    const filtered = _cshopAllHistory.filter(tx => {
+        if (s && !(tx.playerName || '').toLowerCase().includes(s)) return false;
+        if (t && tx.type !== t) return false;
+        return true;
+    });
+    if (!filtered.length) {
+        tbody.innerHTML = '<tr><td colspan="7" class="table-empty">Brak transakcji</td></tr>';
+        return;
+    }
+    tbody.innerHTML = filtered.slice(0, 200).map(tx => {
+        const isB = tx.type === 'BUY';
+        const typeHtml = isB
+            ? '<span class="badge" style="background:rgba(59,130,246,.12);color:#3b82f6;">⬆ Kupno</span>'
+            : '<span class="badge" style="background:rgba(16,185,129,.12);color:#059669;">⬇ Sprzedaż</span>';
+        const ts = tx.timestamp ? new Date(tx.timestamp).toLocaleString('pl-PL') : '—';
+        return `<tr>
+            <td><div class="player-cell">${head(tx.playerName||'?')}<div class="player-name">${escapeHtml(tx.playerName||'?')}</div></div></td>
+            <td style="font-size:.82rem;">${escapeHtml(tx.itemName||'?')}</td>
+            <td style="font-weight:700;text-align:center;">${tx.amount||1}</td>
+            <td style="font-weight:800;color:${isB ? '#3b82f6' : '#10b981'};">${Number(tx.price||0).toFixed(2)}$</td>
+            <td>${typeHtml}</td>
+            <td style="font-size:.78rem;color:var(--text-secondary);">${escapeHtml(tx.category||'—')}</td>
+            <td style="font-size:.78rem;color:var(--text-secondary);white-space:nowrap;">${ts}</td>
+        </tr>`;
+    }).join('');
+};
+
+// ── CShop Tax Config ───────────────────────────────────────────────────────────
+
+async function loadCShopTaxConfig() {
+    const tiersEl  = document.getElementById('cshop-tax-tiers');
+    const enableCb = document.getElementById('cshop-tax-enabled');
+    if (!tiersEl) return;
+    try {
+        const snap = await getDoc(doc(db, 'cshop_config', 'taxes'));
+        if (!snap.exists()) {
+            tiersEl.innerHTML = '<div style="font-size:.8rem;color:var(--text-secondary);text-align:center;padding:.8rem;">Brak danych — uruchom plugin CShop z firebase.enabled=true.</div>';
+            return;
+        }
+        const data = snap.data();
+        if (enableCb) {
+            enableCb.checked = data.enabled !== false;
+            _updateTaxToggleUI(enableCb.checked);
+        }
+        _cshopTaxTiers = data.tiers || [];
+        _renderTaxTiers();
+    } catch(e) {
+        tiersEl.innerHTML = `<div style="font-size:.8rem;color:#ef4444;padding:.5rem;">Błąd: ${e.message}</div>`;
+    }
+}
+
+function _renderTaxTiers() {
+    const el = document.getElementById('cshop-tax-tiers');
+    if (!el) return;
+    if (!_cshopTaxTiers.length) {
+        el.innerHTML = '<div style="font-size:.8rem;color:var(--text-secondary);text-align:center;padding:.8rem;">Brak progów podatkowych.</div>';
+        return;
+    }
+    el.innerHTML = _cshopTaxTiers.map((tier, idx) => `
+        <div style="background:var(--bg);border:1.5px solid var(--border);border-radius:10px;padding:.75rem;position:relative;" id="cshop-tier-${idx}">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem;">
+                <div style="font-weight:800;font-size:.88rem;color:var(--text-primary);">
+                    <i class="fa-solid fa-layer-group" style="color:#f59e0b;margin-right:.3rem;"></i>${escapeHtml(tier.name||'Próg '+(idx+1))}
+                </div>
+                <button onclick="cshopDeleteTier(${idx})" style="background:transparent;border:none;color:var(--text-secondary);cursor:pointer;font-size:.8rem;padding:.2rem .4rem;">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem;font-size:.78rem;">
+                <div>
+                    <label style="color:var(--text-secondary);font-weight:600;display:block;margin-bottom:.15rem;">Nazwa</label>
+                    <input type="text" value="${escapeHtml(tier.name||'')}" onchange="_cshopTierChange(${idx},'name',this.value)"
+                        style="width:100%;padding:.35rem .5rem;border:1px solid var(--border);border-radius:6px;font-size:.8rem;background:var(--bg-card);color:var(--text-primary);font-family:var(--font);">
+                </div>
+                <div>
+                    <label style="color:var(--text-secondary);font-weight:600;display:block;margin-bottom:.15rem;">Próg (min $)</label>
+                    <input type="number" value="${tier.threshold||0}" min="0" onchange="_cshopTierChange(${idx},'threshold',+this.value)"
+                        style="width:100%;padding:.35rem .5rem;border:1px solid var(--border);border-radius:6px;font-size:.8rem;background:var(--bg-card);color:var(--text-primary);font-family:var(--font);">
+                </div>
+                <div>
+                    <label style="color:var(--text-secondary);font-weight:600;display:block;margin-bottom:.15rem;">Podatek wejściowy min %</label>
+                    <input type="number" value="${tier.entryMin||0}" min="0" step="0.01" onchange="_cshopTierChange(${idx},'entryMin',+this.value)"
+                        style="width:100%;padding:.35rem .5rem;border:1px solid var(--border);border-radius:6px;font-size:.8rem;background:var(--bg-card);color:var(--text-primary);font-family:var(--font);">
+                </div>
+                <div>
+                    <label style="color:var(--text-secondary);font-weight:600;display:block;margin-bottom:.15rem;">Podatek wejściowy max %</label>
+                    <input type="number" value="${tier.entryMax||0}" min="0" step="0.01" onchange="_cshopTierChange(${idx},'entryMax',+this.value)"
+                        style="width:100%;padding:.35rem .5rem;border:1px solid var(--border);border-radius:6px;font-size:.8rem;background:var(--bg-card);color:var(--text-primary);font-family:var(--font);">
+                </div>
+                <div>
+                    <label style="color:var(--text-secondary);font-weight:600;display:block;margin-bottom:.15rem;">Kupno + min %</label>
+                    <input type="number" value="${tier.buyIncreaseMin||0}" min="0" step="0.1" onchange="_cshopTierChange(${idx},'buyIncreaseMin',+this.value)"
+                        style="width:100%;padding:.35rem .5rem;border:1px solid var(--border);border-radius:6px;font-size:.8rem;background:var(--bg-card);color:var(--text-primary);font-family:var(--font);">
+                </div>
+                <div>
+                    <label style="color:var(--text-secondary);font-weight:600;display:block;margin-bottom:.15rem;">Kupno + max %</label>
+                    <input type="number" value="${tier.buyIncreaseMax||0}" min="0" step="0.1" onchange="_cshopTierChange(${idx},'buyIncreaseMax',+this.value)"
+                        style="width:100%;padding:.35rem .5rem;border:1px solid var(--border);border-radius:6px;font-size:.8rem;background:var(--bg-card);color:var(--text-primary);font-family:var(--font);">
+                </div>
+                <div>
+                    <label style="color:var(--text-secondary);font-weight:600;display:block;margin-bottom:.15rem;">Sprzedaż - min %</label>
+                    <input type="number" value="${tier.sellDecreaseMin||0}" min="0" step="0.1" onchange="_cshopTierChange(${idx},'sellDecreaseMin',+this.value)"
+                        style="width:100%;padding:.35rem .5rem;border:1px solid var(--border);border-radius:6px;font-size:.8rem;background:var(--bg-card);color:var(--text-primary);font-family:var(--font);">
+                </div>
+                <div>
+                    <label style="color:var(--text-secondary);font-weight:600;display:block;margin-bottom:.15rem;">Sprzedaż - max %</label>
+                    <input type="number" value="${tier.sellDecreaseMax||0}" min="0" step="0.1" onchange="_cshopTierChange(${idx},'sellDecreaseMax',+this.value)"
+                        style="width:100%;padding:.35rem .5rem;border:1px solid var(--border);border-radius:6px;font-size:.8rem;background:var(--bg-card);color:var(--text-primary);font-family:var(--font);">
+                </div>
+            </div>
+            <button onclick="cshopSaveTier(${idx})" style="width:100%;margin-top:.5rem;padding:.4rem;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none;border-radius:7px;font-size:.78rem;font-weight:800;cursor:pointer;font-family:var(--font);">
+                <i class="fa-solid fa-floppy-disk"></i> Zapisz próg
+            </button>
+        </div>`).join('');
+}
+
+window._cshopTierChange = function(idx, field, value) {
+    if (_cshopTaxTiers[idx]) _cshopTaxTiers[idx][field] = value;
+};
+
+window.cshopSaveTier = async function(idx) {
+    if (!requirePermission('all', 'edycja podatków')) return;
+    try {
+        const enabled = document.getElementById('cshop-tax-enabled')?.checked ?? true;
+        await setDoc(doc(db, 'cshop_config', 'taxes'), {
+            enabled,
+            tiers: _cshopTaxTiers,
+            updatedAt: new Date().toISOString(),
+            updatedBy: currentUser?.displayName || 'Panel'
+        });
+        showToast('success', `Próg "${_cshopTaxTiers[idx]?.name}" zapisany! Plugin pobierze zmiany w ciągu 60s.`);
+    } catch(e) { showToast('error', 'Błąd: ' + e.message); }
+};
+
+window.cshopSaveTaxEnabled = async function(enabled) {
+    if (!requirePermission('all', 'edycja podatków')) return;
+    _updateTaxToggleUI(enabled);
+    try {
+        await updateDoc(doc(db, 'cshop_config', 'taxes'), {
+            enabled,
+            updatedAt: new Date().toISOString(),
+            updatedBy: currentUser?.displayName || 'Panel'
+        });
+        showToast('success', `Podatki ${enabled ? 'włączone' : 'wyłączone'}! Plugin pobierze zmianę w ciągu 60s.`);
+    } catch(e) { showToast('error', 'Błąd: ' + e.message); }
+};
+
+function _updateTaxToggleUI(enabled) {
+    const slider = document.getElementById('cshop-tax-slider');
+    if (!slider) return;
+    slider.style.background = enabled ? '#10b981' : '#374151';
+    const knob = slider.querySelector('span');
+    if (knob) knob.style.transform = enabled ? 'translateX(16px)' : 'translateX(0)';
+}
+
+window.cshopAddTier = function() {
+    _cshopTaxTiers.push({
+        name: 'nowy_prog',
+        threshold: 0,
+        entryEnabled: false, entryMin: 0, entryMax: 0,
+        pricesEnabled: true, buyIncreaseMin: 0, buyIncreaseMax: 0,
+        sellDecreaseMin: 0, sellDecreaseMax: 0
+    });
+    _renderTaxTiers();
+    // Przewiń do nowego
+    const tiers = document.getElementById('cshop-tax-tiers');
+    if (tiers) tiers.lastElementChild?.scrollIntoView({ behavior: 'smooth' });
+};
+
+window.cshopDeleteTier = function(idx) {
+    if (!confirm(`Usunąć próg "${_cshopTaxTiers[idx]?.name}"?`)) return;
+    _cshopTaxTiers.splice(idx, 1);
+    _renderTaxTiers();
+    showToast('info', 'Próg usunięty — kliknij "Zapisz" aby potwierdzić.');
+};
+
+// ── CShop Items Manager — aliasy dla kompatybilności z HTML ───────────────────
+
+// Antigravity zaimplementował pełną wersję (window.loadCShopItemsManager,
+// _cshopAllItemsData, _renderCShopItemsTable, cshopSaveItemPrice, _cshopSetCategory)
+// Tutaj dodajemy tylko bridge dla przycisków w HTML które używają cshopShowItemsCat
+
+window.cshopShowItemsCat = function(cat) {
+    if (typeof window._cshopSetCategory === 'function') {
+        window._cshopSetCategory(cat === '' ? 'all' : cat);
+    }
+};
+
+// Bulk save — zapisuje wszystkie widoczne zmiany naraz
+window.cshopSaveAllPrices = async function() {
+    if (!requirePermission('cshop_manage', 'zarządzanie CShop')) return;
+    const data = window._cshopAllItemsData || {};
+    const entries = Object.keys(data);
+    const updates = {};
+    let changed = 0;
+    for (const key of entries) {
+        const item = data[key];
+        if (!item) continue;
+        const cat  = item.category;
+        const slot = item.slot;
+        const buyEl  = document.getElementById(`cshop-buy-${cat}-${slot}`);
+        const sellEl = document.getElementById(`cshop-sell-${cat}-${slot}`);
+        const rawBuy  = buyEl?.value.trim();
+        const rawSell = sellEl?.value.trim();
+        if (rawBuy  !== '' && parseFloat(rawBuy)  !== (item.buyPrice  ?? NaN)) { updates[`${key}.buyPrice`]  = parseFloat(rawBuy);  changed++; }
+        if (rawSell !== '' && parseFloat(rawSell) !== (item.sellPrice ?? NaN)) { updates[`${key}.sellPrice`] = parseFloat(rawSell); changed++; }
+    }
+    if (!changed) { showToast('info', 'Brak zmian.'); return; }
+    try {
+        await setDoc(doc(db, 'cshop_config', 'items'), updates, { merge: true });
+        showToast('success', `💾 Zapisano ${changed} zmian! Plugin odświeży za ~60s.`);
+        await window.loadCShopItemsManager();
+    } catch(e) { showToast('error', 'Błąd: ' + e.message); }
+};
+
+// ── Top rankingi ──────────────────────────────────────────────────────────────
 
 // ── Top rankingi ──────────────────────────────────────────────────────────────
 
@@ -2703,19 +3615,39 @@ async function loadCStatsTop() {
         }
 
         const medals = ['🥇','🥈','🥉'];
+        const activeUuid = _cstatsSelectedPlayer?.uuid;
         list.innerHTML = entries.map((e, i) => {
             const rankIcon = i < 3 ? medals[i] : `<span style="color:var(--text-secondary);font-size:.78rem;">#${e.rank}</span>`;
             const val = stat === 'playtime' ? fmtPlaytime(e.value)
                       : stat === 'kdr'     ? Number(e.value).toFixed(2)
                       : stat.includes('damage') ? Math.round(e.value).toLocaleString('pl-PL')
                       : Math.round(e.value).toLocaleString('pl-PL');
-            return `<div style="display:flex;align-items:center;gap:.6rem;padding:.45rem .6rem;border-bottom:1px solid var(--border);font-size:.82rem;" onmouseenter="this.style.background='var(--bg)'" onmouseleave="this.style.background=''">
+            const isActive = activeUuid === e.uuid;
+            const bg = isActive ? 'rgba(139,92,246,.12)' : '';
+            return `<div class="cstats-top-entry" data-name="${escapeHtml(e.player||'')}" data-uuid="${escapeHtml(e.uuid||'')}"
+                        style="display:flex;align-items:center;gap:.6rem;padding:.5rem .65rem;border-bottom:1px solid var(--border);font-size:.84rem;cursor:pointer;background:${bg};border-left:${isActive ? '3px solid #8b5cf6;' : '3px solid transparent;'}padding-left:calc(.65rem - 3px);transition:background .1s;"
+                        onmouseenter="if(!this.dataset.active)this.style.background='rgba(139,92,246,.06)'"
+                        onmouseleave="if(!this.dataset.active)this.style.background='${bg}'">
                 <span style="width:28px;text-align:center;flex-shrink:0;">${rankIcon}</span>
-                <img src="https://mc-heads.net/avatar/${encodeURIComponent(e.player||'Steve')}/22" style="width:22px;height:22px;border-radius:4px;image-rendering:pixelated;flex-shrink:0;">
+                <img src="https://mc-heads.net/avatar/${encodeURIComponent(e.player||'Steve')}/24" style="width:24px;height:24px;border-radius:5px;image-rendering:pixelated;flex-shrink:0;">
                 <span style="flex:1;font-weight:700;">${escapeHtml(e.player||'?')}</span>
                 <span style="color:var(--accent-blue);font-weight:800;">${val}</span>
+                <i class="fa-solid fa-arrow-up-right-from-square" style="color:var(--text-secondary);font-size:.65rem;opacity:.6;"></i>
             </div>`;
         }).join('');
+        // Podłącz click — klik na gracza w topce = wyszukaj i otwórz
+        list.querySelectorAll('.cstats-top-entry').forEach(el => {
+            if (activeUuid === el.getAttribute('data-uuid')) el.dataset.active = '1';
+            el.onclick = () => {
+                const n = el.getAttribute('data-name');
+                const u = el.getAttribute('data-uuid');
+                if (n && u) {
+                    document.getElementById('cstats-edit-nick').value = n;
+                    cstatsSelectPlayer(n, u);
+                    showToast('info', '📊 Wczytano ' + n + ' z rankingu');
+                }
+            };
+        });
     } catch(err) {
         list.innerHTML = `<div style="padding:.8rem;color:#ef4444;font-size:.82rem;">Błąd: ${err.message}</div>`;
     }
@@ -2733,34 +3665,110 @@ function fmtPlaytime(secs) {
 
 // ── Wyszukiwanie gracza CStats ────────────────────────────────────────────────
 
-window.cstatsSearchPlayer = async function(val) {
+// Debounce dla wyszukiwarki gracza — nie pobieraj Firestore przy każdej literze
+let _cstatsSearchTimer = null;
+let _cstatsAllPlayers = null; // cache całej listy graczy (jedno pobranie)
+
+/** Wyczyść wybór gracza — ukryj staty, wyczyść input */
+window.cstatsClearPlayer = function() {
+    _cstatsSelectedPlayer = null;
+    const input = document.getElementById('cstats-edit-nick');
+    if (input) input.value = '';
+    const statsDiv = document.getElementById('cstats-player-stats');
+    if (statsDiv) statsDiv.style.display = 'none';
+    const sug = document.getElementById('cstats-suggestions');
+    if (sug) sug.style.display = 'none';
+    const grid = document.getElementById('cstats-player-statgrid');
+    if (grid) grid.innerHTML = '<div style="color:var(--text-secondary);text-align:center;padding:2rem;font-size:.88rem;">Wpisz nick powyżej, aby zobaczyć statystyki.</div>';
+    const achDiv = document.getElementById('cstats-achievements');
+    if (achDiv) achDiv.innerHTML = '<div style="color:var(--text-secondary);text-align:center;padding:1.5rem;font-size:.85rem;">Wpisz nick powyżej.</div>';
+    const achName = document.getElementById('cstats-ach-player');
+    if (achName) achName.textContent = '';
+    loadCStatsTop(); // odśwież topkę (usuń podświetlenie)
+    if (input) input.focus();
+};
+
+window.cstatsSearchPlayer = function(val) {
     const sug = document.getElementById('cstats-suggestions');
     if (!sug) return;
-    if (!val || val.length < 2) { sug.style.display = 'none'; return; }
-
-    // Szukaj w cstats_players
-    try {
-        const snap = await getDocs(collection(db, 'cstats_players'));
-        const matches = snap.docs
-            .map(d => ({ id: d.id, ...d.data() }))
-            .filter(p => (p.name || '').toLowerCase().includes(val.toLowerCase()))
-            .slice(0, 8);
-
-        if (!matches.length) { sug.style.display = 'none'; return; }
-        sug.style.display = 'block';
-        sug.innerHTML = matches.map(p =>
-            `<div style="padding:.5rem .8rem;cursor:pointer;display:flex;align-items:center;gap:.6rem;font-size:.85rem;font-weight:600;border-bottom:1px solid var(--border);"
-                onmouseenter="this.style.background='var(--bg)'" onmouseleave="this.style.background=''"
-                onclick="cstatsSelectPlayer('${escapeHtml(p.name)}','${p.uuid||p.id}')">
-                <img src="https://mc-heads.net/avatar/${encodeURIComponent(p.name||'Steve')}/24" style="width:24px;height:24px;border-radius:4px;image-rendering:pixelated;">
-                ${escapeHtml(p.name || p.id)}
-                <span style="margin-left:auto;font-size:.72rem;color:var(--text-secondary);">${Math.round((p.kills||0))} kills</span>
-            </div>`
-        ).join('');
-    } catch(e) {
-        sug.style.display = 'none';
-    }
+    // Debounce 200ms — czeka aż user skończy pisać
+    clearTimeout(_cstatsSearchTimer);
+    if (!val || val.trim().length < 1) { sug.style.display = 'none'; return; }
+    _cstatsSearchTimer = setTimeout(() => _cstatsDoSearch(val.trim()), 200);
 };
+
+async function _cstatsDoSearch(val) {
+    const sug = document.getElementById('cstats-suggestions');
+    if (!sug) return;
+    sug.innerHTML = '<div style="padding:.6rem .8rem;color:var(--text-secondary);font-size:.8rem;"><i class="fa-solid fa-spinner fa-spin"></i> Szukam...</div>';
+    sug.style.display = 'block';
+
+    try {
+        // Pobierz cache graczy raz (z cstats_players) — potem filtruj lokalnie
+        if (!_cstatsAllPlayers) {
+            const snap = await getDocs(query(collection(db, 'cstats_players'), limit(2000)));
+            _cstatsAllPlayers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        }
+        const q = val.toLowerCase();
+        // Pasuje po name, nick, uuid — posortowane: dokładne > zaczyna się od > zawiera
+        const all = _cstatsAllPlayers.map(p => {
+            const n = (p.name || p.nick || p.id || '').toLowerCase();
+            let score = -1;
+            if (n === q) score = 100;
+            else if (n.startsWith(q)) score = 80;
+            else if (n.includes(q)) score = 60;
+            else if ((p.uuid||'').toLowerCase().includes(q)) score = 40;
+            return { p, score, name: p.name || p.nick || p.id };
+        }).filter(x => x.score > 0)
+          .sort((a, b) => b.score - a.score)
+          .slice(0, 10);
+
+        if (!all.length) {
+            sug.innerHTML = `<div style="padding:.7rem .8rem;color:var(--text-secondary);font-size:.82rem;text-align:center;">❌ Brak gracza "${escapeHtml(val)}"</div>`;
+            return;
+        }
+
+        sug.innerHTML = all.map(({p, name}) => {
+            // Bezpieczne przekazanie danych — używamy data-attr zamiast onclick string
+            const uuid = p.uuid || p.id;
+            const kills = Math.round(p.kills||0);
+            // Podświetl pasujący fragment
+            const hl = _highlightMatch(name, val);
+            return `<div class="cstats-sug-item" data-name="${escapeHtml(name)}" data-uuid="${escapeHtml(uuid)}"
+                        style="padding:.55rem .8rem;cursor:pointer;display:flex;align-items:center;gap:.6rem;font-size:.88rem;font-weight:600;border-bottom:1px solid var(--border);transition:background .1s;"
+                        onmouseenter="this.style.background='rgba(139,92,246,.1)';this.style.borderLeft='3px solid #8b5cf6';this.style.paddingLeft='calc(.8rem - 3px)';"
+                        onmouseleave="this.style.background='';this.style.borderLeft='';this.style.paddingLeft='.8rem';">
+                    <img src="https://mc-heads.net/avatar/${encodeURIComponent(name||'Steve')}/28" style="width:28px;height:28px;border-radius:5px;image-rendering:pixelated;flex-shrink:0;">
+                    <span style="flex:1;">${hl}</span>
+                    <span style="font-size:.72rem;color:#dc2626;font-weight:700;">⚔ ${kills}</span>
+                    <i class="fa-solid fa-chevron-right" style="color:var(--text-secondary);font-size:.7rem;"></i>
+                </div>`;
+        }).join('');
+
+        // Podłącz click przez event delegation (bezpieczne — bez onclick string)
+        sug.querySelectorAll('.cstats-sug-item').forEach(el => {
+            el.onclick = () => {
+                const n = el.getAttribute('data-name');
+                const u = el.getAttribute('data-uuid');
+                cstatsSelectPlayer(n, u);
+            };
+        });
+    } catch(e) {
+        console.error('[CStats] search error:', e);
+        sug.innerHTML = `<div style="padding:.6rem .8rem;color:#ef4444;font-size:.8rem;">Błąd: ${escapeHtml(e.message)}</div>`;
+    }
+}
+
+/** Podświetla pasujący fragment pogrubieniem */
+function _highlightMatch(name, query) {
+    if (!name || !query) return escapeHtml(name||'');
+    const n = String(name);
+    const idx = n.toLowerCase().indexOf(query.toLowerCase());
+    if (idx < 0) return escapeHtml(n);
+    return escapeHtml(n.substring(0, idx))
+         + '<b style="color:#8b5cf6;">' + escapeHtml(n.substring(idx, idx + query.length)) + '</b>'
+         + escapeHtml(n.substring(idx + query.length));
+}
 
 /** Renderuje siatkę kart statystyk gracza w div #cstats-player-statgrid */
 function renderCStatsGrid(p) {
@@ -3091,6 +4099,271 @@ async function loadPluginConnections() {
     }).join('');
 }
 
+// ─── CSHOP — PANEL (Antigravity extra stats) ─────────────────────────────────
+
+/** loadCShopStats — alias do loadCShopOverview (Antigravity compat) */
+async function loadCShopStats() { return loadCShopOverview(); }
+/** loadCShopTransactions — alias do loadCShopHistory (Antigravity compat) */
+async function loadCShopTransactions() { return loadCShopHistory(); }
+/** loadCShopTop — alias do zbiorczego ładowania topek (Antigravity compat) */
+async function loadCShopTop() {
+    return Promise.allSettled([
+        loadCShopTopList('top_spent',        'cshop-top-spent',        '#ef4444', '$'),
+        loadCShopTopList('top_earned',       'cshop-top-earned',       '#10b981', '$'),
+        loadCShopTopList('top_transactions', 'cshop-top-transactions', '#8b5cf6', 'transakcji')
+    ]);
+}
+
+/** Karty ze statystykami ogólnymi CShop */
+async function loadCShopStats() {
+    const el = document.getElementById('cshop-stats-cards');
+    if (!el) return;
+    try {
+        const snap = await getDocs(query(collection(db, 'cshop_stats')));
+        const docs = snap.docs.map(d => d.data());
+        const totalSpent       = docs.reduce((s, d) => s + (d.totalSpent || 0), 0);
+        const totalEarned      = docs.reduce((s, d) => s + (d.totalEarned || 0), 0);
+        const totalTaxes       = docs.reduce((s, d) => s + (d.totalTaxes || 0), 0);
+        const totalTransactions= docs.reduce((s, d) => s + (d.totalTransactions || 0), 0);
+        const playerCount      = docs.length;
+        el.innerHTML = `
+            <div class="stat-card"><div class="stat-icon" style="background:rgba(16,185,129,.12);color:#10b981;"><i class="fa-solid fa-cart-shopping"></i></div><div class="stat-info"><div class="stat-value">${totalTransactions.toLocaleString('pl-PL')}</div><div class="stat-label">Transakcje ogółem</div></div></div>
+            <div class="stat-card"><div class="stat-icon" style="background:rgba(239,68,68,.12);color:#ef4444;"><i class="fa-solid fa-coins"></i></div><div class="stat-info"><div class="stat-value">${Math.round(totalSpent).toLocaleString('pl-PL')}$</div><div class="stat-label">Wydano łącznie</div></div></div>
+            <div class="stat-card"><div class="stat-icon" style="background:rgba(34,197,94,.12);color:#22c55e;"><i class="fa-solid fa-sack-dollar"></i></div><div class="stat-info"><div class="stat-value">${Math.round(totalEarned).toLocaleString('pl-PL')}$</div><div class="stat-label">Zarobiono łącznie</div></div></div>
+            <div class="stat-card"><div class="stat-icon" style="background:rgba(245,158,11,.12);color:#f59e0b;"><i class="fa-solid fa-percent"></i></div><div class="stat-info"><div class="stat-value">${Math.round(totalTaxes).toLocaleString('pl-PL')}$</div><div class="stat-label">Pobrane podatki</div></div></div>
+            <div class="stat-card"><div class="stat-icon" style="background:rgba(139,92,246,.12);color:#8b5cf6;"><i class="fa-solid fa-users"></i></div><div class="stat-info"><div class="stat-value">${playerCount}</div><div class="stat-label">Graczy w bazie</div></div></div>`;
+    } catch(e) {
+        el.innerHTML = `<div style="color:#ef4444;font-size:.82rem;padding:.5rem;">Błąd: ${escapeHtml(e.message)}</div>`;
+    }
+}
+
+/** Tabela ostatnich transakcji */
+async function loadCShopTransactions() {
+    const tb = document.getElementById('cshop-transactions-tbody');
+    if (!tb) return;
+    tb.innerHTML = '<tr><td colspan="7" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>';
+    try {
+        const snap = await getDocs(query(collection(db, 'cshop_transactions'), orderBy('timestamp', 'desc')));
+        const rows = snap.docs.map(d => d.data()).slice(0, 200);
+        if (!rows.length) { tb.innerHTML = '<tr><td colspan="7" class="table-empty">Brak transakcji — wgraj CShop z włączonym firebase.enabled=true</td></tr>'; return; }
+        tb.innerHTML = rows.map(t => {
+            const isB = t.type === 'BUY';
+            const col = isB ? '#22c55e' : '#f59e0b';
+            const icon= isB ? 'fa-cart-plus' : 'fa-money-bill-wave';
+            const ts  = t.timestamp ? new Date(t.timestamp).toLocaleString('pl-PL') : '—';
+            return `<tr>
+                <td><span style="color:${col};font-weight:700;font-size:.8rem;"><i class="fa-solid ${icon}"></i> ${t.type||'?'}</span></td>
+                <td><div class="player-cell">${head(t.playerName||'?')}<div class="player-name">${escapeHtml(t.playerName||'?')}</div></div></td>
+                <td style="font-weight:700;">${escapeHtml(t.itemName||'?')}</td>
+                <td style="text-align:center;">${t.amount||1}</td>
+                <td style="font-weight:800;color:${col};">${Number(t.price||0).toFixed(2)}$</td>
+                <td style="font-size:.78rem;color:var(--text-secondary);">${escapeHtml(t.category||'—')}</td>
+                <td style="font-size:.78rem;color:var(--text-secondary);">${ts}</td>
+            </tr>`;
+        }).join('');
+    } catch(e) {
+        tb.innerHTML = `<tr><td colspan="7" style="color:#ef4444;padding:.8rem;">${escapeHtml(e.message)}</td></tr>`;
+    }
+}
+
+window.filterCShopTransactions = function() {
+    const s  = (document.getElementById('cshop-tx-search')?.value || '').toLowerCase();
+    const ty = document.getElementById('cshop-tx-type')?.value || '';
+    document.querySelectorAll('#cshop-transactions-tbody tr').forEach(row => {
+        const txt = row.textContent.toLowerCase();
+        const typeCell = row.cells?.[0]?.textContent?.trim() || '';
+        row.style.display = ((!s || txt.includes(s)) && (!ty || typeCell.includes(ty))) ? '' : 'none';
+    });
+};
+
+/** Topki CShop */
+async function loadCShopTop() {
+    const stat = document.getElementById('cshop-top-stat')?.value || 'top_spent';
+    const list = document.getElementById('cshop-top-list');
+    if (!list) return;
+    list.innerHTML = '<div style="text-align:center;padding:1.5rem;color:var(--text-secondary);font-size:.85rem;"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</div>';
+    try {
+        const snap = await getDoc(doc(db, 'cshop_top', stat));
+        if (!snap.exists()) { list.innerHTML = '<div style="text-align:center;padding:1.5rem;color:var(--text-secondary);">Brak danych — poczekaj na sync pluginu.</div>'; return; }
+        const entries = (snap.data().entries || []).slice(0, 20);
+        if (!entries.length) { list.innerHTML = '<div style="text-align:center;padding:1rem;color:var(--text-secondary);">Brak graczy w rankingu.</div>'; return; }
+        const medals = ['🥇','🥈','🥉'];
+        const isMoney = stat !== 'top_transactions';
+        list.innerHTML = entries.map((e, i) => {
+            const icon = i < 3 ? medals[i] : `<span style="color:var(--text-secondary);font-size:.78rem;">#${e.rank||i+1}</span>`;
+            const val  = isMoney ? `${Math.round(e.value||0).toLocaleString('pl-PL')}$` : `${(e.value||0).toLocaleString('pl-PL')} transakcji`;
+            return `<div style="display:flex;align-items:center;gap:.6rem;padding:.5rem .65rem;border-bottom:1px solid var(--border);font-size:.84rem;">
+                <span style="width:28px;text-align:center;flex-shrink:0;">${icon}</span>
+                ${head(e.player||'Steve')}
+                <span style="flex:1;font-weight:700;">${escapeHtml(e.player||'?')}</span>
+                <span style="color:#10b981;font-weight:800;">${val}</span>
+            </div>`;
+        }).join('');
+    } catch(e) {
+        list.innerHTML = `<div style="padding:.8rem;color:#ef4444;font-size:.82rem;">Błąd: ${escapeHtml(e.message)}</div>`;
+    }
+}
+
+// ─── CSHOP — EDYTOR PODATKÓW ──────────────────────────────────────────────────
+
+let _cshopTaxConfig = null; // lokalny cache podatków
+
+/** Pobiera konfigurację podatków z Firestore i wypełnia edytor */
+async function loadCShopTaxConfig() {
+    const el = document.getElementById('cshop-tax-editor');
+    if (!el) return;
+    el.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-secondary);"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</div>';
+    try {
+        const snap = await getDoc(doc(db, 'cshop_config', 'taxes'));
+        if (!snap.exists()) {
+            el.innerHTML = `<div style="padding:1rem;color:var(--text-secondary);font-size:.85rem;text-align:center;">
+                Brak konfiguracji — uruchom CShop z <code>firebase.enabled: true</code> aby przesłać domyślne podatki.
+            </div>`;
+            return;
+        }
+        _cshopTaxConfig = snap.data();
+        renderCShopTaxEditor(_cshopTaxConfig);
+    } catch(e) {
+        el.innerHTML = `<div style="color:#ef4444;padding:.8rem;font-size:.82rem;">Błąd: ${escapeHtml(e.message)}</div>`;
+    }
+}
+
+function renderCShopTaxEditor(cfg) {
+    const el = document.getElementById('cshop-tax-editor');
+    if (!el) return;
+    const tiers = (cfg.tiers || []).sort((a, b) => (b.threshold || 0) - (a.threshold || 0));
+
+    const enabled = cfg.enabled !== false;
+    el.innerHTML = `
+        <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.2rem;padding:.8rem 1rem;background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.2);border-radius:10px;">
+            <span style="font-weight:700;font-size:.9rem;"><i class="fa-solid fa-toggle-on" style="color:#10b981;"></i> System podatków</span>
+            <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;margin-left:auto;">
+                <input type="checkbox" id="cshop-tax-enabled" ${enabled ? 'checked' : ''}
+                    style="width:18px;height:18px;accent-color:#10b981;cursor:pointer;">
+                <span style="font-weight:700;font-size:.85rem;">${enabled ? 'Włączony' : 'Wyłączony'}</span>
+            </label>
+        </div>
+        <div id="cshop-tax-tiers" style="display:flex;flex-direction:column;gap:1rem;">
+            ${tiers.map((tier, i) => renderTierEditor(tier, i)).join('')}
+        </div>
+        <div style="display:flex;gap:.6rem;margin-top:1.2rem;flex-wrap:wrap;">
+            <button onclick="saveCShopTaxConfig()" style="flex:1;padding:.75rem;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:8px;font-weight:800;cursor:pointer;font-family:var(--font);font-size:.9rem;">
+                <i class="fa-solid fa-floppy-disk"></i> Zapisz zmiany podatków
+            </button>
+            <button onclick="loadCShopTaxConfig()" style="padding:.75rem 1rem;background:transparent;border:1.5px solid var(--border);border-radius:8px;color:var(--text-secondary);cursor:pointer;font-family:var(--font);">
+                <i class="fa-solid fa-rotate-right"></i>
+            </button>
+        </div>
+        <div id="cshop-tax-msg" style="display:none;margin-top:.6rem;"></div>`;
+}
+
+function renderTierEditor(tier, idx) {
+    const n = tier.name || `tier_${idx}`;
+    return `<div style="background:var(--bg);border:1.5px solid var(--border);border-radius:12px;padding:1rem;transition:border-color .15s;" onmouseenter="this.style.borderColor='rgba(245,158,11,.4)'" onmouseleave="this.style.borderColor='var(--border)'">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.8rem;">
+            <div style="font-weight:800;font-size:.92rem;">
+                <i class="fa-solid fa-layer-group" style="color:#f59e0b;margin-right:.4rem;"></i>
+                Próg: <span style="color:#f59e0b;">${escapeHtml(n)}</span>
+            </div>
+            <div style="font-size:.72rem;color:var(--text-secondary);">ID: ${escapeHtml(n)}</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;">
+            <div>
+                <label style="font-size:.72rem;color:var(--text-secondary);font-weight:700;display:block;margin-bottom:.2rem;">Od kwoty ($)</label>
+                <input type="number" data-tier="${n}" data-field="threshold" value="${tier.threshold||0}" min="0"
+                    style="width:100%;padding:.5rem .7rem;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;background:var(--bg-card);color:var(--text-primary);font-family:var(--font);">
+            </div>
+            <div style="display:flex;align-items:flex-end;gap:.5rem;">
+                <div style="flex:1;">
+                    <label style="font-size:.72rem;color:var(--text-secondary);font-weight:700;display:block;margin-bottom:.2rem;">Podatek wejściowy</label>
+                    <label style="display:flex;align-items:center;gap:.4rem;font-size:.8rem;cursor:pointer;">
+                        <input type="checkbox" data-tier="${n}" data-field="entryEnabled" ${tier.entryEnabled ? 'checked' : ''}
+                            style="accent-color:#ef4444;cursor:pointer;">
+                        <span>Włączony</span>
+                    </label>
+                </div>
+            </div>
+            <div>
+                <label style="font-size:.72rem;color:var(--text-secondary);font-weight:700;display:block;margin-bottom:.2rem;">Wejściowy Min % </label>
+                <input type="number" data-tier="${n}" data-field="entryMin" value="${tier.entryMin||0}" min="0" max="100" step="0.01"
+                    style="width:100%;padding:.5rem .7rem;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;background:var(--bg-card);color:var(--text-primary);font-family:var(--font);">
+            </div>
+            <div>
+                <label style="font-size:.72rem;color:var(--text-secondary);font-weight:700;display:block;margin-bottom:.2rem;">Wejściowy Max %</label>
+                <input type="number" data-tier="${n}" data-field="entryMax" value="${tier.entryMax||0}" min="0" max="100" step="0.01"
+                    style="width:100%;padding:.5rem .7rem;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;background:var(--bg-card);color:var(--text-primary);font-family:var(--font);">
+            </div>
+        </div>
+        <div style="margin-top:.7rem;padding-top:.7rem;border-top:1px solid var(--border);">
+            <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem;">
+                <label style="font-size:.72rem;color:var(--text-secondary);font-weight:700;">Modyfikatory cen na sesję</label>
+                <label style="display:flex;align-items:center;gap:.4rem;font-size:.8rem;cursor:pointer;margin-left:auto;">
+                    <input type="checkbox" data-tier="${n}" data-field="pricesEnabled" ${tier.pricesEnabled ? 'checked' : ''}
+                        style="accent-color:#3b82f6;cursor:pointer;">
+                    <span>Włączone</span>
+                </label>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;">
+                <div>
+                    <label style="font-size:.68rem;color:#22c55e;font-weight:700;display:block;margin-bottom:.15rem;">Kupno +Min %</label>
+                    <input type="number" data-tier="${n}" data-field="buyIncreaseMin" value="${tier.buyIncreaseMin||0}" min="0" step="0.1"
+                        style="width:100%;padding:.4rem .5rem;border:1.5px solid rgba(34,197,94,.3);border-radius:7px;font-size:.82rem;background:var(--bg-card);color:var(--text-primary);font-family:var(--font);">
+                </div>
+                <div>
+                    <label style="font-size:.68rem;color:#22c55e;font-weight:700;display:block;margin-bottom:.15rem;">Kupno +Max %</label>
+                    <input type="number" data-tier="${n}" data-field="buyIncreaseMax" value="${tier.buyIncreaseMax||0}" min="0" step="0.1"
+                        style="width:100%;padding:.4rem .5rem;border:1.5px solid rgba(34,197,94,.3);border-radius:7px;font-size:.82rem;background:var(--bg-card);color:var(--text-primary);font-family:var(--font);">
+                </div>
+                <div>
+                    <label style="font-size:.68rem;color:#ef4444;font-weight:700;display:block;margin-bottom:.15rem;">Sprzedaż -Min %</label>
+                    <input type="number" data-tier="${n}" data-field="sellDecreaseMin" value="${tier.sellDecreaseMin||0}" min="0" step="0.1"
+                        style="width:100%;padding:.4rem .5rem;border:1.5px solid rgba(239,68,68,.3);border-radius:7px;font-size:.82rem;background:var(--bg-card);color:var(--text-primary);font-family:var(--font);">
+                </div>
+                <div>
+                    <label style="font-size:.68rem;color:#ef4444;font-weight:700;display:block;margin-bottom:.15rem;">Sprzedaż -Max %</label>
+                    <input type="number" data-tier="${n}" data-field="sellDecreaseMax" value="${tier.sellDecreaseMax||0}" min="0" step="0.1"
+                        style="width:100%;padding:.4rem .5rem;border:1.5px solid rgba(239,68,68,.3);border-radius:7px;font-size:.82rem;background:var(--bg-card);color:var(--text-primary);font-family:var(--font);">
+                </div>
+            </div>
+        </div>
+    </div>`;
+}
+
+window.saveCShopTaxConfig = async function() {
+    const msgEl = document.getElementById('cshop-tax-msg');
+    if (!requirePermission('all', 'edycja podatków')) return;
+
+    // Zbierz dane z formularza
+    const enabled = document.getElementById('cshop-tax-enabled')?.checked ?? true;
+    const tiersMap = {};
+    document.querySelectorAll('#cshop-tax-tiers [data-tier]').forEach(el => {
+        const t = el.getAttribute('data-tier');
+        const f = el.getAttribute('data-field');
+        if (!tiersMap[t]) tiersMap[t] = { name: t };
+        if (el.type === 'checkbox') tiersMap[t][f] = el.checked;
+        else tiersMap[t][f] = parseFloat(el.value) || 0;
+    });
+
+    const tiers = Object.values(tiersMap);
+    const data = { enabled, tiers, updatedAt: new Date().toISOString(), updatedBy: currentUser?.displayName || 'Panel' };
+
+    try {
+        await setDoc(doc(db, 'cshop_config', 'taxes'), data);
+        _cshopTaxConfig = data;
+        if (msgEl) {
+            msgEl.style.cssText = 'display:block;padding:.55rem .8rem;border-radius:8px;font-size:.82rem;font-weight:700;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25);color:#059669;';
+            msgEl.textContent = '✓ Zapisano! Plugin CShop pobierze zmiany w ciągu ~60s.';
+            setTimeout(() => { if(msgEl) msgEl.style.display = 'none'; }, 5000);
+        }
+        showToast('success', 'Konfiguracja podatków zapisana!');
+    } catch(e) {
+        if (msgEl) {
+            msgEl.style.cssText = 'display:block;padding:.55rem .8rem;border-radius:8px;font-size:.82rem;font-weight:700;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);color:#dc2626;';
+            msgEl.textContent = 'Błąd: ' + e.message;
+        }
+    }
+};
+
 // Aktualizuj też stronę Informacje — dodaj sekcję połączeń pluginów
 const _origLoadInfoPage = window.loadInfoPage;
 window.loadInfoPage = async function() {
@@ -3118,24 +4391,76 @@ window.loadInfoPage = async function() {
 
 // ─── AI ASYSTENT ──────────────────────────────────────────────────────────────
 
-const AI_SYSTEM_PROMPT = `Jesteś asystentem administratora serwera Minecraft CritMC.
-Twoim zadaniem jest parsować polecenia po polsku i zwracać JSON z akcją do wykonania.
+const AI_SYSTEM_PROMPT = `Jesteś CritAI — wszechstronnym asystentem AI panelu administracyjnego serwera Minecraft CritMC.
+Działasz w imieniu zalogowanego admina. Odpowiadasz naturalnie po polsku, jesteś pomocny, konkretny i świadomy kontekstu serwera.
 
-Dostępne akcje:
-- ban: { action: "ban", player: "nick", reason: "powód", duration: "7d" }
-- unban: { action: "unban", player: "nick" }  
-- mute: { action: "mute", player: "nick", reason: "powód", duration: "1h" }
-- unmute: { action: "unmute", player: "nick" }
-- kick: { action: "kick", player: "nick", reason: "powód" }
-- warn: { action: "warn", player: "nick", reason: "powód" }
-- grant_rank: { action: "shop_grant", player: "nick", itemType: "ranga", itemId: "vip|boss|crit", qty: 1 }
-- grant_keys: { action: "shop_grant", player: "nick", itemType: "klucz", itemId: "zwykly|rzadki|epicki|crit|premium|losowy", qty: N }
-- broadcast: { action: "broadcast", message: "treść" }
-- message: { action: "message", player: "nick", message: "treść" }
-- unknown: { action: "unknown", message: "nie rozumiem" }
+WAŻNE: Zawsze zwracaj TYLKO czysty JSON (bez markdown, bez \`\`\`). Dwa możliwe formaty:
 
-Czas trwania: 1h, 6h, 12h, 1d, 3d, 7d, 14d, 30d, permanent
-Odpowiadaj TYLKO czystym JSON bez markdown.`;
+━━━ FORMAT 1: ROZMOWA (pytania, info, porady, analiza) ━━━
+{"reply": "twoja odpowiedź"}
+
+━━━ FORMAT 2: AKCJA ADMINA (gdy user WPROST prosi o wykonanie czegoś) ━━━
+{"reply": "krótkie potwierdzenie", "action": "NAZWA_AKCJI", ...pola akcji}
+
+════════════════════════════════════════════
+DOSTĘPNE AKCJE (pełna lista):
+════════════════════════════════════════════
+
+── KARY ──
+ban:        {action:"ban",    player:"nick", reason:"powód", duration:"7d"}
+unban:      {action:"unban",  player:"nick", reason:"powód"}
+mute:       {action:"mute",   player:"nick", reason:"powód", duration:"1h"}
+unmute:     {action:"unmute", player:"nick", reason:"powód"}
+kick:       {action:"kick",   player:"nick", reason:"powód"}
+warn:       {action:"warn",   player:"nick", reason:"powód"}
+
+── RANGI (LuckPerms) ──
+set_rank:   {action:"set_rank",   player:"nick", rank:"vip|boss|crit|chatmod|pomocnik|moderator|admin", duration:"30d|permanent"}
+remove_rank:{action:"remove_rank",player:"nick", rank:"vip|boss|crit"}
+
+── SKLEP / NAGRODY ──
+shop_grant: {action:"shop_grant", player:"nick", itemType:"ranga|klucz|zestaw|inne", itemId:"ID", qty:1}
+give_item:  {action:"give_item",  player:"nick", item:"DIAMOND_SWORD|NETHERITE_INGOT|...", qty:1, enchants:"sharpness:5,unbreaking:3"}
+
+── KOMUNIKACJA ──
+broadcast:  {action:"broadcast", message:"treść", color:"gold|red|green|aqua|yellow|white"}
+message:    {action:"message",   player:"nick",   message:"treść"}
+title:      {action:"title",     player:"nick",   title:"nagłówek", subtitle:"podtytuł", fadein:10, stay:60, fadeout:10}
+actionbar:  {action:"actionbar", player:"nick",   message:"treść"}
+
+── GRACZ ──
+check:      {action:"check",     player:"nick"}
+heal:       {action:"heal",      player:"nick"}
+feed:       {action:"feed",      player:"nick"}
+fly:        {action:"fly",       player:"nick", enable:true}
+god:        {action:"god",       player:"nick", enable:true}
+gamemode:   {action:"gamemode",  player:"nick", mode:"survival|creative|adventure|spectator"}
+tp:         {action:"tp",        player:"nick", target:"nick2|x,y,z"}
+speed:      {action:"speed",     player:"nick", value:2}
+clear_inv:  {action:"clear_inv", player:"nick"}
+
+── SERWER ──
+console_cmd:{action:"console_cmd", command:"say Hello|time set day|weather clear|..."}
+op:         {action:"op",        player:"nick", remove:false}
+whitelist:  {action:"whitelist", player:"nick", add:true}
+
+── CSTATS ──
+set_stat:   {action:"set_stat",  player:"nick", stat:"kills|deaths|points|playtime|...", value:100}
+add_stat:   {action:"add_stat",  player:"nick", stat:"kills", value:10}
+
+── SPECJALNE ──
+schedule:   {action:"schedule",  delaySeconds:300, innerAction:{action:"broadcast", message:"Restart!"}}
+multi:      {action:"multi",     actions:[{action:"ban",...},{action:"broadcast",...}]}
+
+════════════════════════════════════════════
+ZASADY:
+- Czas: 1h 6h 12h 1d 3d 7d 14d 30d permanent
+- Jeśli brakuje nicku — zapytaj, nie zakładaj
+- Możesz wykonać multi: kilka akcji naraz
+- console_cmd pozwala na KAŻDĄ komendę serwera
+- ZAWSZE pole "reply" z sensowną odpowiedzią
+- NIE pytaj o potwierdzenie gdy akcja jest jasna — panel sam pokaże kartę potwierdzenia
+════════════════════════════════════════════`;
 
 let _aiHistory = [];
 let _aiUsageToday = parseInt(localStorage.getItem('ai_usage_' + new Date().toDateString()) || '0');
@@ -3219,15 +4544,79 @@ window.saveAiApiKey = function() {
 };
 
 /** Lista modeli do wypróbowania w kolejności. Pierwszy działający wygrywa. */
-const AI_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-flash-latest'];
+// Pełna lista modeli — każdy ma OSOBNY dzienny limit (przydatne gdy jeden się wyczerpie).
+// Kolejność: najlepsze/najszybsze najpierw, lżejsze (lite) jako fallback.
+const AI_MODELS = [
+    'gemini-2.5-flash',          // główny, najlepszy stosunek jako/limit
+    'gemini-3.5-flash',          // nowszy, często dostępny
+    'gemini-3-flash-preview',    // preview 3.x
+    'gemini-flash-latest',       // zawsze dostępny alias
+    'gemini-2.0-flash',          // stabilny 2.0
+    'gemini-2.0-flash-001',      // konkretna wersja = osobny limit!
+    'gemini-2.5-flash-lite',     // lżejszy, często ma limit gdy reszta padła
+    'gemini-2.0-flash-lite',     // lite 2.0
+    'gemini-2.0-flash-lite-001', // konkretna wersja lite
+    'gemini-3.1-flash-lite',     // lite 3.1
+    'gemini-flash-lite-latest',  // alias lite
+];
 
-/** Zwraca pierwszy model, który odpowie 200. Zapisuje go w localStorage. */
-async function _aiPickWorkingModel(key) {
-    // Spróbuj zapamiętany model najpierw (szybka ścieżka)
+/** Zwraca dzisiejszy klucz oznaczania wyczerpanych modeli (resetuje się o północy). */
+function _aiExhaustedKey() {
+    return 'critmc_ai_exhausted_' + new Date().toDateString();
+}
+
+/** Oznacz model jako wyczerpany dzisiaj (429) — pomijany do północy. */
+function _aiMarkExhausted(model) {
+    try {
+        const k = _aiExhaustedKey();
+        const list = JSON.parse(localStorage.getItem(k) || '[]');
+        if (!list.includes(model)) { list.push(model); localStorage.setItem(k, JSON.stringify(list)); }
+        console.log('[AI] Model wyczerpany dzisiaj:', model);
+    } catch(e) {}
+}
+
+/** Czyści stare listy wyczerpanych modeli (z poprzednich dni). */
+function _aiCleanupExhausted() {
+    try {
+        const today = _aiExhaustedKey();
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+            const k = localStorage.key(i);
+            if (k && k.startsWith('critmc_ai_exhausted_') && k !== today) localStorage.removeItem(k);
+        }
+    } catch(e) {}
+}
+
+/** Lista modeli wyczerpanych dzisiaj. */
+function _aiGetExhausted() {
+    try { return JSON.parse(localStorage.getItem(_aiExhaustedKey()) || '[]'); } catch(e) { return []; }
+}
+
+/**
+ * Zwraca pierwszy DZIAŁAJĄCY model.
+ * - Pomija modele wyczerpane dzisiaj (zapamiętane w localStorage z 429).
+ * - Pomija modele które nie istnieją (404) lub są niedostępne (503).
+ * - Przy 429 oznacza model jako wyczerpany i próbuje następnego.
+ * - Zwraca {model, status, msg}.
+ */
+async function _aiPickWorkingModel(key, skipTest = false) {
+    _aiCleanupExhausted();
+    const exhausted = _aiGetExhausted();
+    // Szybka ścieżka: zapamiętany działający model (jeśli nie jest wyczerpany)
     const cached = localStorage.getItem('critmc_ai_model');
-    const order = cached ? [cached, ...AI_MODELS.filter(m => m !== cached)] : AI_MODELS;
+    const candidates = [];
+    if (cached && !exhausted.includes(cached)) candidates.push(cached);
+    for (const m of AI_MODELS) {
+        if (!candidates.includes(m) && !exhausted.includes(m)) candidates.push(m);
+    }
+    console.log('[AI] Kandydaci:', candidates, '| wyczerpane:', exhausted);
+
+    if (skipTest && cached && !exhausted.includes(cached)) {
+        // Szybka ścieżka dla sendAiMessage — ufamy cache, testujemy dopiero gdy wywali
+        return { model: cached, status: 200 };
+    }
+
     let lastStatus = 0, lastMsg = '';
-    for (const model of order) {
+    for (const model of candidates) {
         try {
             const r = await fetch(
                 `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`,
@@ -3242,23 +4631,29 @@ async function _aiPickWorkingModel(key) {
             );
             if (r.ok) {
                 localStorage.setItem('critmc_ai_model', model);
+                console.log('[AI] Działający model:', model);
                 return { model, status: 200 };
             }
             lastStatus = r.status;
-            // 429 = quota dla tego modelu — spróbuj następnego
-            // 404 = model nie istnieje — spróbuj następnego
-            // 400/403 = problem klucza — nie próbuj dalej
+            if (r.status === 429) {
+                // Quota — oznacz jako wyczerpany i próbuj następnego (osobny limit per model!)
+                _aiMarkExhausted(model);
+                continue;
+            }
+            if (r.status === 404 || r.status === 503) {
+                // Model nie istnieje lub niedostępny — spróbuj następnego
+                continue;
+            }
             if (r.status === 400 || r.status === 403) {
+                // Problem klucza — nie próbuj dalej (to nie wina modelu)
                 const e = await r.json().catch(() => ({}));
                 return { model, status: r.status, msg: e.error?.message || '' };
             }
-            // 429 lub 404 — kontynuuj do następnego modelu
         } catch (e) {
             lastStatus = -1; // błąd sieci
             lastMsg = e.message || '';
         }
     }
-    // Żaden model nie zadziałał — zwróć ostatni status (429 = wszystkie quota, 0 = nieznany)
     return { model: null, status: lastStatus, msg: lastMsg };
 }
 
@@ -3269,26 +4664,41 @@ window.testAiKey = async function() {
     if (!key) { showToast('error', 'Najpierw wpisz i zapisz klucz API.'); return; }
     if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Testuję...'; }
 
+    // DIAGNOSTYKA: pokaż w konsoli co testujemy
+    console.log('[AI Test] Klucz z localStorage:', key ? key.substring(0,10) + '...' + key.substring(key.length-4) : '(brak)', 'długość:', key.length);
+
     try {
         const result = await _aiPickWorkingModel(key);
+        console.log('[AI Test] Wynik _aiPickWorkingModel:', result);
+
         if (result.status === 200 && result.model) {
-            showToast('success', '✅ Klucz działa! Model: ' + result.model);
+            const exhausted = _aiGetExhausted();
+            const totalModels = AI_MODELS.length;
+            const availModels = totalModels - exhausted.length;
+            const extra = exhausted.length > 0
+                ? ` | ${availModels}/${totalModels} modeli aktywnych (${exhausted.length} wyczerpanych)`
+                : ` | wszystkie ${totalModels} modeli aktywne`;
+            showToast('success', '✅ Klucz działa! Model: ' + result.model + extra);
             const modelEl = document.getElementById('ai-active-model');
             if (modelEl) modelEl.textContent = result.model;
         } else if (result.status === 400 || result.status === 403) {
             const msg = result.msg || '';
+            console.log('[AI Test] Błąd API pełny komunikat:', msg);
             if (msg.includes('API_KEY_INVALID') || msg.includes('API key not valid') || msg.includes('API key')) {
-                showToast('error', '❌ Klucz jest nieprawidłowy. Wygeneruj nowy na aistudio.google.com.');
+                showToast('error', '❌ Klucz jest nieprawidłowy. Sprawdź konsolę (F12) — pełny błąd.');
             } else {
-                showToast('error', '❌ Błąd API (' + result.status + '): ' + msg.substring(0, 100));
+                showToast('error', '❌ Błąd API (' + result.status + '): ' + msg.substring(0, 80));
             }
         } else if (result.status === 429) {
-            showToast('error', '⏳ Wszystkie modele mają wyczerpany limit dzienny. Spróbuj jutro lub przejdź na plan płatny.');
+            showToast('error', '⏳ Wszystkie modele (' + AI_MODELS.length + ') mają wyczerpany limit dzienny. Spróbuj jutro (reset o północy UTC).');
+        } else if (result.status === -1) {
+            showToast('error', '🌐 Błąd sieci — sprawdź połączenie. Konsola (F12) ma szczegóły.');
         } else {
-            showToast('error', '❌ Żaden model nie odpowiada (status ' + result.status + '). Sprawdź klucz i połączenie.');
+            showToast('error', '❌ Status ' + result.status + '. Sprawdź konsolę (F12).');
         }
     } catch (e) {
-        showToast('error', '🌐 Błąd sieci: ' + (e.message || 'nieznany') + '. Sprawdź połączenie.');
+        console.error('[AI Test] Wyjątek:', e);
+        showToast('error', '🌐 Błąd: ' + (e.message || 'nieznany') + '. Konsola (F12) ma szczegóły.');
     } finally {
         if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-vial"></i> Testuj klucz API'; }
     }
@@ -3333,44 +4743,97 @@ window.sendAiMessage = async function() {
     hist.scrollTop = hist.scrollHeight;
 
     try {
-        // Krok 1: znajdź działający model (cache w localStorage, szybka ścieżka)
-        const picked = await _aiPickWorkingModel(key);
-        if (picked.status !== 200 || !picked.model) {
-            // Wyświetl konkretny błąd na podstawie statusu
-            if (picked.status === 400 || picked.status === 403) {
-                throw new Error('API_KEY_INVALID: ' + (picked.msg || 'nieprawidłowy klucz'));
-            } else if (picked.status === 429) {
-                throw new Error('RESOURCE_EXHAUSTED: wszystkie modele mają wyczerpany limit');
-            } else {
-                throw new Error('Nie udało się połączyć z żadnym modelem Gemini (status ' + picked.status + ')');
+        // Pobierz kontekst serwera asynchronicznie
+        let serverContext = '';
+        try {
+            const statsSnap = await getDoc(doc(db, 'server_stats', 'current'));
+            if (statsSnap.exists()) {
+                const s = statsSnap.data();
+                const online = s.online || 0;
+                const max = s.max || 20;
+                const tps = s.tps?.toFixed(1) || '?';
+                const playerList = (s.playerList || []).slice(0, 20).join(', ') || 'brak';
+                serverContext = `\n\nKONTEKST SERWERA (aktualny):\n- Online: ${online}/${max} graczy\n- TPS: ${tps}\n- Gracze: ${playerList}\n- Admin: ${currentUser?.displayName} (${currentUser?.role})\n- Czas: ${new Date().toLocaleString('pl-PL')}`;
             }
-        }
-        const model = picked.model;
+        } catch(e) { /* cicho — kontekst nieobowiązkowy */ }
 
-        // Krok 2: wyślij właściwe zapytanie z wybranym modelem
-        const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`,
-            {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    systemInstruction: { parts: [{ text: AI_SYSTEM_PROMPT }] },
-                    contents: [
-                        { role: 'user', parts: [{ text: '{"action":"ready"}' }] },
-                        { role: 'model', parts: [{ text: '{"action":"ready"}' }] },
-                        ..._aiHistory.slice(-10),
-                        { role: 'user', parts: [{ text }] }
-                    ],
-                    generationConfig: { temperature: 0.1, maxOutputTokens: 512, responseMimeType: 'application/json' }
-                })
+        // Pobierz ostatnie 5 logów dla kontekstu
+        try {
+            const logsSnap = await getDocs(query(collection(db, 'admin_logs'), orderBy('date', 'desc'), limit(5)));
+            const recentLogs = logsSnap.docs.map(d => {
+                const l = d.data();
+                return `${l.action} ${l.player} przez ${l.admin}`;
+            }).join(', ');
+            if (recentLogs) serverContext += `\n- Ostatnie akcje: ${recentLogs}`;
+        } catch(e) {}
+
+        // Wyślij zapytanie z automatyczną rotacją modeli przy 429/503.
+        // Max 4 próby — za każdym razem nowy model z _aiPickWorkingModel.
+        let data = null, usedModel = null, lastErr = null;
+        for (let attempt = 0; attempt < 4; attempt++) {
+            // Znajdź działający model (pomija wyczerpane dzisiaj)
+            const picked = await _aiPickWorkingModel(key, attempt > 0); // skipTest=true od 2. próby
+            if (!picked.model || picked.status !== 200) {
+                // Pierwsza próba bez modelu = problem klucza
+                if (attempt === 0) {
+                    if (picked.status === 400 || picked.status === 403) {
+                        throw new Error('API_KEY_INVALID: ' + (picked.msg || 'nieprawidłowy klucz'));
+                    } else if (picked.status === 429) {
+                        throw new Error('RESOURCE_EXHAUSTED: wszystkie modele mają wyczerpany limit dzienny. Spróbuj jutro lub włącz plan płatny.');
+                    } else {
+                        throw new Error('Nie udało się połączyć z żadnym modelem Gemini (status ' + picked.status + ')');
+                    }
+                }
+                break; // kolejna próba nie ma sensu
             }
-        );
-        if (!response.ok) {
-            const err = await response.json().catch(() => ({}));
-            throw new Error(err.error?.message || `HTTP ${response.status}`);
+            usedModel = picked.model;
+            try {
+                const response = await fetch(
+                    `https://generativelanguage.googleapis.com/v1beta/models/${usedModel}:generateContent?key=${encodeURIComponent(key)}`,
+                    {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            systemInstruction: { parts: [{ text: AI_SYSTEM_PROMPT + serverContext }] },
+                            contents: [
+                                ..._aiHistory.slice(-8),
+                                { role: 'user', parts: [{ text }] }
+                            ],
+                            generationConfig: { temperature: 0.1, maxOutputTokens: 512, responseMimeType: 'application/json' }
+                        })
+                    }
+                );
+                if (response.ok) {
+                    data = await response.json();
+                    break; // sukces!
+                }
+                if (response.status === 429) {
+                    // Ten model wyczerpany — oznacz i próbuj następnego
+                    _aiMarkExhausted(usedModel);
+                    lastErr = new Error('Model ' + usedModel + ' wyczerpany (429) — przełączam...');
+                    continue;
+                }
+                if (response.status === 503 || response.status === 500) {
+                    // Serwer niedostępny — spróbuj następnego modelu
+                    lastErr = new Error('Model ' + usedModel + ' niedostępny (' + response.status + ') — próbuję inny...');
+                    continue;
+                }
+                // Inny błąd (400/403) — nie próbuj dalej
+                const err = await response.json().catch(() => ({}));
+                throw new Error(err.error?.message || `HTTP ${response.status}`);
+            } catch (e) {
+                lastErr = e;
+                // Błąd sieci — spróbuj następnego modelu
+                if (attempt < 3) continue;
+                throw e;
+            }
         }
-        const data = await response.json();
-        const raw  = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+        if (!data) {
+            throw lastErr || new Error('Nie udało się uzyskać odpowiedzi od żadnego modelu.');
+        }
+        const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+        console.log('[AI Chat] Pytanie:', text, '| model:', usedModel);
+        console.log('[AI Chat] Surowa odpowiedź:', raw);
 
         // Zapisz w historii
         _aiHistory.push({ role: 'user',  parts: [{ text }] });
@@ -3385,17 +4848,25 @@ window.sendAiMessage = async function() {
         // Usuń typing
         document.getElementById(typingId)?.remove();
 
-        // Parsuj JSON
+        // Parsuj JSON — CritAI zawsze zwraca {reply: "..."} + opcjonalnie {action: "..."}
         let parsed;
-        try { parsed = JSON.parse(raw.replace(/```json|```/g, '').trim()); }
-        catch(e) { parsed = { action: 'unknown', message: 'Nie mogłem sparsować odpowiedzi.' }; }
-
-        // Pokaż kartę potwierdzenia
-        if (parsed.action && parsed.action !== 'unknown' && parsed.action !== 'ready') {
-            _aiShowConfirmCard(parsed, text);
-        } else {
-            _aiAppendMsg('ai', parsed.message || 'Nie rozumiem tego polecenia. Spróbuj inaczej.', '🤖');
+        try {
+            parsed = JSON.parse(raw.replace(/```json|```/g, '').trim());
+        } catch(e) {
+            // Jeśli model nie zwrócił JSON (np. zwykły tekst), traktuj jako zwykłą odpowiedź
+            console.log('[AI Chat] Nie-JSON odpowiedź, traktuję jako tekst:', raw);
+            parsed = { reply: raw };
         }
+
+        // ZAWSZE pokaż tekstową odpowiedź (reply) — to jest normalna rozmowa
+        const replyText = parsed.reply || parsed.message || '...';
+        _aiAppendMsg('ai', replyText, '🤖');
+
+        // DODATKOWO — jeśli model wykrył akcję admina, pokaż kartę potwierdzenia pod odpowiedzią
+        if (parsed.action && parsed.action !== 'unknown' && parsed.action !== 'ready' && parsed.action !== 'chat') {
+            _aiShowConfirmCard(parsed, text);
+        }
+
 
     } catch(err) {
         document.getElementById(typingId)?.remove();
@@ -3439,13 +4910,22 @@ function _aiShowConfirmCard(parsed, originalText) {
     const actionLabels = {
         ban: '🔨 BAN gracza', unban: '✅ UNBAN gracza', mute: '🔇 MUTE gracza',
         unmute: '🔊 UNMUTE gracza', kick: '👢 KICK gracza', warn: '⚠️ WARN gracza',
-        shop_grant: '🎁 Nadaj produkt', broadcast: '📢 Broadcast', message: '💬 Wiadomość'
+        shop_grant: '🎁 Nadaj produkt', broadcast: '📢 Broadcast', message: '💬 Wiadomość',
+        set_rank: '👑 Ustaw rangę', remove_rank: '🗑️ Usuń rangę', give_item: '📦 Daj przedmiot',
+        heal: '❤️ Ulecz gracza', feed: '🍖 Nakarmi gracza', fly: '✈️ Latanie (fly)',
+        god: '🛡️ Nieśmiertelność (god)', gamemode: '🎮 Tryb gry', tp: '🌀 Teleportacja',
+        speed: '⚡ Szybkość', clear_inv: '🧹 Wyczyść EQ', console_cmd: '💻 Komenda konsoli',
+        op: '⭐ Nadaj opa', deop: '❌ Odbierz opa', whitelist: '📝 Biała lista (dodaj)',
+        unwhitelist: '❌ Biała lista (usuń)', title: '📺 Wyświetl Title', actionbar: '💬 Actionbar',
+        set_stat: '📊 Ustaw statystykę CStats', add_stat: '📈 Dodaj do statystyki CStats',
+        multi: '⚡ Wiele akcji naraz', schedule: '⏰ Zaplanowana akcja'
     };
 
     const fields = [];
     if (parsed.player)   fields.push(['Gracz',    parsed.player]);
     if (parsed.reason)   fields.push(['Powód',    parsed.reason]);
     if (parsed.duration) fields.push(['Czas',     parsed.duration]);
+    if (parsed.rank)     fields.push(['Ranga',    parsed.rank]);
     if (parsed.itemType) fields.push(['Typ',      parsed.itemType]);
     if (parsed.itemId)   fields.push(['Produkt',  parsed.itemId]);
     if (parsed.qty > 1)  fields.push(['Ilość',    parsed.qty]);
@@ -3478,7 +4958,16 @@ window.aiExecuteAction = async function(cardTimestamp, parsed) {
     const cardId = 'ai-confirm-' + cardTimestamp;
     const card   = document.getElementById(cardId);
 
-    if (!requirePermission('ban', 'wykonywanie akcji AI')) return;
+    // Sprawdź uprawnienie AI actions
+    if (!requirePermission('ai_actions', 'wykonywanie akcji AI')) return;
+
+    // Sprawdź dodatkowe uprawnienia dla niebezpiecznych akcji
+    const dangerousActions = ['console_cmd', 'op', 'deop'];
+    if (dangerousActions.includes(parsed.action) && !requirePermission('console', 'komendy konsoli')) return;
+    if (['set_rank','remove_rank'].includes(parsed.action) && !requirePermission('rank_manage', 'zarządzanie rangami')) return;
+    if (['set_stat','add_stat'].includes(parsed.action) && !requirePermission('stats_edit', 'edycja statystyk')) return;
+
+    const aiAdmin = 'AI (' + (currentUser?.displayName || 'Panel') + ')';
 
     // Mapuj akcję AI → executeAction lub addDoc do panel_commands
     try {
@@ -3491,38 +4980,90 @@ window.aiExecuteAction = async function(cardTimestamp, parsed) {
                 parsed.duration || '—'
             );
             if (card) card.innerHTML = `<span style="color:#10b981;font-weight:700;"><i class="fa-solid fa-check"></i> Wykonano: ${parsed.action.toUpperCase()} na ${escapeHtml(parsed.player)}</span>`;
+
         } else if (parsed.action === 'shop_grant') {
             await addDoc(collection(db, 'orders'), {
                 playerNick: parsed.player,
                 items: [{ type: parsed.itemType, id: parsed.itemId, label: parsed.itemId, qty: parsed.qty || 1 }],
-                admin: 'AI (' + (currentUser?.displayName || 'Panel') + ')',
-                status: 'pending', type: 'admin_grant', createdAt: serverTimestamp()
+                admin: aiAdmin, status: 'pending', type: 'admin_grant', createdAt: serverTimestamp()
             });
             if (card) card.innerHTML = `<span style="color:#10b981;font-weight:700;"><i class="fa-solid fa-check"></i> Nadano ${parsed.itemType} ${parsed.itemId} dla ${escapeHtml(parsed.player)}</span>`;
-        } else if (parsed.action === 'broadcast') {
+
+        } else if (parsed.action === 'set_stat' || parsed.action === 'add_stat') {
+            // Bezpośrednio do Firestore cstats_players
+            try {
+                const pSnap = await getDocs(query(collection(db, 'cstats_players')));
+                const pDoc = pSnap.docs.find(d => (d.data().name||d.data().nick||'').toLowerCase() === (parsed.player||'').toLowerCase());
+                if (pDoc) {
+                    const curVal = pDoc.data()[parsed.stat] || 0;
+                    const newVal = parsed.action === 'add_stat' ? curVal + (parsed.value||0) : (parsed.value||0);
+                    await updateDoc(pDoc.ref, { [parsed.stat]: newVal, lastSync: new Date().toISOString() });
+                    await addDoc(collection(db, 'cstats_editlog'), {
+                        admin: aiAdmin, player: parsed.player, stat: parsed.stat,
+                        oldValue: curVal, newValue: newVal, timestamp: serverTimestamp()
+                    });
+                    if (card) card.innerHTML = `<span style="color:#10b981;font-weight:700;"><i class="fa-solid fa-check"></i> ${parsed.stat}: ${curVal} → ${newVal} (${parsed.player})</span>`;
+                } else {
+                    if (card) card.innerHTML = `<span style="color:#ef4444;font-weight:700;"><i class="fa-solid fa-xmark"></i> Gracz "${escapeHtml(parsed.player)}" nie znaleziony w CStats</span>`;
+                    return;
+                }
+            } catch(e) {
+                throw e;
+            }
+
+        } else if (parsed.action === 'multi') {
+            // Wiele akcji naraz
+            const actions = parsed.actions || [];
+            let doneCount = 0;
+            for (const innerAction of actions) {
+                await window.aiExecuteAction(null, innerAction);
+                doneCount++;
+            }
+            if (card) card.innerHTML = `<span style="color:#10b981;font-weight:700;"><i class="fa-solid fa-check"></i> Wykonano ${doneCount} akcji naraz!</span>`;
+            return;
+
+        } else if (parsed.action === 'schedule') {
+            // Zaplanowana akcja
+            const delaySec = parsed.delaySeconds || 0;
+            if (card) card.innerHTML = `<span style="color:#f59e0b;font-weight:700;"><i class="fa-solid fa-clock"></i> Zaplanowano za ${delaySec}s...</span>`;
+            setTimeout(() => window.aiExecuteAction(null, parsed.innerAction), delaySec * 1000);
+            showToast('info', `Akcja zaplanowana za ${delaySec} sekund!`);
+            return;
+
+        } else {
+            // Wszystkie pozostałe akcje → panel_commands (plugin odbierze)
             await addDoc(collection(db, 'panel_commands'), {
-                action: 'broadcast', message: parsed.message,
-                admin: 'AI (' + (currentUser?.displayName || 'Panel') + ')',
-                executed: false, createdAt: serverTimestamp()
+                action:   parsed.action,
+                player:   parsed.player   || '',
+                reason:   parsed.reason   || '',
+                duration: parsed.duration || '',
+                rank:     parsed.rank     || '',
+                message:  parsed.message  || parsed.command || '',
+                admin:    aiAdmin,
+                executed: false,
+                createdAt: serverTimestamp()
             });
-            if (card) card.innerHTML = `<span style="color:#10b981;font-weight:700;"><i class="fa-solid fa-check"></i> Broadcast wysłany!</span>`;
-        } else if (parsed.action === 'message') {
-            await addDoc(collection(db, 'panel_commands'), {
-                action: 'message', player: parsed.player, message: parsed.message,
-                admin: 'AI (' + (currentUser?.displayName || 'Panel') + ')',
-                executed: false, createdAt: serverTimestamp()
-            });
-            if (card) card.innerHTML = `<span style="color:#10b981;font-weight:700;"><i class="fa-solid fa-check"></i> Wiadomość wysłana do ${escapeHtml(parsed.player)}</span>`;
+            if (card) card.innerHTML = `<span style="color:#10b981;font-weight:700;"><i class="fa-solid fa-check"></i> ${parsed.action.toUpperCase()} → ${escapeHtml(parsed.player || parsed.message || '✓')}</span>`;
         }
 
-        // Log akcji
-        await logAction(parsed.action, parsed.player || 'broadcast',
-            'AI (' + (currentUser?.displayName || 'Panel') + ')',
+        // Log akcji do admin_logs
+        await logAction(parsed.action, parsed.player || 'broadcast', aiAdmin,
             parsed.reason || parsed.message || '', parsed.duration || '—');
-
         showToast('success', 'AI: Akcja wykonana!');
     } catch(e) {
         if (card) card.innerHTML = `<span style="color:#ef4444;font-weight:700;"><i class="fa-solid fa-xmark"></i> Błąd: ${escapeHtml(e.message)}</span>`;
-        showToast('error', 'Błąd: ' + e.message);
+        showToast('error', 'Błąd AI: ' + e.message);
     }
 };
+
+
+
+ : '0.00
+    } catch(e) { body.innerHTML = '<p style="color:#ef4444;">Błąd: '+e.message+'</p>'; }
+});
+
+// ─── EKWIPUNEK GRACZA ────────────────────────────────────────────────────────
+
+// ─── EKWIPUNEK GRACZA — ulepszona wersja ─────────────────────────────────────
+
+// Timer auto-odświeżania ekwipunku gdy modal otwarty
