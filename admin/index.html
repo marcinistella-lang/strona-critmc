@@ -420,126 +420,169 @@
                 <p>Nadaj produkty graczom i przeglądaj historię zakupów</p>
             </div>
 
-            <!-- Dwie kolumny: formularz + historia -->
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;align-items:start;">
+            <!-- Zakładki dla Sklepu -->
+            <div style="display:flex;gap:.5rem;margin-bottom:1.5rem;flex-wrap:wrap;" id="shop-tabs-nav">
+                <button class="site-tab-btn active" data-shop-tab="grant" onclick="switchShopTab('grant')"><i class="fa-solid fa-gift"></i> Nadawanie i Historia</button>
+                <button class="site-tab-btn" data-shop-tab="manage" onclick="switchShopTab('manage')"><i class="fa-solid fa-store"></i> Katalog Produktów</button>
+            </div>
 
-                <!-- LEWA: Formularz nadania -->
-                <div>
-                    <div class="table-card" style="padding:1.4rem;">
-                        <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:1rem;letter-spacing:.05em;">
-                            <i class="fa-solid fa-gift" style="color:var(--accent);margin-right:.4rem;"></i>Nadaj produkty graczowi
-                        </div>
+            <!-- TAB: Nadawanie i Historia -->
+            <div id="shop-tab-grant" class="site-tab-panel sp-active">
+                <!-- Dwie kolumny: formularz + historia -->
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;align-items:start;">
 
-                        <!-- Wybór gracza -->
-                        <div class="modal-field" style="margin-bottom:1rem;">
-                            <label>Nick gracza *</label>
-                            <div style="position:relative;">
-                                <i class="fa-solid fa-user" style="position:absolute;left:.85rem;top:50%;transform:translateY(-50%);color:var(--text-secondary);"></i>
-                                <input type="text" id="shop-grant-nick" placeholder="Wpisz lub wybierz nick gracza..."
-                                    autocomplete="off"
-                                    oninput="shopGrantSearchPlayer(this.value)"
-                                    style="width:100%;padding:.7rem .9rem .7rem 2.4rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
-                                <!-- Dropdown sugestii -->
-                                <div id="shop-grant-suggestions" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg-card);border:1.5px solid var(--border);border-top:none;border-radius:0 0 var(--radius-sm) var(--radius-sm);max-height:200px;overflow-y:auto;z-index:100;box-shadow:var(--shadow-md);"></div>
+                    <!-- LEWA: Formularz nadania -->
+                    <div>
+                        <div class="table-card" style="padding:1.4rem;">
+                            <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:1rem;letter-spacing:.05em;">
+                                <i class="fa-solid fa-gift" style="color:var(--accent);margin-right:.4rem;"></i>Nadaj produkty graczowi
                             </div>
-                        </div>
 
-                        <!-- Wybór produktów -->
-                        <div class="modal-field" style="margin-bottom:1rem;">
-                            <label>Produkty do nadania *</label>
+                            <!-- Wybór gracza -->
+                            <div class="modal-field" style="margin-bottom:1rem;">
+                                <label>Nick gracza *</label>
+                                <div style="position:relative;">
+                                    <i class="fa-solid fa-user" style="position:absolute;left:.85rem;top:50%;transform:translateY(-50%);color:var(--text-secondary);"></i>
+                                    <input type="text" id="shop-grant-nick" placeholder="Wpisz lub wybierz nick gracza..."
+                                        autocomplete="off"
+                                        oninput="shopGrantSearchPlayer(this.value)"
+                                        style="width:100%;padding:.7rem .9rem .7rem 2.4rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                                    <!-- Dropdown sugestii -->
+                                    <div id="shop-grant-suggestions" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg-card);border:1.5px solid var(--border);border-top:none;border-radius:0 0 var(--radius-sm) var(--radius-sm);max-height:200px;overflow-y:auto;z-index:100;box-shadow:var(--shadow-md);"></div>
+                                </div>
+                            </div>
 
-                            <!-- Rangi -->
-                            <div style="margin-bottom:.8rem;">
-                                <div style="font-size:.72rem;font-weight:700;color:#8b5cf6;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem;"><i class="fa-solid fa-crown"></i> Rangi (30 dni / 60 przy 2×)</div>
-                                <div style="display:flex;flex-direction:column;gap:.35rem;">
-                                    <div class="sgib-row">
-                                        <button class="shop-grant-item-btn" data-type="ranga" data-id="vip" data-label="Ranga VIP" onclick="toggleShopGrantItem(this)" style="border-color:#c026d3;color:#c026d3;"><i class="fa-solid fa-crown"></i> VIP</button>
-                                        <input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="ranga:vip" oninput="onSgibQty(this)" title="Ilość">
+                            <!-- Wybór produktów -->
+                            <div class="modal-field" style="margin-bottom:1rem;">
+                                <label>Produkty do nadania *</label>
+
+                                <!-- Rangi -->
+                                <div style="margin-bottom:.8rem;">
+                                    <div style="font-size:.72rem;font-weight:700;color:#8b5cf6;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem;"><i class="fa-solid fa-crown"></i> Rangi (30 dni / 60 przy 2×)</div>
+                                    <div style="display:flex;flex-direction:column;gap:.35rem;">
+                                        <div class="sgib-row">
+                                            <button class="shop-grant-item-btn" data-type="ranga" data-id="vip" data-label="Ranga VIP" onclick="toggleShopGrantItem(this)" style="border-color:#c026d3;color:#c026d3;"><i class="fa-solid fa-crown"></i> VIP</button>
+                                            <input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="ranga:vip" oninput="onSgibQty(this)" title="Ilość">
+                                        </div>
+                                        <div class="sgib-row">
+                                            <button class="shop-grant-item-btn" data-type="ranga" data-id="boss" data-label="Ranga BOSS" onclick="toggleShopGrantItem(this)" style="border-color:#2563eb;color:#2563eb;"><i class="fa-solid fa-crown"></i> BOSS</button>
+                                            <input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="ranga:boss" oninput="onSgibQty(this)" title="Ilość">
+                                        </div>
+                                        <div class="sgib-row">
+                                            <button class="shop-grant-item-btn" data-type="ranga" data-id="crit" data-label="Ranga CRIT" onclick="toggleShopGrantItem(this)" style="border-color:#dc2626;color:#dc2626;"><i class="fa-solid fa-crown"></i> CRIT</button>
+                                            <input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="ranga:crit" oninput="onSgibQty(this)" title="Ilość">
+                                        </div>
                                     </div>
-                                    <div class="sgib-row">
-                                        <button class="shop-grant-item-btn" data-type="ranga" data-id="boss" data-label="Ranga BOSS" onclick="toggleShopGrantItem(this)" style="border-color:#2563eb;color:#2563eb;"><i class="fa-solid fa-crown"></i> BOSS</button>
-                                        <input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="ranga:boss" oninput="onSgibQty(this)" title="Ilość">
+                                </div>
+
+                                <!-- Klucze -->
+                                <div style="margin-bottom:.8rem;">
+                                    <div style="font-size:.72rem;font-weight:700;color:#f59e0b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem;"><i class="fa-solid fa-key"></i> Klucze</div>
+                                    <div id="shop-grant-keys" style="display:flex;flex-direction:column;gap:.35rem;">
+                                        <div class="sgib-row"><button class="shop-grant-item-btn" data-type="klucz" data-id="zwykly" data-label="Klucz Zwykły" onclick="toggleShopGrantItem(this)">🔑 Zwykły</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="klucz:zwykly" oninput="onSgibQty(this)" title="Ilość"></div>
+                                        <div class="sgib-row"><button class="shop-grant-item-btn" data-type="klucz" data-id="rzadki" data-label="Klucz Rzadki" onclick="toggleShopGrantItem(this)">🔑 Rzadki</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="klucz:rzadki" oninput="onSgibQty(this)" title="Ilość"></div>
+                                        <div class="sgib-row"><button class="shop-grant-item-btn" data-type="klucz" data-id="epicki" data-label="Klucz Epicki" onclick="toggleShopGrantItem(this)">🔑 Epicki</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="klucz:epicki" oninput="onSgibQty(this)" title="Ilość"></div>
+                                        <div class="sgib-row"><button class="shop-grant-item-btn" data-type="klucz" data-id="crit" data-label="Klucz CRIT" onclick="toggleShopGrantItem(this)">🔑 CRIT</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="klucz:crit" oninput="onSgibQty(this)" title="Ilość"></div>
+                                        <div class="sgib-row"><button class="shop-grant-item-btn" data-type="klucz" data-id="premium" data-label="Klucz Premium" onclick="toggleShopGrantItem(this)">🔑 Premium</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="klucz:premium" oninput="onSgibQty(this)" title="Ilość"></div>
+                                        <div class="sgib-row"><button class="shop-grant-item-btn" data-type="klucz" data-id="losowy" data-label="Klucz Losowy" onclick="toggleShopGrantItem(this)">🔑 Losowy</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="klucz:losowy" oninput="onSgibQty(this)" title="Ilość"></div>
                                     </div>
-                                    <div class="sgib-row">
-                                        <button class="shop-grant-item-btn" data-type="ranga" data-id="crit" data-label="Ranga CRIT" onclick="toggleShopGrantItem(this)" style="border-color:#dc2626;color:#dc2626;"><i class="fa-solid fa-crown"></i> CRIT</button>
-                                        <input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="ranga:crit" oninput="onSgibQty(this)" title="Ilość">
+                                </div>
+
+                                <!-- Zestawy -->
+                                <div style="margin-bottom:.8rem;">
+                                    <div style="font-size:.72rem;font-weight:700;color:#3b82f6;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem;"><i class="fa-solid fa-boxes-packing"></i> Zestawy</div>
+                                    <div style="display:flex;flex-direction:column;gap:.35rem;">
+                                        <div class="sgib-row"><button class="shop-grant-item-btn" data-type="zestaw" data-id="pakiet-vip" data-label="Pakiet VIP" onclick="toggleShopGrantItem(this)">📦 Pakiet VIP</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="zestaw:pakiet-vip" oninput="onSgibQty(this)" title="Ilość"></div>
+                                        <div class="sgib-row"><button class="shop-grant-item-btn" data-type="zestaw" data-id="pakiet-boss" data-label="Pakiet BOSS" onclick="toggleShopGrantItem(this)">📦 Pakiet BOSS</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="zestaw:pakiet-boss" oninput="onSgibQty(this)" title="Ilość"></div>
+                                        <div class="sgib-row"><button class="shop-grant-item-btn" data-type="zestaw" data-id="pakiet-crit" data-label="Pakiet CRIT" onclick="toggleShopGrantItem(this)">📦 Pakiet CRIT</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="zestaw:pakiet-crit" oninput="onSgibQty(this)" title="Ilość"></div>
+                                        <div class="sgib-row"><button class="shop-grant-item-btn" data-type="zestaw" data-id="maly-klucze" data-label="Mały Zestaw Kluczy" onclick="toggleShopGrantItem(this)">📦 Mały Zestaw</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="zestaw:maly-klucze" oninput="onSgibQty(this)" title="Ilość"></div>
+                                        <div class="sgib-row"><button class="shop-grant-item-btn" data-type="zestaw" data-id="sredni-klucze" data-label="Średni Zestaw Kluczy" onclick="toggleShopGrantItem(this)">📦 Średni Zestaw</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="zestaw:sredni-klucze" oninput="onSgibQty(this)" title="Ilość"></div>
+                                        <div class="sgib-row"><button class="shop-grant-item-btn" data-type="zestaw" data-id="duzy-klucze" data-label="Duży Zestaw Kluczy" onclick="toggleShopGrantItem(this)">📦 Duży Zestaw</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="zestaw:duzy-klucze" oninput="onSgibQty(this)" title="Ilość"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Inne -->
+                                <div>
+                                    <div style="font-size:.72rem;font-weight:700;color:#10b981;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem;"><i class="fa-solid fa-sparkles"></i> Inne</div>
+                                    <div style="display:flex;flex-direction:column;gap:.35rem;">
+                                        <div class="sgib-row"><button class="shop-grant-item-btn" data-type="item" data-id="nick-color" data-label="Nick Color Permanent" onclick="toggleShopGrantItem(this)">🎨 Nick Color</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="item:nick-color" oninput="onSgibQty(this)" title="Ilość"></div>
+                                        <div class="sgib-row"><button class="shop-grant-item-btn" data-type="item" data-id="repair-30" data-label="/repair 30 dni" onclick="toggleShopGrantItem(this)">🔧 /repair 30d</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="item:repair-30" oninput="onSgibQty(this)" title="Ilość"></div>
+                                        <div class="sgib-row"><button class="shop-grant-item-btn" data-type="item" data-id="ec-30" data-label="/ec 30 dni" onclick="toggleShopGrantItem(this)">📜 /ec 30d</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="item:ec-30" oninput="onSgibQty(this)" title="Ilość"></div>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Klucze -->
-                            <div style="margin-bottom:.8rem;">
-                                <div style="font-size:.72rem;font-weight:700;color:#f59e0b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem;"><i class="fa-solid fa-key"></i> Klucze</div>
-                                <div id="shop-grant-keys" style="display:flex;flex-direction:column;gap:.35rem;">
-                                    <div class="sgib-row"><button class="shop-grant-item-btn" data-type="klucz" data-id="zwykly" data-label="Klucz Zwykły" onclick="toggleShopGrantItem(this)">🔑 Zwykły</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="klucz:zwykly" oninput="onSgibQty(this)" title="Ilość"></div>
-                                    <div class="sgib-row"><button class="shop-grant-item-btn" data-type="klucz" data-id="rzadki" data-label="Klucz Rzadki" onclick="toggleShopGrantItem(this)">🔑 Rzadki</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="klucz:rzadki" oninput="onSgibQty(this)" title="Ilość"></div>
-                                    <div class="sgib-row"><button class="shop-grant-item-btn" data-type="klucz" data-id="epicki" data-label="Klucz Epicki" onclick="toggleShopGrantItem(this)">🔑 Epicki</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="klucz:epicki" oninput="onSgibQty(this)" title="Ilość"></div>
-                                    <div class="sgib-row"><button class="shop-grant-item-btn" data-type="klucz" data-id="crit" data-label="Klucz CRIT" onclick="toggleShopGrantItem(this)">🔑 CRIT</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="klucz:crit" oninput="onSgibQty(this)" title="Ilość"></div>
-                                    <div class="sgib-row"><button class="shop-grant-item-btn" data-type="klucz" data-id="premium" data-label="Klucz Premium" onclick="toggleShopGrantItem(this)">🔑 Premium</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="klucz:premium" oninput="onSgibQty(this)" title="Ilość"></div>
-                                    <div class="sgib-row"><button class="shop-grant-item-btn" data-type="klucz" data-id="losowy" data-label="Klucz Losowy" onclick="toggleShopGrantItem(this)">🔑 Losowy</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="klucz:losowy" oninput="onSgibQty(this)" title="Ilość"></div>
-                                </div>
+                            <!-- Wiadomość na czacie -->
+                            <div class="modal-field" style="margin-bottom:1rem;">
+                                <label>Ogłoszenie na czacie serwera <span style="color:#999;font-weight:400;">(opcjonalne)</span></label>
+                                <input type="text" id="shop-grant-message" placeholder="np. Dziękujemy za zakup! - zostaw puste = domyślne ogłoszenie"
+                                    style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
                             </div>
 
-                            <!-- Zestawy -->
-                            <div style="margin-bottom:.8rem;">
-                                <div style="font-size:.72rem;font-weight:700;color:#3b82f6;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem;"><i class="fa-solid fa-boxes-packing"></i> Zestawy</div>
-                                <div style="display:flex;flex-direction:column;gap:.35rem;">
-                                    <div class="sgib-row"><button class="shop-grant-item-btn" data-type="zestaw" data-id="pakiet-vip" data-label="Pakiet VIP" onclick="toggleShopGrantItem(this)">📦 Pakiet VIP</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="zestaw:pakiet-vip" oninput="onSgibQty(this)" title="Ilość"></div>
-                                    <div class="sgib-row"><button class="shop-grant-item-btn" data-type="zestaw" data-id="pakiet-boss" data-label="Pakiet BOSS" onclick="toggleShopGrantItem(this)">📦 Pakiet BOSS</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="zestaw:pakiet-boss" oninput="onSgibQty(this)" title="Ilość"></div>
-                                    <div class="sgib-row"><button class="shop-grant-item-btn" data-type="zestaw" data-id="pakiet-crit" data-label="Pakiet CRIT" onclick="toggleShopGrantItem(this)">📦 Pakiet CRIT</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="zestaw:pakiet-crit" oninput="onSgibQty(this)" title="Ilość"></div>
-                                    <div class="sgib-row"><button class="shop-grant-item-btn" data-type="zestaw" data-id="maly-klucze" data-label="Mały Zestaw Kluczy" onclick="toggleShopGrantItem(this)">📦 Mały Zestaw</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="zestaw:maly-klucze" oninput="onSgibQty(this)" title="Ilość"></div>
-                                    <div class="sgib-row"><button class="shop-grant-item-btn" data-type="zestaw" data-id="sredni-klucze" data-label="Średni Zestaw Kluczy" onclick="toggleShopGrantItem(this)">📦 Średni Zestaw</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="zestaw:sredni-klucze" oninput="onSgibQty(this)" title="Ilość"></div>
-                                    <div class="sgib-row"><button class="shop-grant-item-btn" data-type="zestaw" data-id="duzy-klucze" data-label="Duży Zestaw Kluczy" onclick="toggleShopGrantItem(this)">📦 Duży Zestaw</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="zestaw:duzy-klucze" oninput="onSgibQty(this)" title="Ilość"></div>
-                                </div>
+                            <!-- Podgląd wyboru -->
+                            <div id="shop-grant-preview" style="display:none;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:.75rem 1rem;margin-bottom:1rem;">
+                                <div style="font-size:.72rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.4rem;">Podsumowanie:</div>
+                                <div id="shop-grant-preview-content" style="font-size:.88rem;"></div>
                             </div>
 
-                            <!-- Inne -->
-                            <div>
-                                <div style="font-size:.72rem;font-weight:700;color:#10b981;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem;"><i class="fa-solid fa-sparkles"></i> Inne</div>
-                                <div style="display:flex;flex-direction:column;gap:.35rem;">
-                                    <div class="sgib-row"><button class="shop-grant-item-btn" data-type="item" data-id="nick-color" data-label="Nick Color Permanent" onclick="toggleShopGrantItem(this)">🎨 Nick Color</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="item:nick-color" oninput="onSgibQty(this)" title="Ilość"></div>
-                                    <div class="sgib-row"><button class="shop-grant-item-btn" data-type="item" data-id="repair-30" data-label="/repair 30 dni" onclick="toggleShopGrantItem(this)">🔧 /repair 30d</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="item:repair-30" oninput="onSgibQty(this)" title="Ilość"></div>
-                                    <div class="sgib-row"><button class="shop-grant-item-btn" data-type="item" data-id="ec-30" data-label="/ec 30 dni" onclick="toggleShopGrantItem(this)">📜 /ec 30d</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="item:ec-30" oninput="onSgibQty(this)" title="Ilość"></div>
-                                </div>
-                            </div>
-                        </div>
+                            <div id="shop-grant-msg" class="modal-msg" style="display:none;"></div>
 
-                        <!-- Wiadomość na czacie -->
-                        <div class="modal-field" style="margin-bottom:1rem;">
-                            <label>Ogłoszenie na czacie serwera <span style="color:#999;font-weight:400;">(opcjonalne)</span></label>
-                            <input type="text" id="shop-grant-message" placeholder="np. Dziękujemy za zakup! - zostaw puste = domyślne ogłoszenie"
-                                style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
-                        </div>
-
-                        <!-- Podgląd wyboru -->
-                        <div id="shop-grant-preview" style="display:none;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:.75rem 1rem;margin-bottom:1rem;">
-                            <div style="font-size:.72rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.4rem;">Podsumowanie:</div>
-                            <div id="shop-grant-preview-content" style="font-size:.88rem;"></div>
-                        </div>
-
-                        <div id="shop-grant-msg" class="modal-msg" style="display:none;"></div>
-
-                        <button class="modal-submit-btn" onclick="submitShopGrant()" id="shop-grant-btn">
-                            <i class="fa-solid fa-gift"></i> Nadaj produkty
-                        </button>
-                    </div>
-                </div>
-
-                <!-- PRAWA: Historia nadań -->
-                <div>
-                    <div class="table-card" style="overflow:hidden;">
-                        <div style="padding:.9rem 1.2rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
-                            <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;">
-                                <i class="fa-solid fa-clock-rotate-left"></i> Historia nadań
-                            </div>
-                            <button class="tbl-btn" onclick="loadShopGrants()" style="font-size:.75rem;"><i class="fa-solid fa-rotate-right"></i></button>
-                        </div>
-                        <div id="shop-grants-list" style="max-height:600px;overflow-y:auto;">
-                            <div style="text-align:center;padding:2rem;color:var(--text-secondary);font-size:.88rem;"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</div>
+                            <button class="modal-submit-btn" onclick="submitShopGrant()" id="shop-grant-btn">
+                                <i class="fa-solid fa-gift"></i> Nadaj produkty
+                            </button>
                         </div>
                     </div>
-                </div>
 
+                    <!-- PRAWA: Historia nadań -->
+                    <div>
+                        <div class="table-card" style="overflow:hidden;">
+                            <div style="padding:.9rem 1.2rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+                                <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;">
+                                    <i class="fa-solid fa-clock-rotate-left"></i> Historia nadań
+                                </div>
+                                <button class="tbl-btn" onclick="loadShopGrants()" style="font-size:.75rem;"><i class="fa-solid fa-rotate-right"></i></button>
+                            </div>
+                            <div id="shop-grants-list" style="max-height:600px;overflow-y:auto;">
+                                <div style="text-align:center;padding:2rem;color:var(--text-secondary);font-size:.88rem;"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- TAB: Katalog Produktów -->
+            <div id="shop-tab-manage" class="site-tab-panel">
+                <div class="table-card" style="padding:1.4rem;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem;flex-wrap:wrap;gap:1rem;">
+                        <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;">
+                            <i class="fa-solid fa-store" style="color:var(--accent);margin-right:.4rem;"></i>Zarządzanie produktami w sklepie internetowym
+                        </div>
+                        <div style="display:flex;gap:.5rem;">
+                            <button onclick="importDefaultShopItems()" class="tbl-btn" style="background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;font-weight:700;padding:.5rem .85rem;font-size:.78rem;cursor:pointer;"><i class="fa-solid fa-file-import"></i> Zaimportuj domyślne</button>
+                            <button onclick="openShopItemModal(null)" class="modal-submit-btn" style="width:auto;margin:0;padding:.5rem .95rem;font-size:.78rem;cursor:pointer;"><i class="fa-solid fa-plus"></i> Dodaj produkt</button>
+                            <button class="tbl-btn" onclick="loadAdminShopItems()"><i class="fa-solid fa-rotate-right"></i></button>
+                        </div>
+                    </div>
+                    <div class="table-wrap">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th style="width:60px;text-align:center;">Obrazek</th>
+                                    <th>Nazwa produktu</th>
+                                    <th>Typ</th>
+                                    <th>Cena</th>
+                                    <th style="width:80px;text-align:center;">Sortowanie</th>
+                                    <th style="width:100px;">Status</th>
+                                    <th style="width:100px;">Akcje</th>
+                                </tr>
+                            </thead>
+                            <tbody id="shop-manage-tbody">
+                                <tr><td colspan="7" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -830,6 +873,14 @@
                     </div>
                     <div id="info-cstats-detail" style="font-size:.72rem;color:var(--text-secondary);"></div>
                 </div>
+                <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:1.2rem;">
+                    <div style="font-size:.75rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.6rem;">CShop Plugin</div>
+                    <div id="info-cshop-status" style="display:flex;align-items:center;gap:.5rem;margin-bottom:.3rem;">
+                        <span style="width:9px;height:9px;border-radius:50%;background:#9ca3af;"></span>
+                        <span style="font-size:.82rem;color:var(--text-secondary);">Sprawdzanie...</span>
+                    </div>
+                    <div id="info-cshop-detail" style="font-size:.72rem;color:var(--text-secondary);"></div>
+                </div>
                 <div class="table-card" style="padding:1.2rem;">
                     <div style="font-size:.72rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.7rem;"><i class="fa-solid fa-clock" style="color:#f59e0b;margin-right:.4rem;"></i>Czas działania</div>
                     <div style="font-size:1.4rem;font-weight:800;color:var(--text-primary);" id="info-uptime">—</div>
@@ -1004,95 +1055,139 @@ document.addEventListener('DOMContentLoaded', function() {
     aiPage.id = 'page-ai';
     aiPage.className = 'page';
     aiPage.innerHTML = `
-    <div class="page-header">
-        <h1><i class="fa-solid fa-robot" style="color:#8b5cf6;margin-right:.5rem;"></i>CritAI — Twój asystent</h1>
-        <p>Rozmawiaj ze mną o wszystkim albo każ mi zarządzać serwerem</p>
-    </div>
-    <div id="ai-api-setup" style="display:none;background:rgba(139,92,246,.08);border:1.5px solid rgba(139,92,246,.25);border-radius:16px;padding:1.2rem;margin-bottom:1.2rem;">
-        <!-- Stan: klucz zapisany (zwinięty podgląd) -->
-        <div id="ai-key-saved-view" style="display:none;">
-            <div style="font-weight:800;font-size:.92rem;margin-bottom:.5rem;"><i class="fa-solid fa-key" style="color:#8b5cf6;"></i> Klucz Gemini API</div>
-            <div style="font-size:.85rem;margin-bottom:.8rem;">Aktywny klucz: <b id="ai-key-masked" style="font-family:monospace;color:#8b5cf6;">AIza****</b></div>
-            <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
-                <button onclick="window.showAiKeyForm()" style="padding:.55rem 1.1rem;background:#8b5cf6;color:#fff;border:none;border-radius:8px;font-size:.82rem;font-weight:800;cursor:pointer;font-family:var(--font);">
-                    <i class="fa-solid fa-pen"></i> Zmień klucz
-                </button>
-                <button onclick="window.removeAiApiKey()" style="padding:.55rem 1.1rem;background:transparent;color:#ef4444;border:1.5px solid rgba(239,68,68,.3);border-radius:8px;font-size:.82rem;font-weight:800;cursor:pointer;font-family:var(--font);">
-                    <i class="fa-solid fa-trash"></i> Usuń klucz
-                </button>
-            </div>
-        </div>
-        <!-- Stan: formularz (brak klucza lub zmiana) -->
-        <div id="ai-key-form-view">
-            <div id="ai-key-form-title" style="font-weight:800;font-size:.92rem;margin-bottom:.5rem;"><i class="fa-solid fa-key" style="color:#8b5cf6;"></i> Skonfiguruj klucz Gemini API</div>
-            <p style="font-size:.82rem;color:var(--text-secondary);margin-bottom:.7rem;">Wejdź na <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:#8b5cf6;font-weight:700;">aistudio.google.com</a> i wygeneruj darmowy klucz (1500 req/dzień).</p>
-            <div style="display:flex;gap:.6rem;flex-wrap:wrap;">
-                <input type="password" id="ai-api-key-input" placeholder="AIzaSy..." autocomplete="off"
-                    style="flex:1;min-width:200px;padding:.65rem .9rem;border:1.5px solid var(--border);border-radius:8px;font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
-                <button onclick="saveAiApiKey()" style="padding:.65rem 1.2rem;background:#8b5cf6;color:#fff;border:none;border-radius:8px;font-size:.88rem;font-weight:800;cursor:pointer;font-family:var(--font);">
-                    <i class="fa-solid fa-floppy-disk"></i> Zapisz
-                </button>
-                <button id="ai-cancel-btn" onclick="window.cancelAiKeyEdit()" style="display:none;padding:.65rem 1.2rem;background:transparent;color:var(--text-secondary);border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;font-weight:800;cursor:pointer;font-family:var(--font);">
-                    Anuluj
-                </button>
+    <div class="page-header" style="margin-bottom:1.5rem;">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;">
+            <div style="display:flex;align-items:center;gap:1rem;">
+                <div style="width:50px;height:50px;background:linear-gradient(135deg,#8b5cf6,#3b82f6);border-radius:14px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.5rem;box-shadow:0 4px 12px rgba(139,92,246,0.35);">
+                    <i class="fa-solid fa-robot"></i>
+                </div>
+                <div>
+                    <h1 style="margin:0;font-weight:900;letter-spacing:-0.5px;">CritAI Asystent</h1>
+                    <p style="margin:0;color:var(--text-secondary);font-size:.85rem;">Zaawansowana sztuczna inteligencja zarządzająca serwerem</p>
+                </div>
             </div>
         </div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 300px;gap:1.2rem;align-items:start;">
-        <div>
-            <div id="ai-chat-history" style="background:var(--bg-card);border:1px solid var(--border);border-radius:16px;min-height:400px;max-height:500px;overflow-y:auto;padding:1.2rem;margin-bottom:.8rem;display:flex;flex-direction:column;gap:.75rem;">
-                <div id="ai-welcome" style="text-align:center;padding:2rem 1rem;color:var(--text-secondary);">
-                    <i class="fa-solid fa-robot" style="font-size:2.2rem;color:#8b5cf6;opacity:.5;display:block;margin-bottom:.6rem;"></i>
-                    <div style="font-weight:800;font-size:.95rem;margin-bottom:.3rem;">CritAI — Twój asystent</div>
-                    <div style="font-size:.82rem;margin-bottom:.8rem;">Rozmawiaj ze mną o wszystkim albo każ mi wykonać akcję admina. Kliknij przykład:</div>
-                    <div style="display:flex;flex-direction:column;gap:.3rem;max-width:320px;margin:0 auto;text-align:left;">
-                        <div class="ai-example" onclick="window._aiUseExample(this)">💬 Cześć, co potrafisz?</div>
-                        <div class="ai-example" onclick="window._aiUseExample(this)">💬 Jakie są zasady serwera?</div>
-                        <div class="ai-example" onclick="window._aiUseExample(this)">🔨 Zbanuj sosenka8 za cheaty na 7 dni</div>
-                        <div class="ai-example" onclick="window._aiUseExample(this)">🔇 Zmutuj GraczXYZ za spam na 1h</div>
-                        <div class="ai-example" onclick="window._aiUseExample(this)">🎁 Nadaj sosenka8 rangę VIP</div>
-                        <div class="ai-example" onclick="window._aiUseExample(this)">📢 Broadcast: Restart za 5 minut!</div>
-                        <div class="ai-example" onclick="window._aiUseExample(this)">💬 Opisz mi jak działa panel</div>
+
+    <div style="display:grid;grid-template-columns:1fr 350px;gap:1.5rem;align-items:start;">
+        
+        <!-- LEWA KOLUMNA: CHAT -->
+        <div class="table-card" style="display:flex;flex-direction:column;height:650px;overflow:hidden;border:1px solid var(--border);border-radius:12px;">
+            <div id="ai-chat-history" style="flex:1;overflow-y:auto;padding:1.5rem;display:flex;flex-direction:column;gap:1.2rem;background:var(--bg);">
+                <div id="ai-welcome" style="text-align:center;margin:auto 0;padding:2rem;">
+                    <div style="font-size:3.5rem;margin-bottom:1.2rem;">🤖</div>
+                    <h2 style="margin-bottom:.5rem;font-weight:800;">Witaj w CritAI Intelligence</h2>
+                    <p style="color:var(--text-secondary);font-size:.88rem;max-width:440px;margin:0 auto 1.5rem;line-height:1.6;">
+                        Jestem zintegrowanym asystentem AI posiadającym pełne uprawnienia administratorskie. Możesz pisać do mnie naturalnym językiem.
+                    </p>
+                    <div style="font-size:.75rem;text-transform:uppercase;color:var(--text-secondary);font-weight:700;margin-bottom:.8rem;letter-spacing:1px;">Przykłady zapytań:</div>
+                    <div style="display:flex;flex-direction:column;gap:.5rem;max-width:400px;margin:0 auto;">
+                        <button class="ai-chip" onclick="window.aiPrompt('Zbanuj sosenka8 za reklamowanie innego serwera na 7 dni')" style="text-align:left;justify-content:flex-start;">🔨 Ban: sosenka8 na 7d za reklamę</button>
+                        <button class="ai-chip" onclick="window.aiPrompt('Nadaj rangę VIP dla srhzz na 30 dni')" style="text-align:left;justify-content:flex-start;">👑 Ranga: VIP dla srhzz na 30 dni</button>
+                        <button class="ai-chip" onclick="window.aiPrompt('Daj graczowi sosenka8 diamentowy miecz ostrosc:5 unbreaking:3')" style="text-align:left;justify-content:flex-start;">⚔️ Przedmiot: Diamentowy miecz Ostrość V</button>
+                        <button class="ai-chip" onclick="window.aiPrompt('Restart serwera za 10 sekund z ogłoszeniem')" style="text-align:left;justify-content:flex-start;">🔄 Akcja: Restart serwera za 10s</button>
                     </div>
                 </div>
             </div>
-            <div style="display:flex;gap:.5rem;">
-                <input type="text" id="ai-input" placeholder="Napisz coś do CritAI... (Enter = wyślij)"
-                    onkeydown="if(event.key==='Enter'){event.preventDefault();sendAiMessage();}"
-                    autocomplete="off"
-                    style="flex:1;padding:.8rem 1rem;border:2px solid rgba(139,92,246,.3);border-radius:8px;font-size:.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);transition:border-color .15s;"
-                    onfocus="this.style.borderColor='#8b5cf6'" onblur="this.style.borderColor='rgba(139,92,246,.3)'">
-                <button id="ai-send-btn" onclick="sendAiMessage()"
-                    style="padding:.8rem 1.3rem;background:linear-gradient(135deg,#8b5cf6,#3b82f6);color:#fff;border:none;border-radius:8px;font-size:.9rem;font-weight:800;cursor:pointer;font-family:var(--font);">
-                    <i class="fa-solid fa-paper-plane"></i>
-                </button>
-            </div>
-            <div style="font-size:.7rem;color:var(--text-secondary);margin-top:.35rem;"><i class="fa-solid fa-shield-halved" style="color:#10b981;"></i> Każda akcja wymaga Twojego potwierdzenia zanim zostanie wykonana</div>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:.8rem;">
-            <div class="table-card" style="padding:1rem;">
-                <div style="font-size:.72rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.65rem;"><i class="fa-solid fa-bolt" style="color:#f59e0b;"></i> Możliwe akcje</div>
-                <div style="display:flex;flex-direction:column;gap:.3rem;font-size:.8rem;">
-                    <div style="padding:.3rem .6rem;border-radius:6px;background:rgba(239,68,68,.08);color:#dc2626;font-weight:600;"><i class="fa-solid fa-ban"></i> Ban / Unban gracza</div>
-                    <div style="padding:.3rem .6rem;border-radius:6px;background:rgba(245,158,11,.08);color:#d97706;font-weight:600;"><i class="fa-solid fa-microphone-slash"></i> Mute / Unmute gracza</div>
-                    <div style="padding:.3rem .6rem;border-radius:6px;background:rgba(99,102,241,.08);color:#6366f1;font-weight:600;"><i class="fa-solid fa-door-open"></i> Kick gracza</div>
-                    <div style="padding:.3rem .6rem;border-radius:6px;background:rgba(139,92,246,.08);color:#8b5cf6;font-weight:600;"><i class="fa-solid fa-crown"></i> Nadaj rangę VIP/BOSS/CRIT</div>
-                    <div style="padding:.3rem .6rem;border-radius:6px;background:rgba(59,130,246,.08);color:#3b82f6;font-weight:600;"><i class="fa-solid fa-key"></i> Nadaj klucze do skrzyń</div>
-                    <div style="padding:.3rem .6rem;border-radius:6px;background:rgba(16,185,129,.08);color:#059669;font-weight:600;"><i class="fa-solid fa-bullhorn"></i> Broadcast na serwer</div>
-                    <div style="padding:.3rem .6rem;border-radius:6px;background:rgba(249,115,22,.08);color:#ea580c;font-weight:600;"><i class="fa-solid fa-triangle-exclamation"></i> Warn / Sprawdź gracza</div>
-                </div>
-            </div>
-            <div class="table-card" style="padding:1rem;">
-                <div style="font-size:.72rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.5rem;"><i class="fa-solid fa-circle-info"></i> Status</div>
-                <div style="font-size:.8rem;display:flex;flex-direction:column;gap:.3rem;">
-                    <div><span style="color:var(--text-secondary);">Model:</span> <b>Gemini 2.5 Flash</b></div>
-                    <div><span style="color:var(--text-secondary);">Klucz:</span> <span id="ai-key-status" style="font-weight:700;color:#ef4444;">Nie skonfigurowany</span></div>
-                    <div><span style="color:var(--text-secondary);">Zapytania dziś:</span> <b id="ai-usage-count">0</b></div>
-                    <button id="ai-test-btn" onclick="window.testAiKey()" style="margin-top:.5rem;padding:.5rem;background:transparent;border:1.5px solid rgba(139,92,246,.3);border-radius:8px;color:#8b5cf6;font-weight:700;font-size:.78rem;cursor:pointer;font-family:var(--font);">
-                        <i class="fa-solid fa-vial"></i> Testuj klucz API
+            
+            <div style="padding:1.2rem;border-top:1px solid var(--border);background:var(--bg-card);">
+                <div style="display:flex;gap:.5rem;position:relative;">
+                    <input type="text" id="ai-input" placeholder="Napisz polecenie np. Zmutuj gracza X na 2h za przekleństwa..." onkeydown="if(event.key==='Enter') sendAiMessage()"
+                        style="flex:1;padding:.85rem 1.2rem;border:1.5px solid var(--border);border-radius:10px;background:var(--bg);color:var(--text-primary);outline:none;font-family:var(--font);font-size:.9rem;transition:border-color .25s;"
+                        onfocus="this.style.borderColor='#8b5cf6'" onblur="this.style.borderColor='var(--border)'">
+                    <button id="ai-send-btn" onclick="sendAiMessage()" style="background:#8b5cf6;color:#fff;border:none;padding:0 1.6rem;border-radius:10px;cursor:pointer;font-weight:700;font-size:.9rem;display:flex;align-items:center;justify-content:center;transition:all .2s;box-shadow:0 3px 8px rgba(139,92,246,0.3);"
+                        onmouseover="this.style.background='#7c3aed';this.style.transform='translateY(-1px)'" onmouseout="this.style.background='#8b5cf6';this.style.transform='none'">
+                        <i class="fa-solid fa-paper-plane"></i>
                     </button>
                 </div>
             </div>
+        </div>
+
+        <!-- PRAWA KOLUMNA: STATUS & USTAWIENIA -->
+        <div style="display:flex;flex-direction:column;gap:1.5rem;">
+            
+            <!-- KARTA STATUSU -->
+            <div class="table-card" style="padding:1.25rem;border-radius:12px;border:1px solid var(--border);">
+                <h4 style="margin-top:0;margin-bottom:1rem;font-size:.75rem;text-transform:uppercase;color:var(--text-secondary);letter-spacing:1px;font-weight:800;display:flex;align-items:center;gap:.4rem;">
+                    <i class="fa-solid fa-circle-nodes" style="color:#8b5cf6;"></i> Stan systemu AI
+                </h4>
+                <div style="font-size:.85rem;display:flex;flex-direction:column;gap:.8rem;color:var(--text-primary);">
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <span>Aktywny model:</span>
+                        <b id="ai-active-model" style="color:#a78bfa;font-family:monospace;background:rgba(139,92,246,.08);padding:.15rem .45rem;border-radius:5px;border:1px solid rgba(139,92,246,.15);">Brak</b>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <span>Status połączenia:</span>
+                        <span id="ai-key-status" style="color:#ef4444;font-weight:700;display:flex;align-items:center;gap:.3rem;"><i class="fa-solid fa-triangle-exclamation"></i> Nieaktywny</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <span>Użycie dzisiaj:</span>
+                        <span style="font-weight:700;"><span id="ai-usage-count">0</span> zapytanych</span>
+                    </div>
+                    <button id="ai-test-btn" onclick="window.testAiKey()" style="margin-top:.3rem;padding:.6rem;background:transparent;border:1.5px solid rgba(139,92,246,.3);border-radius:8px;color:#a78bfa;font-weight:700;font-size:.78rem;cursor:pointer;font-family:var(--font);transition:all .2s;display:flex;align-items:center;justify-content:center;gap:.4rem;"
+                        onmouseover="this.style.background='rgba(139,92,246,.06)';this.style.borderColor='#8b5cf6'" onmouseout="this.style.background='transparent';this.style.borderColor='rgba(139,92,246,.3)'">
+                        <i class="fa-solid fa-vial"></i> Testuj połączenie API
+                    </button>
+                </div>
+            </div>
+
+            <!-- KONFIGURACJA KLUCZA -->
+            <div class="table-card" id="ai-api-setup" style="padding:1.25rem;border-radius:12px;border:1px solid var(--border);">
+                <!-- Widok zapisanego klucza -->
+                <div id="ai-key-saved-view" style="display:none;">
+                    <h4 style="margin-top:0;margin-bottom:1rem;font-size:.75rem;text-transform:uppercase;color:var(--text-secondary);letter-spacing:1px;font-weight:800;display:flex;align-items:center;gap:.4rem;">
+                        <i class="fa-solid fa-key" style="color:#10b981;"></i> Klucz Gemini API
+                    </h4>
+                    <div style="font-size:.85rem;color:var(--text-primary);display:flex;flex-direction:column;gap:.75rem;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg);border:1px solid var(--border);padding:.55rem .75rem;border-radius:8px;font-family:monospace;">
+                            <span id="ai-key-masked" style="color:var(--text-secondary);">AIza****</span>
+                            <span style="color:#10b981;font-size:.7rem;font-weight:800;"><i class="fa-solid fa-shield-halved"></i> Zapisano</span>
+                        </div>
+                        <div style="display:flex;gap:.5rem;margin-top:.2rem;">
+                            <button onclick="showAiKeyForm()" class="tbl-btn" style="flex:1;font-size:.75rem;padding:.5rem;font-weight:700;"><i class="fa-solid fa-pen"></i> Zmień klucz</button>
+                            <button onclick="removeAiApiKey()" class="tbl-btn" style="color:#ef4444;border-color:rgba(239,68,68,.3);background:rgba(239,68,68,.04);font-size:.75rem;padding:.5rem;font-weight:700;"><i class="fa-solid fa-trash"></i> Usuń</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Formularz wprowadzania klucza -->
+                <div id="ai-key-form-view">
+                    <h4 id="ai-key-form-title" style="margin-top:0;margin-bottom:1rem;font-size:.75rem;text-transform:uppercase;color:var(--text-secondary);letter-spacing:1px;font-weight:800;display:flex;align-items:center;gap:.4rem;">
+                        <i class="fa-solid fa-key" style="color:#8b5cf6;"></i> Klucz Gemini API
+                    </h4>
+                    <div style="font-size:.82rem;color:var(--text-secondary);line-height:1.5;margin-bottom:.8rem;">
+                        Wprowadź swój bezpłatny klucz API z konsoli <a href="https://aistudio.google.com/" target="_blank" style="color:#8b5cf6;font-weight:700;text-decoration:none;">Google AI Studio</a>.
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:.6rem;">
+                        <input type="password" id="ai-api-key-input" placeholder="Wklej klucz API (AIza... lub AQ...)"
+                            style="width:100%;padding:.65rem .8rem;border:1.5px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text-primary);outline:none;font-family:monospace;font-size:.82rem;">
+                        <div style="display:flex;gap:.4rem;">
+                            <button onclick="saveAiApiKey()" style="flex:1;padding:.65rem;background:#8b5cf6;color:#fff;border:none;border-radius:8px;font-weight:800;font-size:.78rem;cursor:pointer;font-family:var(--font);transition:background .2s;" onmouseover="this.style.background='#7c3aed'" onmouseout="this.style.background='#8b5cf6'">
+                                Zapisz klucz
+                            </button>
+                            <button id="ai-cancel-btn" onclick="cancelAiKeyEdit()" class="tbl-btn" style="font-size:.78rem;padding:.65rem;font-weight:700;display:none;">
+                                Anuluj
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SZYBKIE AKCJE -->
+            <div class="table-card" style="padding:1.25rem;border-radius:12px;border:1px solid var(--border);">
+                <h4 style="margin-top:0;margin-bottom:1rem;font-size:.75rem;text-transform:uppercase;color:var(--text-secondary);letter-spacing:1px;font-weight:800;display:flex;align-items:center;gap:.4rem;">
+                    <i class="fa-solid fa-bolt" style="color:#f59e0b;"></i> Szybkie szablony
+                </h4>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;">
+                    <button class="ai-chip" onclick="window.aiPrompt('Zbanuj ')">🔨 Banuj</button>
+                    <button class="ai-chip" onclick="window.aiPrompt('Zmutuj ')">🔇 Mute</button>
+                    <button class="ai-chip" onclick="window.aiPrompt('Warn ')">⚠️ Warn</button>
+                    <button class="ai-chip" onclick="window.aiPrompt('Check ')">🔍 Sprawdź</button>
+                    <button class="ai-chip" onclick="window.aiPrompt('Console_cmd ')">💻 Konsola</button>
+                    <button class="ai-chip" onclick="window.aiPrompt('Broadcast ')">📢 Rozgłoś</button>
+                </div>
+            </div>
+            
         </div>
     </div>`;
     main.appendChild(aiPage);

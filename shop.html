@@ -1348,26 +1348,91 @@
             return 'images/crit.png';
         };
 
+        const getStyleClasses = (name, type) => {
+            const n = String(name || '').toLowerCase();
+            const t = String(type || '').toLowerCase();
+            
+            if (n.includes('vip')) {
+                return { cardClass: 'card-vip', textClass: 'vip-text' };
+            }
+            if (n.includes('boss')) {
+                return { cardClass: 'card-boss', textClass: 'boss-text' };
+            }
+            if (n.includes('crit')) {
+                return { cardClass: 'card-crit', textClass: 'crit-text' };
+            }
+            if (t === 'klucz') {
+                if (n.includes('zwykly') || n.includes('zwykły')) return { cardClass: 'card-lootbox', textClass: 'key-zwykly-text' };
+                if (n.includes('rzadki')) return { cardClass: 'card-lootbox', textClass: 'key-rzadki-text' };
+                if (n.includes('epicki')) return { cardClass: 'card-lootbox', textClass: 'key-epicki-text' };
+                if (n.includes('premium')) return { cardClass: 'card-pack-lootbox', textClass: 'key-premium-text' };
+                return { cardClass: 'card-lootbox', textClass: 'key-crit-text' };
+            }
+            return { cardClass: 'card-other-nick', textClass: 'color-nick-text' };
+        };
+
         const renderCard = (item) => {
+            const styles = getStyleClasses(item.name, item.type);
             const media = item.mediaUrl || fallbackImage(item);
-            const isVideo = /\.(mp4|webm|mov)(\?|$)/i.test(media) || String(item.mediaMime || '').startsWith('video/');
+            const absMedia = media.startsWith('..') ? media.substring(1) : media;
+            const isVideo = /\.(mp4|webm|mov)(\?|$)/i.test(absMedia) || String(item.mediaMime || '').startsWith('video/');
             const desc = item.desc ? `<p class="rank-desc">${esc(item.desc)}</p>` : '';
-            const items = item.itemsText ? `<div class="tags-container">${esc(item.itemsText).split(/\r?\n+/).filter(Boolean).map(line => `<span class="item-tag">${esc(line)}</span>`).join('')}</div>` : '';
-            const badge = item.active === false ? '<span class="badge badge-banned" style="position:absolute;top:1rem;right:1rem;z-index:2;">Ukryty</span>' : '';
+            
+            let benefitsHtml = '';
+            const lines = Array.isArray(item.items) ? item.items : (item.itemsText ? esc(item.itemsText).split(/\r?\n+/).filter(Boolean) : []);
+            if (lines.length > 0) {
+                if (String(item.type).toLowerCase() === 'ranga') {
+                    benefitsHtml = `<ul class="benefits-list">${lines.map(line => `<li><i class="fa-solid fa-caret-right"></i> ${esc(line)}</li>`).join('')}</ul>`;
+                } else {
+                    benefitsHtml = `<div class="tags-container">${lines.map(line => `<span class="item-tag">${esc(line)}</span>`).join('')}</div>`;
+                }
+            }
+            
+            const isBundle = String(item.type).toLowerCase() === 'zestaw';
+            const ribbon = isBundle ? '<div class="badge-discount ribbon-save" aria-hidden="true"></div>' : '';
+            const cardClassSuffix = isBundle ? 'bundle-card' : '';
+            
+            let priceHtml = '';
+            if (isBundle) {
+                priceHtml = `
+                    <div class="price-section bundle-pricing">
+                        <div class="bundle-price-block">
+                            <span class="price-label">Cena zestawu</span>
+                            <div class="price-value ${styles.textClass}">${priceText(item.price)} <span class="currency">PLN</span></div>
+                        </div>
+                        <div class="bundle-value-block">
+                            <span class="bundle-value-label"><i class="fa-solid fa-tags"></i> Wartość zestawu</span>
+                            <span class="bundle-value-amount"></span>
+                        </div>
+                    </div>`;
+            } else if (item.oldPrice) {
+                priceHtml = `
+                    <div class="price-section">
+                        <span class="price-label">Cena:</span>
+                        <div style="display:flex;align-items:center;gap:.6rem;">
+                            <div class="price-value ${styles.textClass}">${priceText(item.price)} <span class="currency">PLN</span></div>
+                            <span style="text-decoration:line-through;font-size:.85rem;color:var(--text-secondary);">${priceText(item.oldPrice)} PLN</span>
+                        </div>
+                    </div>`;
+            } else {
+                priceHtml = `
+                    <div class="price-section">
+                        <span class="price-label">Cena:</span>
+                        <div class="price-value ${styles.textClass}">${priceText(item.price)} <span class="currency">PLN</span></div>
+                    </div>`;
+            }
+
             return `
-                <div class="card bundle-card" style="overflow:hidden;">
-                    ${badge}
+                <div class="card ${styles.cardClass} ${cardClassSuffix}" style="overflow:hidden; position:relative;">
+                    ${ribbon}
                     <div class="image-container">
-                        ${isVideo ? `<video src="${esc(media)}" autoplay muted loop playsinline style="width:100%;height:100%;object-fit:cover;"></video>` : `<img src="${esc(media)}" alt="${esc(item.name || 'Produkt')}" style="width:100%;height:100%;object-fit:cover;">`}
+                        ${isVideo ? `<video src="${esc(absMedia)}" autoplay muted loop playsinline style="width:100%;height:100%;object-fit:cover;"></video>` : `<img src="${esc(absMedia)}" alt="${esc(item.name || 'Produkt')}" style="width:100%;height:100%;object-fit:cover;">`}
                     </div>
                     <div class="card-info">
-                        <h3 class="rank-title">${esc(item.name || 'Produkt')}</h3>
+                        <h3 class="rank-title ${styles.textClass}">${esc(item.name || 'Produkt')}</h3>
                         ${desc}
-                        ${items}
-                        <div class="price-section">
-                            <span class="price-label">Cena:</span>
-                            <div class="price-value">${priceText(item.price)} <span class="currency">PLN</span></div>
-                        </div>
+                        ${benefitsHtml}
+                        ${priceHtml}
                         <div class="discord-block">
                             <div class="discord-collapsed">
                                 <div class="discord-left">
@@ -1390,16 +1455,62 @@
         };
 
         async function loadShopItems() {
-            if (!out) return;
-            out.innerHTML = '<div style="padding:1rem;color:var(--text-muted);">Ładowanie produktów...</div>';
             try {
-                const snap = await getDocs(query(collection(db, 'shop_items'), orderBy('sortOrder', 'asc')));
+                const snap = await getDocs(query(collection(db, 'shop_items'), orderBy('order', 'asc')));
                 const items = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(item => item.active !== false);
-                out.innerHTML = items.length
-                    ? items.map(renderCard).join('')
-                    : '<div style="padding:1rem;color:var(--text-muted);">Brak produktów do wyświetlenia.</div>';
+                
+                if (items.length > 0) {
+                    const groups = {
+                        rangi: [],
+                        klucze: [],
+                        zestawy_z_ranga: [],
+                        zestawy_bez_rangi: [],
+                        inne_nowosci: [],
+                        inne_inne: []
+                    };
+
+                    items.forEach(item => {
+                        const type = String(item.type || '').toLowerCase();
+                        const subcat = String(item.subcategory || '').toLowerCase();
+                        
+                        if (type === 'ranga') {
+                            groups.rangi.push(item);
+                        } else if (type === 'klucz') {
+                            groups.klucze.push(item);
+                        } else if (type === 'zestaw') {
+                            if (subcat === 'z-rangami') {
+                                groups.zestawy_z_ranga.push(item);
+                            } else {
+                                groups.zestawy_bez_rangi.push(item);
+                            }
+                        } else {
+                            if (subcat === 'nowosc' || subcat === 'nowosci') {
+                                groups.inne_nowosci.push(item);
+                            } else {
+                                groups.inne_inne.push(item);
+                            }
+                        }
+                    });
+
+                    const renderToGrid = (selector, list) => {
+                        const grid = document.querySelector(selector);
+                        if (!grid) return;
+                        grid.innerHTML = list.map(renderCard).join('');
+                    };
+
+                    renderToGrid('#rangi .cards-grid', groups.rangi);
+                    renderToGrid('#produkty .cards-grid', groups.klucze);
+                    renderToGrid('#zestawy-z-ranga .cards-grid', groups.zestawy_z_ranga);
+                    renderToGrid('#zestawy-bez-rangi .cards-grid', groups.zestawy_bez_rangi);
+                    renderToGrid('#inne-nowosci .cards-grid', groups.inne_nowosci);
+                    renderToGrid('#inne-inne .cards-grid', groups.inne_inne);
+                    
+                    if (window.initBundleValues) {
+                        window.initBundleValues();
+                    }
+                }
             } catch (e) {
-                out.innerHTML = `<div style="padding:1rem;color:#ef4444;">Błąd połączenia z bazą danych: ${esc(e.message)}</div>`;
+                console.error("loadShopItems error:", e);
             }
         }
 

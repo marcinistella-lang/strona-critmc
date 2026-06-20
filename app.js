@@ -44,23 +44,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // --- OBSŁUGA ROZWIJANIA BLOKÓW DISCORD ---
-    const discordCollapsedBlocks = document.querySelectorAll('.discord-collapsed');
-
-    discordCollapsedBlocks.forEach(collapsedBlock => {
-        collapsedBlock.addEventListener('click', (event) => {
+    // --- OBSŁUGA ROZWIJANIA BLOKÓW DISCORD (Event Delegation) ---
+    document.addEventListener('click', (event) => {
+        const collapsedBlock = event.target.closest('.discord-collapsed');
+        if (collapsedBlock) {
             const discordBlock = collapsedBlock.parentElement;
-            
-            // Przełącz klasę expanded dla klikniętego bloku
             discordBlock.classList.toggle('expanded');
-
-            // Opcjonalnie: Zwiń pozostałe otwarte bloki (jeśli chcemy akordeon)
-            // document.querySelectorAll('.discord-block').forEach(block => {
-            //     if (block !== discordBlock) {
-            //         block.classList.remove('expanded');
-            //     }
-            // });
-        });
+        }
     });
 
     // --- ZESTAWY: wartość, wstążka % taniej ---
@@ -132,25 +122,29 @@ document.addEventListener('DOMContentLoaded', () => {
         return Math.round(total * 100) / 100;
     };
 
-    document.querySelectorAll('.bundle-card').forEach((card) => {
-        const price = parseCardPrice(card.querySelector('.price-value'));
-        const value = calculateBundleValue(card);
-        const valueEl = card.querySelector('.bundle-value-amount');
-        const ribbon = card.querySelector('.ribbon-save');
+    window.initBundleValues = function() {
+        document.querySelectorAll('.bundle-card').forEach((card) => {
+            const price = parseCardPrice(card.querySelector('.price-value'));
+            const value = calculateBundleValue(card);
+            const valueEl = card.querySelector('.bundle-value-amount');
+            const ribbon = card.querySelector('.ribbon-save');
 
-        if (valueEl && value > 0) {
-            valueEl.textContent = formatPln(value);
-        }
+            if (valueEl && value > 0) {
+                valueEl.textContent = formatPln(value);
+            }
 
-        if (ribbon && value > price && price > 0) {
-            const savePercent = Math.round((value / price - 1) * 100);
-            ribbon.textContent = `+${savePercent}% wartości`;
-            ribbon.setAttribute('aria-label', `Dostajesz ${savePercent}% więcej niż płacisz`);
-            ribbon.removeAttribute('aria-hidden');
-        } else if (ribbon && value > 0) {
-            ribbon.remove();
-        }
-    });
+            if (ribbon && value > price && price > 0) {
+                const savePercent = Math.round((value / price - 1) * 100);
+                ribbon.textContent = `+${savePercent}% wartości`;
+                ribbon.setAttribute('aria-label', `Dostajesz ${savePercent}% więcej niż płacisz`);
+                ribbon.removeAttribute('aria-hidden');
+            } else if (ribbon && value > 0) {
+                ribbon.remove();
+            }
+        });
+    };
+
+    window.initBundleValues();
 
     // --- KLUCZ LOSOWY: zmiana koloru i gwiazdek ---
     const randomKeyCard = document.getElementById('random-key-card');
