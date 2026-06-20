@@ -862,9 +862,53 @@ window.addEventListener('openPlayerDetail', async (e) => {
                 if (csnap.exists()) {
                     const cs = csnap.data();
                     const fmt = v => (v === undefined || v === null) ? '0' : Math.round(Number(v)).toLocaleString('pl-PL');
+                    const fmtDec = v => (v === undefined || v === null) ? '0.00' : Number(v).toFixed(2);
                     const kdr = cs.deaths > 0 ? (cs.kills / cs.deaths).toFixed(2) : (cs.kills || 0).toString();
                     const fmtPt = s => { s=Math.round(Number(s)||0); const h=Math.floor(s/3600),m=Math.floor((s%3600)/60); return h>0?`${h}h ${m}m`:`${m}m`; };
-                    const shopSpent = cs.shopSpent != null ? Number(cs.shopSpent).toFixed(2)+'
+                    const shopSpent = cs.shopSpent != null ? Number(cs.shopSpent).toFixed(2)+'$' : '0.00$';
+                    const shopEarned = cs.shopEarned != null ? Number(cs.shopEarned).toFixed(2)+'$' : '0.00$';
+                    const cards = [
+                        ['⚔️','Kille',       fmt(cs.kills),            '#dc2626'],
+                        ['💀','Śmierci',     fmt(cs.deaths),           '#9ca3af'],
+                        ['📊','KDR',         kdr,                      '#8b5cf6'],
+                        ['🔥','Max Killstr.', fmt(cs.maxKillstreak),   '#f59e0b'],
+                        ['⛏️','Wykopane bl.', fmt(cs.blocksMined),     '#38bdf8'],
+                        ['⏱️','Czas gry',    fmtPt(cs.playtime),      '#eab308'],
+                        ['🎯','Punkty',      fmt(cs.points),           '#10b981'],
+                        ['🧹','Moby',        fmt(cs.mobsKilled),       '#a3e635'],
+                        ['💵','Wydano',      shopSpent,                '#f472b6'],
+                        ['💸','Zarobiono',   shopEarned,               '#34d399'],
+                        ['🏃','Dystans',     fmt(cs.distanceTraveled)+'m', '#60a5fa'],
+                        ['🏆','Osiągnięcia', fmt((cs.unlockedAchievements||[]).length), '#fbbf24']
+                    ];
+                    csSection.innerHTML =
+                        `<div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.6rem;display:flex;align-items:center;justify-content:space-between;">
+                            <span><i class="fa-solid fa-chart-bar" style="color:#8b5cf6;margin-right:.4rem;"></i>Statystyki CStats</span>
+                            <button onclick="switchPage('plugins');loadPluginsPage();setTimeout(()=>{document.getElementById('cstats-edit-nick').value='${escapeHtml(p.nick||p.id)}';cstatsSelectPlayer('${escapeHtml(p.nick||p.id)}','${uuid}')},700)"
+                                style="padding:.2rem .55rem;background:rgba(139,92,246,.12);border:1px solid rgba(139,92,246,.3);border-radius:6px;color:#8b5cf6;font-size:.68rem;font-weight:700;cursor:pointer;font-family:var(--font);">
+                                <i class="fa-solid fa-arrow-up-right-from-square"></i> Edytuj
+                            </button>
+                        </div>
+                        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:.45rem;">
+                            ${cards.map(([icon,label,val,color]) =>
+                                `<div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:.55rem .4rem;text-align:center;">
+                                    <div style="font-size:1.05rem;line-height:1;">${icon}</div>
+                                    <div style="font-size:.58rem;color:var(--text-secondary);text-transform:uppercase;margin:.2rem 0 .15rem;letter-spacing:.03em;">${label}</div>
+                                    <div style="font-size:.8rem;font-weight:800;color:${color};">${val}</div>
+                                </div>`
+                            ).join('')}
+                        </div>
+                        <div style="margin-top:.4rem;font-size:.68rem;color:var(--text-secondary);">
+                            Ostatni sync: ${cs.lastSync ? new Date(cs.lastSync).toLocaleString('pl-PL') : '—'}
+                        </div>`;
+                } else {
+                    csSection.innerHTML = `<div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.6rem;"><i class="fa-solid fa-chart-bar" style="margin-right:.4rem;"></i>Statystyki CStats</div><div style="font-size:.82rem;color:var(--text-secondary);padding:.5rem 0;">Brak danych CStats dla tego gracza.</div>`;
+                }
+            }
+        } catch(csErr) {
+            const csSection = document.getElementById('player-cstats-section');
+            if (csSection) csSection.innerHTML = `<span style="color:#ef4444;font-size:.75rem;">Błąd CStats: ${escapeHtml(csErr.message.substring(0,50))}</span>`;
+        }
     } catch(e) { body.innerHTML = '<p style="color:#ef4444;">Błąd: '+e.message+'</p>'; }
 });
 
@@ -4239,255 +4283,7 @@ async function loadCShopTop() {
     ]);
 }
 
-/** Karty ze statystykami ogólnymi CShop */
-async function loadCShopStats() {
-    const el = document.getElementById('cshop-stats-cards');
-    if (!el) return;
-    try {
-        const snap = await getDocs(query(collection(db, 'cshop_stats')));
-        const docs = snap.docs.map(d => d.data());
-        const totalSpent       = docs.reduce((s, d) => s + (d.totalSpent || 0), 0);
-        const totalEarned      = docs.reduce((s, d) => s + (d.totalEarned || 0), 0);
-        const totalTaxes       = docs.reduce((s, d) => s + (d.totalTaxes || 0), 0);
-        const totalTransactions= docs.reduce((s, d) => s + (d.totalTransactions || 0), 0);
-        const playerCount      = docs.length;
-        el.innerHTML = `
-            <div class="stat-card"><div class="stat-icon" style="background:rgba(16,185,129,.12);color:#10b981;"><i class="fa-solid fa-cart-shopping"></i></div><div class="stat-info"><div class="stat-value">${totalTransactions.toLocaleString('pl-PL')}</div><div class="stat-label">Transakcje ogółem</div></div></div>
-            <div class="stat-card"><div class="stat-icon" style="background:rgba(239,68,68,.12);color:#ef4444;"><i class="fa-solid fa-coins"></i></div><div class="stat-info"><div class="stat-value">${Math.round(totalSpent).toLocaleString('pl-PL')}$</div><div class="stat-label">Wydano łącznie</div></div></div>
-            <div class="stat-card"><div class="stat-icon" style="background:rgba(34,197,94,.12);color:#22c55e;"><i class="fa-solid fa-sack-dollar"></i></div><div class="stat-info"><div class="stat-value">${Math.round(totalEarned).toLocaleString('pl-PL')}$</div><div class="stat-label">Zarobiono łącznie</div></div></div>
-            <div class="stat-card"><div class="stat-icon" style="background:rgba(245,158,11,.12);color:#f59e0b;"><i class="fa-solid fa-percent"></i></div><div class="stat-info"><div class="stat-value">${Math.round(totalTaxes).toLocaleString('pl-PL')}$</div><div class="stat-label">Pobrane podatki</div></div></div>
-            <div class="stat-card"><div class="stat-icon" style="background:rgba(139,92,246,.12);color:#8b5cf6;"><i class="fa-solid fa-users"></i></div><div class="stat-info"><div class="stat-value">${playerCount}</div><div class="stat-label">Graczy w bazie</div></div></div>`;
-    } catch(e) {
-        el.innerHTML = `<div style="color:#ef4444;font-size:.82rem;padding:.5rem;">Błąd: ${escapeHtml(e.message)}</div>`;
-    }
-}
-
-/** Tabela ostatnich transakcji */
-async function loadCShopTransactions() {
-    const tb = document.getElementById('cshop-transactions-tbody');
-    if (!tb) return;
-    tb.innerHTML = '<tr><td colspan="7" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>';
-    try {
-        const snap = await getDocs(query(collection(db, 'cshop_transactions'), orderBy('timestamp', 'desc')));
-        const rows = snap.docs.map(d => d.data()).slice(0, 200);
-        if (!rows.length) { tb.innerHTML = '<tr><td colspan="7" class="table-empty">Brak transakcji — wgraj CShop z włączonym firebase.enabled=true</td></tr>'; return; }
-        tb.innerHTML = rows.map(t => {
-            const isB = t.type === 'BUY';
-            const col = isB ? '#22c55e' : '#f59e0b';
-            const icon= isB ? 'fa-cart-plus' : 'fa-money-bill-wave';
-            const ts  = t.timestamp ? new Date(t.timestamp).toLocaleString('pl-PL') : '—';
-            return `<tr>
-                <td><span style="color:${col};font-weight:700;font-size:.8rem;"><i class="fa-solid ${icon}"></i> ${t.type||'?'}</span></td>
-                <td><div class="player-cell">${head(t.playerName||'?')}<div class="player-name">${escapeHtml(t.playerName||'?')}</div></div></td>
-                <td style="font-weight:700;">${escapeHtml(t.itemName||'?')}</td>
-                <td style="text-align:center;">${t.amount||1}</td>
-                <td style="font-weight:800;color:${col};">${Number(t.price||0).toFixed(2)}$</td>
-                <td style="font-size:.78rem;color:var(--text-secondary);">${escapeHtml(t.category||'—')}</td>
-                <td style="font-size:.78rem;color:var(--text-secondary);">${ts}</td>
-            </tr>`;
-        }).join('');
-    } catch(e) {
-        tb.innerHTML = `<tr><td colspan="7" style="color:#ef4444;padding:.8rem;">${escapeHtml(e.message)}</td></tr>`;
-    }
-}
-
-window.filterCShopTransactions = function() {
-    const s  = (document.getElementById('cshop-tx-search')?.value || '').toLowerCase();
-    const ty = document.getElementById('cshop-tx-type')?.value || '';
-    document.querySelectorAll('#cshop-transactions-tbody tr').forEach(row => {
-        const txt = row.textContent.toLowerCase();
-        const typeCell = row.cells?.[0]?.textContent?.trim() || '';
-        row.style.display = ((!s || txt.includes(s)) && (!ty || typeCell.includes(ty))) ? '' : 'none';
-    });
-};
-
-/** Topki CShop */
-async function loadCShopTop() {
-    const stat = document.getElementById('cshop-top-stat')?.value || 'top_spent';
-    const list = document.getElementById('cshop-top-list');
-    if (!list) return;
-    list.innerHTML = '<div style="text-align:center;padding:1.5rem;color:var(--text-secondary);font-size:.85rem;"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</div>';
-    try {
-        const snap = await getDoc(doc(db, 'cshop_top', stat));
-        if (!snap.exists()) { list.innerHTML = '<div style="text-align:center;padding:1.5rem;color:var(--text-secondary);">Brak danych — poczekaj na sync pluginu.</div>'; return; }
-        const entries = (snap.data().entries || []).slice(0, 20);
-        if (!entries.length) { list.innerHTML = '<div style="text-align:center;padding:1rem;color:var(--text-secondary);">Brak graczy w rankingu.</div>'; return; }
-        const medals = ['🥇','🥈','🥉'];
-        const isMoney = stat !== 'top_transactions';
-        list.innerHTML = entries.map((e, i) => {
-            const icon = i < 3 ? medals[i] : `<span style="color:var(--text-secondary);font-size:.78rem;">#${e.rank||i+1}</span>`;
-            const val  = isMoney ? `${Math.round(e.value||0).toLocaleString('pl-PL')}$` : `${(e.value||0).toLocaleString('pl-PL')} transakcji`;
-            return `<div style="display:flex;align-items:center;gap:.6rem;padding:.5rem .65rem;border-bottom:1px solid var(--border);font-size:.84rem;">
-                <span style="width:28px;text-align:center;flex-shrink:0;">${icon}</span>
-                ${head(e.player||'Steve')}
-                <span style="flex:1;font-weight:700;">${escapeHtml(e.player||'?')}</span>
-                <span style="color:#10b981;font-weight:800;">${val}</span>
-            </div>`;
-        }).join('');
-    } catch(e) {
-        list.innerHTML = `<div style="padding:.8rem;color:#ef4444;font-size:.82rem;">Błąd: ${escapeHtml(e.message)}</div>`;
-    }
-}
-
-// ─── CSHOP — EDYTOR PODATKÓW ──────────────────────────────────────────────────
-
-let _cshopTaxConfig = null; // lokalny cache podatków
-
-/** Pobiera konfigurację podatków z Firestore i wypełnia edytor */
-async function loadCShopTaxConfig() {
-    const el = document.getElementById('cshop-tax-editor');
-    if (!el) return;
-    el.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-secondary);"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</div>';
-    try {
-        const snap = await getDoc(doc(db, 'cshop_config', 'taxes'));
-        if (!snap.exists()) {
-            el.innerHTML = `<div style="padding:1rem;color:var(--text-secondary);font-size:.85rem;text-align:center;">
-                Brak konfiguracji — uruchom CShop z <code>firebase.enabled: true</code> aby przesłać domyślne podatki.
-            </div>`;
-            return;
-        }
-        _cshopTaxConfig = snap.data();
-        renderCShopTaxEditor(_cshopTaxConfig);
-    } catch(e) {
-        el.innerHTML = `<div style="color:#ef4444;padding:.8rem;font-size:.82rem;">Błąd: ${escapeHtml(e.message)}</div>`;
-    }
-}
-
-function renderCShopTaxEditor(cfg) {
-    const el = document.getElementById('cshop-tax-editor');
-    if (!el) return;
-    const tiers = (cfg.tiers || []).sort((a, b) => (b.threshold || 0) - (a.threshold || 0));
-
-    const enabled = cfg.enabled !== false;
-    el.innerHTML = `
-        <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.2rem;padding:.8rem 1rem;background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.2);border-radius:10px;">
-            <span style="font-weight:700;font-size:.9rem;"><i class="fa-solid fa-toggle-on" style="color:#10b981;"></i> System podatków</span>
-            <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;margin-left:auto;">
-                <input type="checkbox" id="cshop-tax-enabled" ${enabled ? 'checked' : ''}
-                    style="width:18px;height:18px;accent-color:#10b981;cursor:pointer;">
-                <span style="font-weight:700;font-size:.85rem;">${enabled ? 'Włączony' : 'Wyłączony'}</span>
-            </label>
-        </div>
-        <div id="cshop-tax-tiers" style="display:flex;flex-direction:column;gap:1rem;">
-            ${tiers.map((tier, i) => renderTierEditor(tier, i)).join('')}
-        </div>
-        <div style="display:flex;gap:.6rem;margin-top:1.2rem;flex-wrap:wrap;">
-            <button onclick="saveCShopTaxConfig()" style="flex:1;padding:.75rem;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:8px;font-weight:800;cursor:pointer;font-family:var(--font);font-size:.9rem;">
-                <i class="fa-solid fa-floppy-disk"></i> Zapisz zmiany podatków
-            </button>
-            <button onclick="loadCShopTaxConfig()" style="padding:.75rem 1rem;background:transparent;border:1.5px solid var(--border);border-radius:8px;color:var(--text-secondary);cursor:pointer;font-family:var(--font);">
-                <i class="fa-solid fa-rotate-right"></i>
-            </button>
-        </div>
-        <div id="cshop-tax-msg" style="display:none;margin-top:.6rem;"></div>`;
-}
-
-function renderTierEditor(tier, idx) {
-    const n = tier.name || `tier_${idx}`;
-    return `<div style="background:var(--bg);border:1.5px solid var(--border);border-radius:12px;padding:1rem;transition:border-color .15s;" onmouseenter="this.style.borderColor='rgba(245,158,11,.4)'" onmouseleave="this.style.borderColor='var(--border)'">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.8rem;">
-            <div style="font-weight:800;font-size:.92rem;">
-                <i class="fa-solid fa-layer-group" style="color:#f59e0b;margin-right:.4rem;"></i>
-                Próg: <span style="color:#f59e0b;">${escapeHtml(n)}</span>
-            </div>
-            <div style="font-size:.72rem;color:var(--text-secondary);">ID: ${escapeHtml(n)}</div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;">
-            <div>
-                <label style="font-size:.72rem;color:var(--text-secondary);font-weight:700;display:block;margin-bottom:.2rem;">Od kwoty ($)</label>
-                <input type="number" data-tier="${n}" data-field="threshold" value="${tier.threshold||0}" min="0"
-                    style="width:100%;padding:.5rem .7rem;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;background:var(--bg-card);color:var(--text-primary);font-family:var(--font);">
-            </div>
-            <div style="display:flex;align-items:flex-end;gap:.5rem;">
-                <div style="flex:1;">
-                    <label style="font-size:.72rem;color:var(--text-secondary);font-weight:700;display:block;margin-bottom:.2rem;">Podatek wejściowy</label>
-                    <label style="display:flex;align-items:center;gap:.4rem;font-size:.8rem;cursor:pointer;">
-                        <input type="checkbox" data-tier="${n}" data-field="entryEnabled" ${tier.entryEnabled ? 'checked' : ''}
-                            style="accent-color:#ef4444;cursor:pointer;">
-                        <span>Włączony</span>
-                    </label>
-                </div>
-            </div>
-            <div>
-                <label style="font-size:.72rem;color:var(--text-secondary);font-weight:700;display:block;margin-bottom:.2rem;">Wejściowy Min % </label>
-                <input type="number" data-tier="${n}" data-field="entryMin" value="${tier.entryMin||0}" min="0" max="100" step="0.01"
-                    style="width:100%;padding:.5rem .7rem;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;background:var(--bg-card);color:var(--text-primary);font-family:var(--font);">
-            </div>
-            <div>
-                <label style="font-size:.72rem;color:var(--text-secondary);font-weight:700;display:block;margin-bottom:.2rem;">Wejściowy Max %</label>
-                <input type="number" data-tier="${n}" data-field="entryMax" value="${tier.entryMax||0}" min="0" max="100" step="0.01"
-                    style="width:100%;padding:.5rem .7rem;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;background:var(--bg-card);color:var(--text-primary);font-family:var(--font);">
-            </div>
-        </div>
-        <div style="margin-top:.7rem;padding-top:.7rem;border-top:1px solid var(--border);">
-            <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem;">
-                <label style="font-size:.72rem;color:var(--text-secondary);font-weight:700;">Modyfikatory cen na sesję</label>
-                <label style="display:flex;align-items:center;gap:.4rem;font-size:.8rem;cursor:pointer;margin-left:auto;">
-                    <input type="checkbox" data-tier="${n}" data-field="pricesEnabled" ${tier.pricesEnabled ? 'checked' : ''}
-                        style="accent-color:#3b82f6;cursor:pointer;">
-                    <span>Włączone</span>
-                </label>
-            </div>
-            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;">
-                <div>
-                    <label style="font-size:.68rem;color:#22c55e;font-weight:700;display:block;margin-bottom:.15rem;">Kupno +Min %</label>
-                    <input type="number" data-tier="${n}" data-field="buyIncreaseMin" value="${tier.buyIncreaseMin||0}" min="0" step="0.1"
-                        style="width:100%;padding:.4rem .5rem;border:1.5px solid rgba(34,197,94,.3);border-radius:7px;font-size:.82rem;background:var(--bg-card);color:var(--text-primary);font-family:var(--font);">
-                </div>
-                <div>
-                    <label style="font-size:.68rem;color:#22c55e;font-weight:700;display:block;margin-bottom:.15rem;">Kupno +Max %</label>
-                    <input type="number" data-tier="${n}" data-field="buyIncreaseMax" value="${tier.buyIncreaseMax||0}" min="0" step="0.1"
-                        style="width:100%;padding:.4rem .5rem;border:1.5px solid rgba(34,197,94,.3);border-radius:7px;font-size:.82rem;background:var(--bg-card);color:var(--text-primary);font-family:var(--font);">
-                </div>
-                <div>
-                    <label style="font-size:.68rem;color:#ef4444;font-weight:700;display:block;margin-bottom:.15rem;">Sprzedaż -Min %</label>
-                    <input type="number" data-tier="${n}" data-field="sellDecreaseMin" value="${tier.sellDecreaseMin||0}" min="0" step="0.1"
-                        style="width:100%;padding:.4rem .5rem;border:1.5px solid rgba(239,68,68,.3);border-radius:7px;font-size:.82rem;background:var(--bg-card);color:var(--text-primary);font-family:var(--font);">
-                </div>
-                <div>
-                    <label style="font-size:.68rem;color:#ef4444;font-weight:700;display:block;margin-bottom:.15rem;">Sprzedaż -Max %</label>
-                    <input type="number" data-tier="${n}" data-field="sellDecreaseMax" value="${tier.sellDecreaseMax||0}" min="0" step="0.1"
-                        style="width:100%;padding:.4rem .5rem;border:1.5px solid rgba(239,68,68,.3);border-radius:7px;font-size:.82rem;background:var(--bg-card);color:var(--text-primary);font-family:var(--font);">
-                </div>
-            </div>
-        </div>
-    </div>`;
-}
-
-window.saveCShopTaxConfig = async function() {
-    const msgEl = document.getElementById('cshop-tax-msg');
-    if (!requirePermission('all', 'edycja podatków')) return;
-
-    // Zbierz dane z formularza
-    const enabled = document.getElementById('cshop-tax-enabled')?.checked ?? true;
-    const tiersMap = {};
-    document.querySelectorAll('#cshop-tax-tiers [data-tier]').forEach(el => {
-        const t = el.getAttribute('data-tier');
-        const f = el.getAttribute('data-field');
-        if (!tiersMap[t]) tiersMap[t] = { name: t };
-        if (el.type === 'checkbox') tiersMap[t][f] = el.checked;
-        else tiersMap[t][f] = parseFloat(el.value) || 0;
-    });
-
-    const tiers = Object.values(tiersMap);
-    const data = { enabled, tiers, updatedAt: new Date().toISOString(), updatedBy: currentUser?.displayName || 'Panel' };
-
-    try {
-        await setDoc(doc(db, 'cshop_config', 'taxes'), data);
-        _cshopTaxConfig = data;
-        if (msgEl) {
-            msgEl.style.cssText = 'display:block;padding:.55rem .8rem;border-radius:8px;font-size:.82rem;font-weight:700;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25);color:#059669;';
-            msgEl.textContent = '✓ Zapisano! Plugin CShop pobierze zmiany w ciągu ~60s.';
-            setTimeout(() => { if(msgEl) msgEl.style.display = 'none'; }, 5000);
-        }
-        showToast('success', 'Konfiguracja podatków zapisana!');
-    } catch(e) {
-        if (msgEl) {
-            msgEl.style.cssText = 'display:block;padding:.55rem .8rem;border-radius:8px;font-size:.82rem;font-weight:700;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);color:#dc2626;';
-            msgEl.textContent = 'Błąd: ' + e.message;
-        }
-    }
-};
+// Blok zduplikowanych implementacji CShop usunięty w celu uniknięcia konfliktów nazw (SyntaxError: Identifier has already been declared);
 
 // Aktualizuj też stronę Informacje — dodaj sekcję połączeń pluginów
 const _origLoadInfoPage = window.loadInfoPage;

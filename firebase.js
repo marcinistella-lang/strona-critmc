@@ -2,7 +2,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/fireba
 import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, increment, getDoc, setDoc, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
 
 const firebaseConfig = {
-    apiKey: "AQ.Ab8RN6I6Fqsx0np4YTVqfi2BLVOxx6QdOfGOYUFsccjiquyDxg",
+    apiKey: "AIzaSyBdwzCGhUtqGm0Ggfmrl2MC8_u10c_AuMQ",
     authDomain: "stronacritmcpl.firebaseapp.com",
     projectId: "stronacritmcpl",
     storageBucket: "stronacritmcpl.firebasestorage.app",
