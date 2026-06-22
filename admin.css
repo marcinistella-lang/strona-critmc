@@ -1,4 +1,4 @@
-﻿﻿﻿﻿/* =============================================================================
+﻿﻿/* =============================================================================
    CritMC Admin Panel — Light Theme
    ============================================================================= */
 
@@ -2207,3 +2207,69 @@ select:focus {
 .inv-rarity-gold      { color: #ffb340; }
 .inv-rarity-special   { color: #ff8c00; }
 .inv-rarity-common    { color: #ffffff; }
+
+/* ── AI Chip buttons ──────────────────────────────────────────────── */
+.ai-chip {
+    padding: .5rem .75rem;
+    background: rgba(139,92,246,.08);
+    border: 1.5px solid rgba(139,92,246,.2);
+    border-radius: 8px;
+    color: #8b5cf6;
+    font-size: .78rem;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: var(--font);
+    transition: background .15s, border-color .15s, transform .12s, box-shadow .12s;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: .35rem;
+    justify-content: flex-start;
+}
+.ai-chip:hover {
+    background: rgba(139,92,246,.16);
+    border-color: rgba(139,92,246,.5);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(139,92,246,.15);
+}
+
+/* ── AI message bubble variants ──────────────────────────────────── */
+.ai-msg-bubble-user {
+    background: linear-gradient(135deg, #8b5cf6, #3b82f6) !important;
+    color: #fff !important;
+}
+.ai-msg-bubble-ai {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    line-height: 1.6;
+}
+
+/* ── AI page key setup panel ─────────────────────────────────────── */
+#ai-api-setup {
+    display: block;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+}
+
+/* ── AI status indicator pulsar ──────────────────────────────────── */
+@keyframes aiStatusPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(16,185,129,.4); }
+    50%       { box-shadow: 0 0 0 5px rgba(16,185,129,0); }
+}
+.ai-status-ok {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    color: #10b981;
+    font-weight: 800;
+}
+.ai-status-ok::before {
+    content: '';
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #10b981;
+    animation: aiStatusPulse 2s infinite;
+    flex-shrink: 0;
+}

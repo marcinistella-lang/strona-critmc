@@ -138,7 +138,7 @@ function applyPermissions() {
 
 function loadAll() {
     // Wszystkie zapytania Firestore równolegle — nie czekaj na siebie nawzajem
-    Promise.allSettled([loadBans(), loadMutes(), loadLogs(), loadRolePermissionsFromStore()]);
+    Promise.allSettled([loadBans(), loadMutes(), loadLogs(), loadRolePermissionsFromStore(), loadShopItemsFromStore()]);
     loadPlayers(); // real-time listener, non-blocking
 }
 
@@ -162,7 +162,8 @@ window.refreshAllData = async function() {
             loadBans(),
             loadMutes(),
             loadLogs(),
-            loadRolePermissionsFromStore()
+            loadRolePermissionsFromStore(),
+            loadShopItemsFromStore()
         ]);
         // Gracze — z real-time listenerem (reset wyżej go reinicjalizuje)
         loadPlayers();
@@ -307,6 +308,18 @@ function loadPlayers() {
             if (tb) tb.innerHTML = '<tr><td colspan="5" class="table-empty" style="color:#ef4444;">' + e.message + '</td></tr>';
         });
     } catch (e) { console.error('loadPlayers:', e); }
+}
+
+async function loadShopItemsFromStore() {
+    try {
+        const snap = await getDocs(collection(db, 'shop_items'));
+        allShopItems = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        // Odśwież widżety sklepu na stronie info
+        const infoShopEl = document.getElementById('info-stat-shop');
+        if (infoShopEl) infoShopEl.textContent = allShopItems.length || '—';
+    } catch (e) {
+        console.error('loadShopItemsFromStore:', e);
+    }
 }
 
 function renderPlayers(list) {
@@ -862,9 +875,53 @@ window.addEventListener('openPlayerDetail', async (e) => {
                 if (csnap.exists()) {
                     const cs = csnap.data();
                     const fmt = v => (v === undefined || v === null) ? '0' : Math.round(Number(v)).toLocaleString('pl-PL');
+                    const fmtDec = v => (v === undefined || v === null) ? '0.00' : Number(v).toFixed(2);
                     const kdr = cs.deaths > 0 ? (cs.kills / cs.deaths).toFixed(2) : (cs.kills || 0).toString();
                     const fmtPt = s => { s=Math.round(Number(s)||0); const h=Math.floor(s/3600),m=Math.floor((s%3600)/60); return h>0?`${h}h ${m}m`:`${m}m`; };
-                    const shopSpent = cs.shopSpent != null ? Number(cs.shopSpent).toFixed(2)+'
+                    const shopSpent = cs.shopSpent != null ? Number(cs.shopSpent).toFixed(2)+'$' : '0.00$';
+                    const shopEarned = cs.shopEarned != null ? Number(cs.shopEarned).toFixed(2)+'$' : '0.00$';
+                    const cards = [
+                        ['⚔️','Kille',       fmt(cs.kills),            '#dc2626'],
+                        ['💀','Śmierci',     fmt(cs.deaths),           '#9ca3af'],
+                        ['📊','KDR',         kdr,                      '#8b5cf6'],
+                        ['🔥','Max Killstr.', fmt(cs.maxKillstreak),   '#f59e0b'],
+                        ['⛏️','Wykopane bl.', fmt(cs.blocksMined),     '#38bdf8'],
+                        ['⏱️','Czas gry',    fmtPt(cs.playtime),      '#eab308'],
+                        ['🎯','Punkty',      fmt(cs.points),           '#10b981'],
+                        ['🧹','Moby',        fmt(cs.mobsKilled),       '#a3e635'],
+                        ['💵','Wydano',      shopSpent,                '#f472b6'],
+                        ['💸','Zarobiono',   shopEarned,               '#34d399'],
+                        ['🏃','Dystans',     fmt(cs.distanceTraveled)+'m', '#60a5fa'],
+                        ['🏆','Osiągnięcia', fmt((cs.unlockedAchievements||[]).length), '#fbbf24']
+                    ];
+                    csSection.innerHTML =
+                        `<div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.6rem;display:flex;align-items:center;justify-content:space-between;">
+                            <span><i class="fa-solid fa-chart-bar" style="color:#8b5cf6;margin-right:.4rem;"></i>Statystyki CStats</span>
+                            <button onclick="switchPage('plugins');loadPluginsPage();setTimeout(()=>{document.getElementById('cstats-edit-nick').value='${escapeHtml(p.nick||p.id)}';cstatsSelectPlayer('${escapeHtml(p.nick||p.id)}','${uuid}')},700)"
+                                style="padding:.2rem .55rem;background:rgba(139,92,246,.12);border:1px solid rgba(139,92,246,.3);border-radius:6px;color:#8b5cf6;font-size:.68rem;font-weight:700;cursor:pointer;font-family:var(--font);">
+                                <i class="fa-solid fa-arrow-up-right-from-square"></i> Edytuj
+                            </button>
+                        </div>
+                        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:.45rem;">
+                            ${cards.map(([icon,label,val,color]) =>
+                                `<div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:.55rem .4rem;text-align:center;">
+                                    <div style="font-size:1.05rem;line-height:1;">${icon}</div>
+                                    <div style="font-size:.58rem;color:var(--text-secondary);text-transform:uppercase;margin:.2rem 0 .15rem;letter-spacing:.03em;">${label}</div>
+                                    <div style="font-size:.8rem;font-weight:800;color:${color};">${val}</div>
+                                </div>`
+                            ).join('')}
+                        </div>
+                        <div style="margin-top:.4rem;font-size:.68rem;color:var(--text-secondary);">
+                            Ostatni sync: ${cs.lastSync ? new Date(cs.lastSync).toLocaleString('pl-PL') : '—'}
+                        </div>`;
+                } else {
+                    csSection.innerHTML = `<div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.6rem;"><i class="fa-solid fa-chart-bar" style="margin-right:.4rem;"></i>Statystyki CStats</div><div style="font-size:.82rem;color:var(--text-secondary);padding:.5rem 0;">Brak danych CStats dla tego gracza.</div>`;
+                }
+            }
+        } catch(csErr) {
+            const csSection = document.getElementById('player-cstats-section');
+            if (csSection) csSection.innerHTML = `<span style="color:#ef4444;font-size:.75rem;">Błąd CStats: ${escapeHtml(csErr.message.substring(0,50))}</span>`;
+        }
     } catch(e) { body.innerHTML = '<p style="color:#ef4444;">Błąd: '+e.message+'</p>'; }
 });
 
@@ -2398,22 +2455,147 @@ window.loadGuidesPage = function() {
 };
 
 
+// ─── SKLEP — MODAL PRODUKTU ──────────────────────────────────────────────────
 
+let _shopCurrentRarity = 1;
 
+window.openShopItemModal = function(id) {
+    const modal = document.getElementById('shop-item-modal');
+    const titleEl = document.getElementById('shop-item-modal-title');
+    if (!modal) return;
+    // Reset pól
+    document.getElementById('shop-item-id').value        = id || '';
+    document.getElementById('shop-item-name').value      = '';
+    document.getElementById('shop-item-desc').value      = '';
+    document.getElementById('shop-item-price').value     = '';
+    document.getElementById('shop-item-old-price').value = '';
+    document.getElementById('shop-item-order').value     = '99';
+    document.getElementById('shop-item-items').value     = '';
+    document.getElementById('shop-item-media-url').value = '';
+    document.getElementById('shop-item-active').checked  = true;
+    document.getElementById('shop-item-featured').checked= false;
+    const fileInput = document.getElementById('shop-item-media-file');
+    if (fileInput) fileInput.value = '';
+    const preview = document.getElementById('shop-item-media-preview');
+    if (preview) preview.innerHTML = '';
+    const msg = document.getElementById('shop-item-msg');
+    if (msg) msg.style.display = 'none';
+    _shopCurrentRarity = 1;
+    window.setShopRarity(1);
 
+    if (id) {
+        titleEl.textContent = 'Edytuj produkt';
+        // Wczytaj dane z Firestore
+        getDoc(doc(db, 'shop_items', id)).then(snap => {
+            if (!snap.exists()) return;
+            const d = snap.data();
+            document.getElementById('shop-item-name').value      = d.name || '';
+            document.getElementById('shop-item-desc').value      = d.desc || '';
+            document.getElementById('shop-item-price').value     = d.price ?? '';
+            document.getElementById('shop-item-old-price').value = d.oldPrice ?? '';
+            document.getElementById('shop-item-order').value     = d.order ?? 99;
+            document.getElementById('shop-item-items').value     = (d.items || []).join('\n');
+            document.getElementById('shop-item-media-url').value = d.mediaUrl || '';
+            document.getElementById('shop-item-active').checked  = d.active !== false;
+            document.getElementById('shop-item-featured').checked = !!d.featured;
+            const typeEl = document.getElementById('shop-item-type');
+            if (typeEl) { typeEl.value = d.type || 'ranga'; window.shopModalOnTypeChange(); }
+            window.setShopRarity(d.rarity || 1);
+            if (d.mediaUrl) window.previewShopItemMedia();
+        }).catch(e => console.error('openShopItemModal:', e));
+    } else {
+        titleEl.textContent = 'Dodaj produkt';
+        const typeEl = document.getElementById('shop-item-type');
+        if (typeEl) { typeEl.value = 'ranga'; window.shopModalOnTypeChange(); }
+    }
+    modal.classList.add('open');
+};
 
-;
+// Pokaż/ukryj pola w zależności od kategorii
+window.shopModalOnTypeChange = function() {
+    const type = document.getElementById('shop-item-type')?.value || '';
+    const rarityField = document.getElementById('shop-rarity-field');
+    const subcatField = document.getElementById('shop-subcategory-field');
+    if (rarityField) rarityField.style.display = (type === 'klucz') ? 'block' : 'none';
+    if (subcatField) subcatField.style.display = (type === 'zestaw') ? 'block' : 'none';
+};
 
-// Nadpisanie openShopItemModal — pola z nowego modala
-;
+// Ustawienie rzadkości gwiazdkami
+window.setShopRarity = function(val) {
+    _shopCurrentRarity = val;
+    const hidden = document.getElementById('shop-item-rarity');
+    if (hidden) hidden.value = val;
+    document.querySelectorAll('.rarity-star').forEach(star => {
+        star.classList.toggle('active', parseInt(star.getAttribute('data-val')) <= val);
+    });
+};
 
-;
+// Podgląd pliku wybranego z dysku
+window.previewShopMediaInput = function() {
+    const file = document.getElementById('shop-item-media-file')?.files?.[0];
+    const preview = document.getElementById('shop-item-media-preview');
+    if (!preview || !file) return;
+    const url = URL.createObjectURL(file);
+    if (file.type.startsWith('image/') || file.type === 'image/gif') {
+        preview.innerHTML = `<img src="${url}" style="max-width:100%;max-height:200px;border-radius:8px;object-fit:contain;" alt="Podgląd">`;
+    } else if (file.type.startsWith('video/')) {
+        preview.innerHTML = `<video src="${url}" controls style="max-width:100%;max-height:200px;border-radius:8px;"></video>`;
+    } else {
+        preview.innerHTML = `<span style="font-size:.85rem;color:var(--text-secondary);">${escapeHtml(file.name)}</span>`;
+    }
+};
 
-// Zaktualizowany previewShopMediaInput
-;
+// Podgląd URL wpisanego ręcznie
+window.previewShopItemMedia = function() {
+    const url = (document.getElementById('shop-item-media-url')?.value || '').trim();
+    const preview = document.getElementById('shop-item-media-preview');
+    if (!preview) return;
+    if (!url) { preview.innerHTML = ''; return; }
+    if (/\.(mp4|webm|mov)/i.test(url)) {
+        preview.innerHTML = `<video src="${escapeHtml(url)}" controls style="max-width:100%;max-height:200px;border-radius:8px;"></video>`;
+    } else {
+        preview.innerHTML = `<img src="${escapeHtml(url)}" style="max-width:100%;max-height:200px;border-radius:8px;object-fit:contain;" alt="Podgląd" onerror="this.parentElement.innerHTML='<span style=\\'color:#ef4444;font-size:.82rem;\\'>Błąd ładowania obrazka</span>'">`;
+    }
+};
 
-// Zaktualizowany previewShopItemMedia
-;
+// Zapis produktu sklepu do Firestore
+window.saveShopItem = async function() {
+    if (!requirePermission('shop', 'zarządzanie sklepem')) return;
+    const id       = document.getElementById('shop-item-id')?.value?.trim();
+    const name     = document.getElementById('shop-item-name')?.value?.trim();
+    const type     = document.getElementById('shop-item-type')?.value || 'ranga';
+    const desc     = document.getElementById('shop-item-desc')?.value?.trim() || '';
+    const price    = parseFloat(document.getElementById('shop-item-price')?.value) || 0;
+    const oldPrice = parseFloat(document.getElementById('shop-item-old-price')?.value) || null;
+    const order    = parseInt(document.getElementById('shop-item-order')?.value) || 99;
+    const items    = (document.getElementById('shop-item-items')?.value || '').split('\n').map(l => l.trim()).filter(Boolean);
+    const mediaUrl = document.getElementById('shop-item-media-url')?.value?.trim() || '';
+    const active   = document.getElementById('shop-item-active')?.checked ?? true;
+    const featured = document.getElementById('shop-item-featured')?.checked ?? false;
+    const rarity   = _shopCurrentRarity || 1;
+    const msg      = document.getElementById('shop-item-msg');
+
+    if (!name) { if(msg){msg.style.display='block';msg.className='modal-msg error';msg.textContent='Podaj nazwę produktu!';} return; }
+
+    const data = { name, type, desc, price, oldPrice, order, items, mediaUrl, active, featured, rarity, updatedAt: serverTimestamp(), updatedBy: currentUser?.displayName || 'Panel' };
+
+    try {
+        if (id) {
+            await updateDoc(doc(db, 'shop_items', id), data);
+        } else {
+            data.createdAt = serverTimestamp();
+            await addDoc(collection(db, 'shop_items'), data);
+        }
+        if(msg){msg.style.display='block';msg.className='modal-msg success';msg.textContent='✓ Zapisano!';}
+        setTimeout(() => {
+            document.getElementById('shop-item-modal')?.classList.remove('open');
+            window.loadShopPage?.();
+        }, 800);
+        await logAction('shop_item_' + (id ? 'edit' : 'add'), name, currentUser?.displayName || 'Panel', '', '');
+    } catch(e) {
+        if(msg){msg.style.display='block';msg.className='modal-msg error';msg.textContent='Błąd: '+e.message;}
+    }
+};
 
 // ─── SKLEP — CENY PRODUKTÓW ───────────────────────────────────────────────────
 const SHOP_PRICES = {
@@ -2726,6 +2908,152 @@ async function loadShopGrants() {
 // Nadpisz loadShopPage
 window.loadShopPage = async function() {
     await loadShopGrants();
+    await loadAdminShopItems();
+};
+
+window.switchShopTab = function(tab) {
+    document.querySelectorAll('[data-shop-tab]').forEach(b => {
+        b.classList.toggle('active', b.getAttribute('data-shop-tab') === tab);
+    });
+    document.querySelectorAll('#page-shop .site-tab-panel').forEach(p => {
+        p.classList.toggle('sp-active', p.id === 'shop-tab-' + tab);
+    });
+    if (tab === 'manage') window.loadAdminShopItems();
+};
+
+window.loadAdminShopItems = async function() {
+    const tbody = document.getElementById('shop-manage-tbody');
+    if (!tbody) return;
+
+    tbody.innerHTML = '<tr><td colspan="7" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie produktów...</td></tr>';
+
+    try {
+        const snap = await getDocs(query(collection(db, 'shop_items'), orderBy('order', 'asc')));
+        if (snap.empty) {
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:3rem 1.5rem;color:var(--text-secondary);">
+                <div style="font-size:1.1rem;font-weight:700;color:var(--text-primary);margin-bottom:.5rem;">
+                    <i class="fa-solid fa-store-slash" style="color:var(--accent);font-size:1.8rem;display:block;margin-bottom:.8rem;"></i>
+                    Brak produktów w sklepie internetowym
+                </div>
+                <p style="font-size:.8rem;max-width:480px;margin:0 auto 1.2rem;line-height:1.5;">
+                    Katalog produktów w sklepie jest pusty. Możesz zaimportować domyślne produkty (rangi, pakiety, klucze) bezpośrednio z pliku konfiguracyjnego lub dodać nowy produkt ręcznie.
+                </p>
+                <div style="display:flex;gap:.5rem;justify-content:center;">
+                    <button onclick="importDefaultShopItems()" class="tbl-btn" style="padding:.6rem 1.2rem;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:8px;font-weight:800;cursor:pointer;font-family:var(--font);">
+                        <i class="fa-solid fa-file-import"></i> Zaimportuj domyślne produkty
+                    </button>
+                    <button onclick="openShopItemModal(null)" class="tbl-btn" style="padding:.6rem 1.2rem;background:var(--accent);color:#fff;border:none;border-radius:8px;font-weight:800;cursor:pointer;font-family:var(--font);">
+                        <i class="fa-solid fa-plus"></i> Dodaj produkt ręcznie
+                    </button>
+                </div>
+            </td></tr>`;
+            return;
+        }
+
+        let html = '';
+        snap.docs.forEach(docSnap => {
+            const id = docSnap.id;
+            const item = docSnap.data();
+            const media = item.mediaUrl || '';
+            const isVideo = /\.(mp4|webm|mov)(\?|$)/i.test(media);
+            
+            let mediaHtml = '<span style="color:var(--text-secondary);font-size:.78rem;">brak</span>';
+            if (media) {
+                if (isVideo) {
+                    mediaHtml = `<video src="${escapeHtml(media)}" muted style="width:40px;height:40px;object-fit:cover;border-radius:4px;"></video>`;
+                } else {
+                    const absMedia = media.startsWith('..') ? media.substring(1) : media;
+                    mediaHtml = `<img src="${escapeHtml(absMedia)}" style="width:40px;height:40px;object-fit:cover;border-radius:4px;" onerror="this.src='../images/crit.png'">`;
+                }
+            }
+
+            const activeLabel = item.active !== false ? 'Widoczny' : 'Ukryty';
+            const badgeColor = item.active !== false ? '#10b981' : '#ef4444';
+
+            html += `<tr>
+                <td style="padding:.5rem;text-align:center;display:flex;justify-content:center;align-items:center;">${mediaHtml}</td>
+                <td style="font-weight:700;color:var(--text-primary);">${escapeHtml(item.name || '')}</td>
+                <td><span style="background:rgba(139,92,246,.12);color:#8b5cf6;padding:.15rem .45rem;border-radius:6px;font-size:.75rem;font-weight:700;text-transform:uppercase;">${escapeHtml(item.type || '')}</span></td>
+                <td style="font-weight:700;color:#10b981;">${item.price} PLN ${item.oldPrice ? `<span style="text-decoration:line-through;color:var(--text-secondary);font-size:.8rem;margin-left:.3rem;font-weight:400;">${item.oldPrice} PLN</span>` : ''}</td>
+                <td style="text-align:center;font-weight:600;">${item.order || 99}</td>
+                <td>
+                    <span style="display:inline-flex;align-items:center;gap:.35rem;font-size:.75rem;font-weight:700;color:${badgeColor};background:${badgeColor}12;padding:.15rem .45rem;border-radius:6px;">
+                        <span style="width:6px;height:6px;border-radius:50%;background:${badgeColor};"></span>${activeLabel}
+                    </span>
+                </td>
+                <td>
+                    <div style="display:flex;gap:.3rem;">
+                        <button class="tbl-btn" onclick="openShopItemModal('${id}')" style="color:#3b82f6;background:rgba(59,130,246,.08);border-color:rgba(59,130,246,.25);cursor:pointer;"><i class="fa-solid fa-pen"></i></button>
+                        <button class="tbl-btn" onclick="deleteShopItem('${id}', '${escapeHtml(item.name)}')" style="color:#ef4444;background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.25);cursor:pointer;"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                </td>
+            </tr>`;
+        });
+        tbody.innerHTML = html;
+    } catch (e) {
+        console.error('[Shop Manage] Error:', e);
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:1.5rem;color:var(--danger);"><i class="fa-solid fa-circle-exclamation"></i> Błąd ładowania: ${escapeHtml(e.message)}</td></tr>`;
+    }
+};
+
+window.deleteShopItem = async function(id, name) {
+    if (!requirePermission('shop', 'usuwanie produktów sklepu')) return;
+    if (!confirm(`Czy na pewno chcesz usunąć produkt "${name}"?`)) return;
+    try {
+        await deleteDoc(doc(db, 'shop_items', id));
+        showToast('success', `Usunięto produkt "${name}".`);
+        window.loadAdminShopItems();
+        await logAction('shop_item_delete', name, currentUser?.displayName || 'Panel', '', '');
+    } catch(e) {
+        showToast('error', 'Błąd: ' + e.message);
+    }
+};
+
+window.importDefaultShopItems = async function() {
+    if (!requirePermission('shop', 'importowanie produktów sklepu')) return;
+    if (!confirm('Czy chcesz zaimportować domyślne produkty? Spowoduje to nadpisanie istniejących produktów w bazie danych.')) return;
+    
+    const tbody = document.getElementById('shop-manage-tbody');
+    if (tbody) tbody.innerHTML = '<tr><td colspan="7" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Importowanie produktów...</td></tr>';
+    
+    try {
+        const res = await fetch('shop-import.json');
+        const defaultItems = await res.json();
+        
+        // 1. Delete existing shop_items
+        const snap = await getDocs(collection(db, 'shop_items'));
+        const deletePromises = snap.docs.map(docSnap => deleteDoc(docSnap.ref));
+        await Promise.all(deletePromises);
+        
+        // 2. Add new shop_items
+        for (const item of defaultItems) {
+            const data = {
+                name: item.name,
+                type: item.type,
+                desc: item.desc || '',
+                price: Number(item.price) || 0,
+                oldPrice: item.oldPrice !== null ? Number(item.oldPrice) : null,
+                order: Number(item.sortOrder) || Number(item.order) || 99,
+                items: (item.itemsText || '').split('\n').map(l => l.trim()).filter(Boolean),
+                mediaUrl: item.mediaUrl || '',
+                active: item.active !== false,
+                featured: !!item.featured,
+                rarity: Number(item.rarity) || 1,
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp(),
+                updatedBy: currentUser?.displayName || 'Panel'
+            };
+            const docId = item.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+            await setDoc(doc(db, 'shop_items', docId), data);
+        }
+        
+        showToast('success', 'Pomyślnie zaimportowano domyślne produkty do bazy danych!');
+        window.loadAdminShopItems();
+    } catch(e) {
+        console.error('Import error:', e);
+        showToast('error', 'Błąd importu: ' + e.message);
+        window.loadAdminShopItems();
+    }
 };
 
 // ─── PLUGINY — CStats ─────────────────────────────────────────────────────────
@@ -2779,74 +3107,222 @@ function _injectCShopTab() {
 
 function _buildCShopTabHtml() {
     return `
-    <!-- STATYSTYKI DZIENNE — pasek kart u góry -->
-    <div id="cshop-daily-stats" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:.75rem;margin-bottom:1.2rem;">
-        <div style="text-align:center;padding:1.5rem;color:var(--text-secondary);font-size:.82rem;grid-column:1/-1;">
-            <i class="fa-solid fa-spinner fa-spin"></i> Ładowanie statystyk dziennych...
+    <style>
+        /* Premium CShop Styles */
+        .cshop-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 1.5rem;
+        }
+        .cshop-stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.25rem;
+            box-shadow: var(--shadow-sm);
+            transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition);
+            border-top: 4px solid var(--border);
+        }
+        .cshop-stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+        .cshop-stat-title {
+            font-size: 0.72rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .cshop-stat-split {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+        }
+        .cshop-stat-box {
+            border-radius: 12px;
+            padding: 0.65rem;
+            text-align: center;
+            transition: background var(--transition);
+            border: 1px solid transparent;
+        }
+        .cshop-stat-box-buy {
+            background: rgba(239, 68, 68, 0.04);
+            border-color: rgba(239, 68, 68, 0.08);
+        }
+        .cshop-stat-box-buy:hover {
+            background: rgba(239, 68, 68, 0.08);
+        }
+        .cshop-stat-box-sell {
+            background: rgba(16, 185, 129, 0.04);
+            border-color: rgba(16, 185, 129, 0.08);
+        }
+        .cshop-stat-box-sell:hover {
+            background: rgba(16, 185, 129, 0.08);
+        }
+        .cshop-stat-val {
+            font-size: 1.05rem;
+            font-weight: 800;
+            line-height: 1.2;
+            margin: 0.15rem 0;
+        }
+        .cshop-stat-label {
+            font-size: 0.62rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            font-weight: 700;
+        }
+        .cshop-stat-sub {
+            font-size: 0.65rem;
+            color: var(--text-secondary);
+        }
+        
+        .cshop-row-hover {
+            transition: background var(--transition);
+        }
+        .cshop-row-hover:hover {
+            background: rgba(59, 130, 246, 0.02) !important;
+        }
+        
+        .cshop-input-field {
+            width: 100%;
+            padding: 0.4rem 0.65rem;
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.82rem;
+            background: var(--bg);
+            color: var(--text-primary);
+            outline: none;
+            font-family: var(--font);
+            transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
+        }
+        .cshop-input-field:focus {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+            background: var(--bg-card);
+        }
+        
+        .cshop-tax-card {
+            background: var(--bg-card);
+            border: 1.5px solid var(--border);
+            border-radius: 12px;
+            padding: 1.1rem;
+            position: relative;
+            transition: border-color var(--transition), box-shadow var(--transition);
+        }
+        .cshop-tax-card:hover {
+            border-color: rgba(245, 158, 11, 0.35);
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .cshop-list-item {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.5rem 0.75rem;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.82rem;
+            transition: background var(--transition);
+        }
+        .cshop-list-item:hover {
+            background: rgba(59, 130, 246, 0.03);
+        }
+        .cshop-list-item:last-child {
+            border-bottom: none;
+        }
+        
+        .cshop-gradient-btn {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 0.45rem 1rem;
+            font-weight: 700;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: opacity var(--transition);
+            font-family: var(--font);
+        }
+        .cshop-gradient-btn:hover {
+            opacity: 0.9;
+        }
+    </style>
+
+    <!-- STATYSTYKI DZIENNE -->
+    <div id="cshop-daily-stats" class="cshop-stats-grid">
+        <div style="text-align:center;padding:2rem;color:var(--text-secondary);font-size:.85rem;grid-column:1/-1;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);">
+            <i class="fa-solid fa-spinner fa-spin" style="margin-right:.4rem;"></i> Ładowanie statystyk...
         </div>
     </div>
 
-    <!-- WYKRES AKTYWNOŚCI DZIENNEJ + TOP PRZEDMIOTY -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;margin-bottom:1.2rem;">
+    <!-- WYKRES / LISTY DZIŚ -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(340px, 1fr));gap:1.25rem;margin-bottom:1.5rem;">
         <!-- Top kupowanych dziś -->
-        <div class="table-card" style="padding:1rem;">
-            <div style="font-size:.72rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.6rem;display:flex;align-items:center;justify-content:space-between;">
-                <span><i class="fa-solid fa-fire" style="color:#ef4444;"></i> Dziś — najczęściej kupowane</span>
-                <span id="cshop-daily-date" style="font-size:.7rem;color:var(--text-secondary);font-weight:400;"></span>
+        <div class="table-card" style="padding:1.25rem;">
+            <div style="font-size:.78rem;font-weight:800;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.8rem;display:flex;align-items:center;justify-content:space-between;">
+                <span><i class="fa-solid fa-fire" style="color:#ef4444;margin-right:.3rem;"></i> Dziś — najczęściej kupowane</span>
+                <span id="cshop-daily-date" style="font-size:.7rem;color:var(--text-secondary);font-weight:500;"></span>
             </div>
-            <div id="cshop-today-buy-items" style="max-height:200px;overflow-y:auto;">
-                <div style="text-align:center;padding:1rem;color:var(--text-secondary);font-size:.8rem;"><i class="fa-solid fa-spinner fa-spin"></i></div>
+            <div id="cshop-today-buy-items" style="max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;background:var(--bg-card);">
+                <div style="text-align:center;padding:1.5rem;color:var(--text-secondary);font-size:.8rem;"><i class="fa-solid fa-spinner fa-spin"></i></div>
             </div>
         </div>
         <!-- Top sprzedawanych dziś -->
-        <div class="table-card" style="padding:1rem;">
-            <div style="font-size:.72rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.6rem;">
-                <i class="fa-solid fa-coins" style="color:#10b981;"></i> Dziś — najczęściej sprzedawane
+        <div class="table-card" style="padding:1.25rem;">
+            <div style="font-size:.78rem;font-weight:800;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.8rem;">
+                <i class="fa-solid fa-coins" style="color:#10b981;margin-right:.3rem;"></i> Dziś — najczęściej sprzedawane
             </div>
-            <div id="cshop-today-sell-items" style="max-height:200px;overflow-y:auto;">
-                <div style="text-align:center;padding:1rem;color:var(--text-secondary);font-size:.8rem;"><i class="fa-solid fa-spinner fa-spin"></i></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- TOP ZARABIAJĄCYCH DZIŚ -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;margin-bottom:1.2rem;">
-        <div class="table-card" style="padding:1rem;">
-            <div style="font-size:.72rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.6rem;">
-                <i class="fa-solid fa-ranking-star" style="color:#f59e0b;"></i> Topka zarobków dziś (sprzedaż)
-            </div>
-            <div id="cshop-today-top-earners" style="max-height:220px;overflow-y:auto;">
-                <div style="text-align:center;padding:1rem;color:var(--text-secondary);font-size:.8rem;"><i class="fa-solid fa-spinner fa-spin"></i></div>
-            </div>
-        </div>
-        <div class="table-card" style="padding:1rem;">
-            <div style="font-size:.72rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.6rem;">
-                <i class="fa-solid fa-cart-shopping" style="color:#3b82f6;"></i> Topka wydatków dziś (kupno)
-            </div>
-            <div id="cshop-today-top-spenders" style="max-height:220px;overflow-y:auto;">
-                <div style="text-align:center;padding:1rem;color:var(--text-secondary);font-size:.8rem;"><i class="fa-solid fa-spinner fa-spin"></i></div>
+            <div id="cshop-today-sell-items" style="max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;background:var(--bg-card);">
+                <div style="text-align:center;padding:1.5rem;color:var(--text-secondary);font-size:.8rem;"><i class="fa-solid fa-spinner fa-spin"></i></div>
             </div>
         </div>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;margin-bottom:1.2rem;">
-        <!-- Statystyki ogólne (wszystkie czasy) -->
-        <div class="table-card" style="padding:1.2rem;">
-            <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.8rem;">
-                <i class="fa-solid fa-chart-pie" style="color:#10b981;"></i> Statystyki sklepu (łącznie)
+    <!-- TOPKA GRACZY DZIŚ -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(340px, 1fr));gap:1.25rem;margin-bottom:1.5rem;">
+        <div class="table-card" style="padding:1.25rem;">
+            <div style="font-size:.78rem;font-weight:800;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.8rem;">
+                <i class="fa-solid fa-ranking-star" style="color:#f59e0b;margin-right:.3rem;"></i> Topka zarobków dziś (sprzedaż)
             </div>
-            <div id="cshop-overview" style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;">
-                <div style="text-align:center;padding:1rem;color:var(--text-secondary);font-size:.82rem;grid-column:1/-1;">
-                    <i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...
+            <div id="cshop-today-top-earners" style="max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;background:var(--bg-card);">
+                <div style="text-align:center;padding:1.5rem;color:var(--text-secondary);font-size:.8rem;"><i class="fa-solid fa-spinner fa-spin"></i></div>
+            </div>
+        </div>
+        <div class="table-card" style="padding:1.25rem;">
+            <div style="font-size:.78rem;font-weight:800;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.8rem;">
+                <i class="fa-solid fa-cart-shopping" style="color:#3b82f6;margin-right:.3rem;"></i> Topka wydatków dziś (kupno)
+            </div>
+            <div id="cshop-today-top-spenders" style="max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;background:var(--bg-card);">
+                <div style="text-align:center;padding:1.5rem;color:var(--text-secondary);font-size:.8rem;"><i class="fa-solid fa-spinner fa-spin"></i></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- OGÓLNE + PODATKI -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(340px, 1fr));gap:1.25rem;margin-bottom:1.5rem;">
+        <!-- Statystyki ogólne -->
+        <div class="table-card" style="padding:1.25rem;display:flex;flex-direction:column;justify-content:space-between;">
+            <div>
+                <div style="font-size:.78rem;font-weight:800;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.9rem;">
+                    <i class="fa-solid fa-chart-pie" style="color:#10b981;margin-right:.3rem;"></i> Statystyki sklepu (łącznie)
+                </div>
+                <div id="cshop-overview" style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;">
+                    <div style="text-align:center;padding:1.5rem;color:var(--text-secondary);font-size:.85rem;grid-column:1/-1;">
+                        <i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...
+                    </div>
                 </div>
             </div>
         </div>
         <!-- System podatków -->
-        <div class="table-card" style="padding:1.2rem;">
-            <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.8rem;display:flex;align-items:center;justify-content:space-between;">
-                <span><i class="fa-solid fa-percent" style="color:#f59e0b;"></i> System podatków</span>
+        <div class="table-card" style="padding:1.25rem;">
+            <div style="font-size:.78rem;font-weight:800;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.9rem;display:flex;align-items:center;justify-content:space-between;">
+                <span><i class="fa-solid fa-percent" style="color:#f59e0b;margin-right:.3rem;"></i> System podatków</span>
                 <div style="display:flex;align-items:center;gap:.5rem;">
-                    <span style="font-size:.72rem;color:var(--text-secondary);">Włączony</span>
+                    <span style="font-size:.72rem;color:var(--text-secondary);font-weight:700;">Włączony</span>
                     <label class="toggle-switch" style="position:relative;display:inline-block;width:36px;height:20px;">
                         <input type="checkbox" id="cshop-tax-enabled" onchange="cshopSaveTaxEnabled(this.checked)"
                             style="opacity:0;width:0;height:0;">
@@ -2856,61 +3332,70 @@ function _buildCShopTabHtml() {
                     </label>
                 </div>
             </div>
-            <div id="cshop-tax-tiers" style="display:flex;flex-direction:column;gap:.5rem;">
-                <div style="text-align:center;padding:1rem;color:var(--text-secondary);font-size:.82rem;">
+            <div id="cshop-tax-tiers" style="display:flex;flex-direction:column;gap:.75rem;max-height:300px;overflow-y:auto;padding-right:.25rem;">
+                <div style="text-align:center;padding:1.5rem;color:var(--text-secondary);font-size:.85rem;">
                     <i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...
                 </div>
             </div>
-            <button onclick="cshopAddTier()" style="width:100%;margin-top:.6rem;padding:.5rem;background:transparent;border:1.5px dashed var(--border);border-radius:8px;color:var(--text-secondary);font-size:.8rem;font-weight:700;cursor:pointer;font-family:var(--font);">
+            <button onclick="cshopAddTier()" style="width:100%;margin-top:.8rem;padding:.55rem;background:transparent;border:2px dashed var(--border);border-radius:8px;color:var(--text-secondary);font-size:.8rem;font-weight:700;cursor:pointer;font-family:var(--font);transition:border-color var(--transition),color var(--transition);">
                 <i class="fa-solid fa-plus"></i> Dodaj próg podatkowy
             </button>
         </div>
     </div>
-    <!-- Topki sklepu -->
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.2rem;margin-bottom:1.2rem;">
-        <div class="table-card" style="padding:1rem;">
-            <div style="font-size:.72rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.6rem;">
-                <i class="fa-solid fa-trophy" style="color:#ef4444;"></i> Top Wydatki
+
+    <!-- TOPKA RANGÓW -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));gap:1.25rem;margin-bottom:1.5rem;">
+        <div class="table-card" style="padding:1.25rem;">
+            <div style="font-size:.78rem;font-weight:800;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.8rem;">
+                <i class="fa-solid fa-trophy" style="color:#ef4444;margin-right:.3rem;"></i> Top Wydatki (Łącznie)
             </div>
-            <div id="cshop-top-spent" style="max-height:260px;overflow-y:auto;">
-                <div style="text-align:center;padding:1rem;color:var(--text-secondary);font-size:.8rem;"><i class="fa-solid fa-spinner fa-spin"></i></div>
-            </div>
-        </div>
-        <div class="table-card" style="padding:1rem;">
-            <div style="font-size:.72rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.6rem;">
-                <i class="fa-solid fa-trophy" style="color:#10b981;"></i> Top Zarobki
-            </div>
-            <div id="cshop-top-earned" style="max-height:260px;overflow-y:auto;">
-                <div style="text-align:center;padding:1rem;color:var(--text-secondary);font-size:.8rem;"><i class="fa-solid fa-spinner fa-spin"></i></div>
+            <div id="cshop-top-spent" style="max-height:260px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;background:var(--bg-card);">
+                <div style="text-align:center;padding:1.5rem;color:var(--text-secondary);font-size:.8rem;"><i class="fa-solid fa-spinner fa-spin"></i></div>
             </div>
         </div>
-        <div class="table-card" style="padding:1rem;">
-            <div style="font-size:.72rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.6rem;">
-                <i class="fa-solid fa-list-ol" style="color:#8b5cf6;"></i> Top Transakcji
+        <div class="table-card" style="padding:1.25rem;">
+            <div style="font-size:.78rem;font-weight:800;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.8rem;">
+                <i class="fa-solid fa-trophy" style="color:#10b981;margin-right:.3rem;"></i> Top Zarobki (Łącznie)
             </div>
-            <div id="cshop-top-transactions" style="max-height:260px;overflow-y:auto;">
-                <div style="text-align:center;padding:1rem;color:var(--text-secondary);font-size:.8rem;"><i class="fa-solid fa-spinner fa-spin"></i></div>
+            <div id="cshop-top-earned" style="max-height:260px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;background:var(--bg-card);">
+                <div style="text-align:center;padding:1.5rem;color:var(--text-secondary);font-size:.8rem;"><i class="fa-solid fa-spinner fa-spin"></i></div>
+            </div>
+        </div>
+        <div class="table-card" style="padding:1.25rem;">
+            <div style="font-size:.78rem;font-weight:800;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.8rem;">
+                <i class="fa-solid fa-list-ol" style="color:#8b5cf6;margin-right:.3rem;"></i> Top Transakcji (Łącznie)
+            </div>
+            <div id="cshop-top-transactions" style="max-height:260px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;background:var(--bg-card);">
+                <div style="text-align:center;padding:1.5rem;color:var(--text-secondary);font-size:.8rem;"><i class="fa-solid fa-spinner fa-spin"></i></div>
             </div>
         </div>
     </div>
-    <!-- Zarządzanie przedmiotami sklepu -->
-    <div class="table-card" style="margin-bottom:1.2rem; padding:1.2rem;">
-        <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.8rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;">
-            <span><i class="fa-solid fa-cubes" style="color:#f59e0b;"></i> Zarządzanie przedmiotami sklepu</span>
+
+    <!-- ZARZĄDZANIE PRZEDMIOTAMI -->
+    <div class="table-card" style="margin-bottom:1.5rem; padding:1.25rem;">
+        <div style="font-size:.78rem;font-weight:800;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.9rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem;">
+            <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;">
+                <span><i class="fa-solid fa-cubes" style="color:#f59e0b;margin-right:.3rem;"></i> Zarządzanie przedmiotami</span>
+                <input type="text" id="cshop-items-search" placeholder="Szukaj przedmiotu..." oninput="cshopFilterItems()"
+                       style="padding:.35rem .7rem;border:1.5px solid var(--border);border-radius:8px;font-size:.8rem;background:var(--bg);color:var(--text-primary);outline:none;font-family:var(--font);width:180px;transition:border-color var(--transition);">
+                <button onclick="cshopSaveAllPrices()" class="tbl-btn" style="padding:.35rem .7rem;font-size:.8rem;background:rgba(59,130,246,.12);color:#3b82f6;border:1px solid rgba(59,130,246,0.25);border-radius:8px;font-weight:700;cursor:pointer;font-family:var(--font);display:flex;align-items:center;gap:.3rem;">
+                    <i class="fa-solid fa-floppy-disk"></i> Zapisz wszystkie ceny
+                </button>
+            </div>
             <div id="cshop-items-categories" style="display:flex;gap:.35rem;flex-wrap:wrap;">
-                <!-- Kategoria tabs: [Wszystkie] [Książki] [Przydatne] [Czas] [Rudy] [Inne] -->
+                <!-- Kategorie zostaną wstrzyknięte -->
             </div>
         </div>
-        <div style="overflow-x:auto;">
-            <table class="data-table">
+        <div style="overflow-x:auto;border:1px solid var(--border);border-radius:10px;">
+            <table class="data-table" style="margin:0;">
                 <thead>
                     <tr>
-                        <th style="width:120px;">Material</th>
+                        <th style="width:140px;">Material</th>
                         <th style="width:60px;text-align:center;">Ikona</th>
-                        <th>Nazwa</th>
-                        <th style="width:140px;">Kupno ($)</th>
-                        <th style="width:140px;">Sprzedaż ($)</th>
-                        <th style="width:80px;text-align:center;">Akcja</th>
+                        <th>Nazwa przedmiotu</th>
+                        <th style="width:160px;">Cena kupna ($)</th>
+                        <th style="width:160px;">Cena sprzedaży ($)</th>
+                        <th style="width:90px;text-align:center;">Akcja</th>
                     </tr>
                 </thead>
                 <tbody id="cshop-items-tbody">
@@ -2918,64 +3403,36 @@ function _buildCShopTabHtml() {
                 </tbody>
             </table>
         </div>
-    </div>
-    <!-- Zarządzanie przedmiotami sklepu -->
-    <div class="table-card" style="overflow:hidden;margin-bottom:1.2rem;">
-        <div style="padding:.8rem 1.2rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;">
-            <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;">
-                <i class="fa-solid fa-tags" style="color:#f59e0b;"></i> Zarządzanie przedmiotami sklepu
-            </div>
-            <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;">
-                <div id="cshop-items-cat-tabs" style="display:flex;gap:.3rem;flex-wrap:wrap;">
-                    <button class="tbl-btn" style="font-size:.72rem;background:rgba(245,158,11,.12);color:#d97706;border-color:rgba(245,158,11,.3);" onclick="cshopShowItemsCat('')">Wszystkie</button>
-                    <button class="tbl-btn" style="font-size:.72rem;" onclick="cshopShowItemsCat('ksiazki')">📚 Książki</button>
-                    <button class="tbl-btn" style="font-size:.72rem;" onclick="cshopShowItemsCat('przydatne')">⭐ Przydatne</button>
-                    <button class="tbl-btn" style="font-size:.72rem;" onclick="cshopShowItemsCat('czas')">⏱️ Czas</button>
-                    <button class="tbl-btn" style="font-size:.72rem;" onclick="cshopShowItemsCat('rudy')">💎 Rudy</button>
-                    <button class="tbl-btn" style="font-size:.72rem;" onclick="cshopShowItemsCat('inne')">📦 Inne</button>
-                </div>
-                <button class="tbl-btn" onclick="loadCShopItemsManager()" style="font-size:.72rem;">
-                    <i class="fa-solid fa-rotate-right"></i> Odśwież
-                </button>
-            </div>
-        </div>
-        <div id="cshop-items-manager" style="overflow-x:auto;">
-            <table class="data-table">
-                <thead><tr><th>Kategoria</th><th>Slot</th><th>Material</th><th>Cena kupna ($)</th><th>Cena sprzedaży ($)</th><th>Akcja</th></tr></thead>
-                <tbody id="cshop-items-tbody">
-                    <tr><td colspan="6" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>
-                </tbody>
-            </table>
-        </div>
-        <div style="padding:.6rem 1.2rem;font-size:.72rem;color:var(--text-secondary);border-top:1px solid var(--border);">
-            <i class="fa-solid fa-circle-info" style="color:#f59e0b;"></i> Zmiany cen są pobierane przez plugin CShop co ~60 sekund. Dane pobierane z <code>cshop_config/items</code>.
+        <div style="padding:.75rem 0 0;font-size:.72rem;color:var(--text-secondary);border-top:1px solid var(--border);margin-top:1rem;display:flex;align-items:center;gap:.4rem;">
+            <i class="fa-solid fa-circle-info" style="color:#f59e0b;"></i> Ceny są pobierane przez plugin na serwerze automatycznie co 60 sekund z dokumentu <code>cshop_config/items</code>.
         </div>
     </div>
-    <!-- Historia transakcji -->
+
+    <!-- HISTORIA TRANSAKCJI -->
     <div class="table-card" style="overflow:hidden;">
-        <div style="padding:.8rem 1.2rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;">
-            <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;">
-                <i class="fa-solid fa-clock-rotate-left" style="color:#3b82f6;"></i> Historia transakcji
+        <div style="padding:1rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem;">
+            <div style="font-size:.78rem;font-weight:800;color:var(--text-secondary);text-transform:uppercase;">
+                <i class="fa-solid fa-clock-rotate-left" style="color:#3b82f6;margin-right:.3rem;"></i> Ostatnie transakcje (Sklep)
             </div>
             <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;">
                 <input type="text" id="cshop-hist-search" placeholder="Szukaj gracza..." oninput="cshopFilterHistory()"
-                    style="padding:.35rem .7rem;border:1.5px solid var(--border);border-radius:6px;font-size:.8rem;background:var(--bg);color:var(--text-primary);outline:none;font-family:var(--font);width:150px;">
+                    style="padding:.35rem .7rem;border:1.5px solid var(--border);border-radius:8px;font-size:.8rem;background:var(--bg);color:var(--text-primary);outline:none;font-family:var(--font);width:150px;">
                 <select id="cshop-hist-type" onchange="cshopFilterHistory()"
-                    style="padding:.35rem .6rem;border:1.5px solid var(--border);border-radius:6px;font-size:.8rem;background:var(--bg);color:var(--text-primary);font-family:var(--font);">
-                    <option value="">Wszystkie</option>
+                    style="padding:.35rem .6rem;border:1.5px solid var(--border);border-radius:8px;font-size:.8rem;background:var(--bg);color:var(--text-primary);font-family:var(--font);outline:none;">
+                    <option value="">Wszystkie typy</option>
                     <option value="BUY">Kupno</option>
                     <option value="SELL">Sprzedaż</option>
                 </select>
-                <button class="tbl-btn" onclick="loadCShopHistory()" style="font-size:.72rem;">
-                    <i class="fa-solid fa-rotate-right"></i> Odśwież
+                <button class="tbl-btn" onclick="loadCShopHistory()" style="font-size:.72rem;padding:.4rem .7rem;">
+                    <i class="fa-solid fa-rotate-right"></i> Odśwież listę
                 </button>
             </div>
         </div>
         <div id="cshop-history-table" style="overflow-x:auto;">
-            <table class="data-table">
-                <thead><tr><th>Gracz</th><th>Przedmiot</th><th>Ilość</th><th>Cena</th><th>Typ</th><th>Kategoria</th><th>Data</th></tr></thead>
+            <table class="data-table" style="margin:0;">
+                <thead><tr><th>Gracz</th><th>Przedmiot</th><th style="text-align:center;">Ilość</th><th>Cena łącznie</th><th>Typ transakcji</th><th>Kategoria</th><th>Data i godzina</th></tr></thead>
                 <tbody id="cshop-history-tbody">
-                    <tr><td colspan="7" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>
+                    <tr><td colspan="7" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie historii...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -3008,7 +3465,18 @@ window.loadCShopItemsManager = async function() {
     try {
         const docSnap = await getDoc(doc(db, 'cshop_config', 'items'));
         if (!docSnap.exists()) {
-            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:var(--text-secondary);">Brak danych przedmiotów. Uruchom serwer Minecraft z pluginem CShop, aby je zsynchronizować.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:2.5rem 1.5rem;color:var(--text-secondary);">
+                <div style="font-size:1.1rem;font-weight:700;color:var(--text-primary);margin-bottom:.5rem;">
+                    <i class="fa-solid fa-shop-slash" style="color:var(--accent);font-size:1.6rem;display:block;margin-bottom:.8rem;"></i>
+                    Brak danych przedmiotów CShop w bazie Firestore
+                </div>
+                <p style="font-size:.8rem;max-width:480px;margin:0 auto 1.2rem;line-height:1.5;">
+                    Przedmioty nie zostały jeszcze zsynchronizowane przez plugin. Możesz wgrać domyślną konfigurację do bazy danych Firestore bezpośrednio z panelu, aby natychmiast zarządzać cenami.
+                </p>
+                <button id="cshop-init-btn" onclick="cshopInitializeDefaultData()" class="tbl-btn" style="padding:.6rem 1.2rem;font-size:.82rem;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:none;border-radius:8px;font-weight:800;cursor:pointer;font-family:var(--font);">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> Zainicjalizuj domyślne dane CShop
+                </button>
+            </td></tr>`;
             return;
         }
 
@@ -3037,6 +3505,95 @@ window.loadCShopItemsManager = async function() {
         console.error('[CShop] Błąd loadCShopItemsManager:', e);
         tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:var(--danger);"><i class="fa-solid fa-circle-exclamation"></i> Błąd ładowania: ${escapeHtml(e.message)}</td></tr>`;
     }
+};
+
+window.cshopInitializeDefaultData = async function() {
+    if (!requirePermission('shop', 'inicjalizację CShop')) return;
+    const btn = document.getElementById('cshop-init-btn');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Inicjalizowanie...';
+    }
+    
+    const defaultItems = {
+        // Books
+        "ksiazki_10": { material: 'ENCHANTED_BOOK', displayName: 'Ochrona I', buyPrice: 1024.0, sellPrice: null, category: 'ksiazki', slot: 10 },
+        "ksiazki_11": { material: 'ENCHANTED_BOOK', displayName: 'Ochrona przed wybuchem I', buyPrice: 1024.0, sellPrice: null, category: 'ksiazki', slot: 11 },
+        "ksiazki_13": { material: 'ENCHANTED_BOOK', displayName: 'Niezniszczalność I', buyPrice: 1024.0, sellPrice: null, category: 'ksiazki', slot: 13 },
+        "ksiazki_15": { material: 'ENCHANTED_BOOK', displayName: 'Naprawa I', buyPrice: 8192.0, sellPrice: null, category: 'ksiazki', slot: 15 },
+        "ksiazki_38": { material: 'ENCHANTED_BOOK', displayName: 'Moc I', buyPrice: 768.0, sellPrice: null, category: 'ksiazki', slot: 38 },
+        "ksiazki_39": { material: 'ENCHANTED_BOOK', displayName: 'Ostrość I', buyPrice: 1536.0, sellPrice: null, category: 'ksiazki', slot: 39 },
+        "ksiazki_41": { material: 'ENCHANTED_BOOK', displayName: 'Wydajność I', buyPrice: 1280.0, sellPrice: null, category: 'ksiazki', slot: 41 },
+        "ksiazki_42": { material: 'ENCHANTED_BOOK', displayName: 'Szczęście I', buyPrice: 2048.0, sellPrice: null, category: 'ksiazki', slot: 42 },
+        "ksiazki_47": { material: 'ENCHANTED_BOOK', displayName: 'Ochrona III', buyPrice: 4096.0, sellPrice: null, category: 'ksiazki', slot: 47 },
+        
+        // Useful Items
+        "przydatne_10": { material: 'ENCHANTED_GOLDEN_APPLE', displayName: 'Kox Jabłko', buyPrice: 1536.0, sellPrice: null, category: 'przydatne', slot: 10 },
+        "przydatne_11": { material: 'GOLDEN_APPLE', displayName: 'Ref Jabłko', buyPrice: 128.0, sellPrice: null, category: 'przydatne', slot: 11 },
+        "przydatne_12": { material: 'TOTEM_OF_UNDYING', displayName: 'Totem', buyPrice: 2048.0, sellPrice: null, category: 'przydatne', slot: 12 },
+        "przydatne_32": { material: 'IRON_INGOT', displayName: 'Żelazo', buyPrice: 64.0, sellPrice: null, category: 'przydatne', slot: 32 },
+        "przydatne_39": { material: 'ENDER_CHEST', displayName: 'Skrzynia Kresu', buyPrice: 8192.0, sellPrice: null, category: 'przydatne', slot: 39 },
+        "przydatne_40": { material: 'EXPERIENCE_BOTTLE', displayName: 'Butelka XP', buyPrice: 96.0, sellPrice: null, category: 'przydatne', slot: 40 },
+        "przydatne_41": { material: 'ANVIL', displayName: 'Kowadło', buyPrice: 1536.0, sellPrice: null, category: 'przydatne', slot: 41 },
+
+        // Keys / Time
+        "czas_10": { material: 'TRIPWIRE_HOOK', displayName: 'Klucz Zwykły', buyPrice: 60.0, sellPrice: null, category: 'czas', slot: 10 },
+        "czas_11": { material: 'TRIPWIRE_HOOK', displayName: 'Klucz AFK', buyPrice: 120.0, sellPrice: null, category: 'czas', slot: 11 },
+        "czas_12": { material: 'TRIPWIRE_HOOK', displayName: 'Klucz Rzadki', buyPrice: 240.0, sellPrice: null, category: 'czas', slot: 12 },
+        "czas_13": { material: 'TRIPWIRE_HOOK', displayName: 'Klucz Epicki', buyPrice: 480.0, sellPrice: null, category: 'czas', slot: 13 },
+        "czas_14": { material: 'TRIPWIRE_HOOK', displayName: 'Klucz CRIT', buyPrice: 1440.0, sellPrice: null, category: 'czas', slot: 14 },
+
+        // Ores
+        "rudy_10": { material: 'EMERALD', displayName: 'Szmaragd', buyPrice: null, sellPrice: 20.0, category: 'rudy', slot: 10 },
+        "rudy_11": { material: 'DIAMOND', displayName: 'Diament', buyPrice: null, sellPrice: 17.0, category: 'rudy', slot: 11 },
+        "rudy_12": { material: 'GOLD_INGOT', displayName: 'Złoto', buyPrice: null, sellPrice: 15.0, category: 'rudy', slot: 12 },
+        "rudy_13": { material: 'IRON_INGOT', displayName: 'Żelazo (skup)', buyPrice: null, sellPrice: 14.0, category: 'rudy', slot: 13 },
+        "rudy_14": { material: 'COAL', displayName: 'Węgiel', buyPrice: null, sellPrice: 13.0, category: 'rudy', slot: 14 },
+        "rudy_15": { material: 'LAPIS_LAZULI', displayName: 'Lapis Lazuli', buyPrice: null, sellPrice: 4.34, category: 'rudy', slot: 15 },
+        "rudy_16": { material: 'REDSTONE', displayName: 'Redstone', buyPrice: null, sellPrice: 3.88, category: 'rudy', slot: 16 },
+
+        // Other Mob drops
+        "inne_10": { material: 'GUNPOWDER', displayName: 'Proch', buyPrice: null, sellPrice: 3.0, category: 'inne', slot: 10 },
+        "inne_11": { material: 'BONE', displayName: 'Kość', buyPrice: null, sellPrice: 2.5, category: 'inne', slot: 11 },
+        "inne_12": { material: 'STRING', displayName: 'Nici', buyPrice: null, sellPrice: 2.0, category: 'inne', slot: 12 },
+        "inne_13": { material: 'ROTTEN_FLESH', displayName: 'Zgniłe Mięso', buyPrice: null, sellPrice: 1.0, category: 'inne', slot: 13 }
+    };
+
+    const defaultTaxes = {
+        enabled: true,
+        tiers: [
+            { name: "Milioner", threshold: 1000000.0, entryMin: 0.03, entryMax: 0.11, buyIncreaseMin: 1.5, buyIncreaseMax: 3.5, sellDecreaseMin: 1.5, sellDecreaseMax: 3.5 },
+            { name: "Bogacz", threshold: 10000.0, entryMin: 0.01, entryMax: 0.05, buyIncreaseMin: 0.5, buyIncreaseMax: 1.5, sellDecreaseMin: 0.5, sellDecreaseMax: 1.5 },
+            { name: "Średni", threshold: 5000.0, entryMin: 0.0, entryMax: 0.0, buyIncreaseMin: 0.1, buyIncreaseMax: 0.5, sellDecreaseMin: 0.1, sellDecreaseMax: 0.5 }
+        ],
+        updatedAt: new Date().toISOString(),
+        updatedBy: currentUser?.displayName || 'Panel'
+    };
+
+    try {
+        await setDoc(doc(db, 'cshop_config', 'items'), defaultItems);
+        await setDoc(doc(db, 'cshop_config', 'taxes'), defaultTaxes);
+        
+        // Initialize top tables if missing
+        await setDoc(doc(db, 'cshop_top', 'top_spent'), { entries: [] });
+        await setDoc(doc(db, 'cshop_top', 'top_earned'), { entries: [] });
+        await setDoc(doc(db, 'cshop_top', 'top_transactions'), { entries: [] });
+
+        showToast('success', 'Baza danych CShop pomyślnie zainicjalizowana!');
+        await loadCShopTab();
+    } catch (e) {
+        console.error('Błąd inicjalizacji CShop:', e);
+        showToast('error', 'Błąd: ' + e.message);
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Zainicjalizuj domyślne dane CShop';
+        }
+    }
+};
+
+window.cshopFilterItems = function() {
+    _renderCShopItemsTable();
 };
 
 window._cshopSetCategory = function(cat) {
@@ -3069,6 +3626,15 @@ function _renderCShopItemsTable() {
         itemsArr = itemsArr.filter(item => item.category === _cshopCurrentCategory);
     }
 
+    const searchVal = (document.getElementById('cshop-items-search')?.value || '').toLowerCase().trim();
+    if (searchVal) {
+        itemsArr = itemsArr.filter(item => {
+            const cleanName = (item.displayName || item.material || '').replace(/§[0-9a-fk-or]/gi, '').toLowerCase();
+            const mat = (item.material || '').toLowerCase();
+            return cleanName.includes(searchVal) || mat.includes(searchVal);
+        });
+    }
+
     if (itemsArr.length === 0) {
         tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:var(--text-secondary);">Brak przedmiotów w wybranej kategorii.</td></tr>`;
         return;
@@ -3079,7 +3645,7 @@ function _renderCShopItemsTable() {
         const sellVal = item.sellPrice !== undefined && item.sellPrice !== null ? item.sellPrice : '';
         const cleanName = (item.displayName || item.material || '').replace(/§[0-9a-fk-or]/gi, '');
 
-        return `<tr>
+        return `<tr class="cshop-item-row">
             <td style="font-family:monospace;font-size:.78rem;color:var(--text-secondary);">${escapeHtml(item.material || '')}</td>
             <td style="text-align:center;">
                 <img src="https://raw.githubusercontent.com/PrismarineJS/minecraft-assets/master/data/1.20/items_png/${(item.material || '').toLowerCase()}.png"
@@ -3088,12 +3654,10 @@ function _renderCShopItemsTable() {
             </td>
             <td style="font-weight:700;">${escapeHtml(cleanName)} <span style="font-size:.7rem;color:var(--text-secondary);font-weight:400;">(${escapeHtml(item.category)} #${item.slot})</span></td>
             <td>
-                <input type="number" step="any" min="0" placeholder="Brak (brak kupna)" id="cshop-buy-${item.category}-${item.slot}" value="${buyVal}"
-                       style="width:100%;padding:.3rem .5rem;border:1.5px solid var(--border);border-radius:6px;font-size:.8rem;background:var(--bg);color:var(--text-primary);outline:none;font-family:var(--font);">
+                <input type="number" step="any" min="0" placeholder="Brak (brak kupna)" id="cshop-buy-${item.category}-${item.slot}" value="${buyVal}" class="cshop-input-field">
             </td>
             <td>
-                <input type="number" step="any" min="0" placeholder="Brak (brak sprzedaży)" id="cshop-sell-${item.category}-${item.slot}" value="${sellVal}"
-                       style="width:100%;padding:.3rem .5rem;border:1.5px solid var(--border);border-radius:6px;font-size:.8rem;background:var(--bg);color:var(--text-primary);outline:none;font-family:var(--font);">
+                <input type="number" step="any" min="0" placeholder="Brak (brak sprzedaży)" id="cshop-sell-${item.category}-${item.slot}" value="${sellVal}" class="cshop-input-field">
             </td>
             <td style="text-align:center;">
                 <button class="tbl-btn" onclick="cshopSaveItemPrice('${escapeHtml(item.category)}', ${item.slot})" style="font-size:.72rem;padding:.3rem .6rem;">
@@ -3152,8 +3716,13 @@ async function loadCShopDailyStats() {
     if (!dailyEl) return;
 
     try {
-        const snap = await getDocs(query(collection(db, 'cshop_transactions'), orderBy('timestamp', 'desc')));
-        const all  = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        // Nie używamy orderBy żeby uniknąć wymogu composite index; sortujemy w JS
+        const snap = await getDocs(query(collection(db, 'cshop_transactions'), limit(500)));
+        const all  = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => {
+            const ta = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+            const tb = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+            return tb - ta;
+        });
 
         const now       = Date.now();
         const msHour    = 3600_000;
@@ -3180,7 +3749,7 @@ async function loadCShopDailyStats() {
         const cnt = (arr, type) => arr.filter(t => t.type === type).length;
         const fmt$ = v => v.toLocaleString('pl-PL', {minimumFractionDigits:2, maximumFractionDigits:2}) + '$';
 
-        // ── Karty podsumowania ─────────────────────────────────────────────────
+        // Karty podsumowania (SaaS style)
         const periods = [
             { label:'Ostatnia godzina', txns: txHour,  color:'#8b5cf6' },
             { label:'Dziś',             txns: txDay,   color:'#3b82f6' },
@@ -3195,30 +3764,30 @@ async function loadCShopDailyStats() {
             const sellC = cnt(p.txns, 'SELL');
             const players = new Set(p.txns.map(t => t.uuid)).size;
             return `
-            <div style="background:var(--bg-card);border:1.5px solid ${p.color}33;border-radius:12px;padding:1rem;border-top:3px solid ${p.color};">
-                <div style="font-size:.68rem;font-weight:700;color:${p.color};text-transform:uppercase;margin-bottom:.6rem;letter-spacing:.04em;">
+            <div class="cshop-stat-card" style="border-top: 4px solid ${p.color};">
+                <div class="cshop-stat-title" style="color: ${p.color};">
                     <i class="fa-solid fa-calendar-day"></i> ${p.label}
                 </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem;">
-                    <div style="background:rgba(239,68,68,.07);border-radius:8px;padding:.5rem;text-align:center;">
-                        <div style="font-size:.6rem;color:var(--text-secondary);text-transform:uppercase;">Kupno</div>
-                        <div style="font-size:.88rem;font-weight:800;color:#ef4444;">${fmt$(buyV)}</div>
-                        <div style="font-size:.65rem;color:var(--text-secondary);">${buyC} transakcji</div>
+                <div class="cshop-stat-split">
+                    <div class="cshop-stat-box cshop-stat-box-buy">
+                        <div class="cshop-stat-label">Kupno</div>
+                        <div class="cshop-stat-val" style="color:#ef4444;">${fmt$(buyV)}</div>
+                        <div class="cshop-stat-sub">${buyC} transakcji</div>
                     </div>
-                    <div style="background:rgba(16,185,129,.07);border-radius:8px;padding:.5rem;text-align:center;">
-                        <div style="font-size:.6rem;color:var(--text-secondary);text-transform:uppercase;">Sprzedaż</div>
-                        <div style="font-size:.88rem;font-weight:800;color:#10b981;">${fmt$(sellV)}</div>
-                        <div style="font-size:.65rem;color:var(--text-secondary);">${sellC} transakcji</div>
+                    <div class="cshop-stat-box cshop-stat-box-sell">
+                        <div class="cshop-stat-label">Sprzedaż</div>
+                        <div class="cshop-stat-val" style="color:#10b981;">${fmt$(sellV)}</div>
+                        <div class="cshop-stat-sub">${sellC} transakcji</div>
                     </div>
                 </div>
-                <div style="margin-top:.4rem;font-size:.7rem;color:var(--text-secondary);text-align:center;">
+                <div style="margin-top:.6rem;font-size:.7rem;color:var(--text-secondary);text-align:center;border-top:1px solid var(--border);padding-top:.4rem;">
                     <i class="fa-solid fa-users" style="color:${p.color};"></i> ${players} aktywnych graczy •
                     razem: <b style="color:${p.color};">${(buyV+sellV).toFixed(2)}$</b>
                 </div>
             </div>`;
         }).join('');
 
-        // ── Top kupowanych DZIŚ (po itemName, COUNT) ───────────────────────────
+        // Top kupowanych DZIŚ
         const buyMap = {};
         txDay.filter(t => t.type === 'BUY').forEach(t => {
             const k = t.itemName || t.category || '?';
@@ -3229,16 +3798,16 @@ async function loadCShopDailyStats() {
         const topBuy = Object.entries(buyMap).sort((a,b) => b[1].total - a[1].total).slice(0,8);
         if (buyItems) {
             buyItems.innerHTML = topBuy.length ? topBuy.map(([item, d], i) =>
-                `<div style="display:flex;align-items:center;gap:.5rem;padding:.35rem .5rem;border-bottom:1px solid var(--border);font-size:.8rem;">
-                    <span style="width:18px;text-align:center;font-size:.7rem;color:var(--text-secondary);flex-shrink:0;">#${i+1}</span>
+                `<div class="cshop-list-item">
+                    <span style="width:20px;text-align:center;font-size:.72rem;color:var(--text-secondary);font-weight:800;flex-shrink:0;">#${i+1}</span>
                     <span style="flex:1;font-weight:700;">${escapeHtml(item)}</span>
-                    <span style="color:var(--text-secondary);font-size:.72rem;">${d.count} szt.</span>
-                    <span style="font-weight:800;color:#ef4444;">${d.total.toFixed(2)}$</span>
+                    <span style="color:var(--text-secondary);font-size:.75rem;background:rgba(59, 130, 246, 0.05);padding:0.15rem 0.4rem;border-radius:6px;font-weight:700;">${d.count} szt.</span>
+                    <span style="font-weight:800;color:#ef4444;margin-left:0.5rem;">${d.total.toFixed(2)}$</span>
                 </div>`).join('')
-            : '<div style="text-align:center;padding:1rem;color:var(--text-secondary);font-size:.8rem;">Brak kupna dziś</div>';
+            : '<div style="text-align:center;padding:1.5rem;color:var(--text-secondary);font-size:.8rem;">Brak kupna dziś</div>';
         }
 
-        // ── Top sprzedawanych DZIŚ ─────────────────────────────────────────────
+        // Top sprzedawanych DZIŚ
         const sellMap = {};
         txDay.filter(t => t.type === 'SELL').forEach(t => {
             const k = t.itemName || t.category || '?';
@@ -3249,16 +3818,16 @@ async function loadCShopDailyStats() {
         const topSell = Object.entries(sellMap).sort((a,b) => b[1].total - a[1].total).slice(0,8);
         if (sellItems) {
             sellItems.innerHTML = topSell.length ? topSell.map(([item, d], i) =>
-                `<div style="display:flex;align-items:center;gap:.5rem;padding:.35rem .5rem;border-bottom:1px solid var(--border);font-size:.8rem;">
-                    <span style="width:18px;text-align:center;font-size:.7rem;color:var(--text-secondary);flex-shrink:0;">#${i+1}</span>
+                `<div class="cshop-list-item">
+                    <span style="width:20px;text-align:center;font-size:.72rem;color:var(--text-secondary);font-weight:800;flex-shrink:0;">#${i+1}</span>
                     <span style="flex:1;font-weight:700;">${escapeHtml(item)}</span>
-                    <span style="color:var(--text-secondary);font-size:.72rem;">${d.count} szt.</span>
-                    <span style="font-weight:800;color:#10b981;">${d.total.toFixed(2)}$</span>
+                    <span style="color:var(--text-secondary);font-size:.75rem;background:rgba(16, 185, 129, 0.05);padding:0.15rem 0.4rem;border-radius:6px;font-weight:700;">${d.count} szt.</span>
+                    <span style="font-weight:800;color:#10b981;margin-left:0.5rem;">${d.total.toFixed(2)}$</span>
                 </div>`).join('')
-            : '<div style="text-align:center;padding:1rem;color:var(--text-secondary);font-size:.8rem;">Brak sprzedaży dziś</div>';
+            : '<div style="text-align:center;padding:1.5rem;color:var(--text-secondary);font-size:.8rem;">Brak sprzedaży dziś</div>';
         }
 
-        // ── Topka zarabiających DZIŚ (sprzedaż) ───────────────────────────────
+        // Topka zarabiających DZIŚ
         const earnMap = {};
         txDay.filter(t => t.type === 'SELL').forEach(t => {
             const k = t.playerName || '?';
@@ -3269,16 +3838,16 @@ async function loadCShopDailyStats() {
         if (topEarn) {
             const medals = ['🥇','🥈','🥉'];
             topEarn.innerHTML = topEarners.length ? topEarners.map(([name, d], i) =>
-                `<div style="display:flex;align-items:center;gap:.5rem;padding:.4rem .5rem;border-bottom:1px solid var(--border);font-size:.82rem;">
-                    <span style="width:22px;text-align:center;flex-shrink:0;">${i<3 ? medals[i] : '<span style="font-size:.7rem;color:var(--text-secondary);">#'+(i+1)+'</span>'}</span>
+                `<div class="cshop-list-item">
+                    <span style="width:24px;text-align:center;flex-shrink:0;font-size:0.9rem;">${i<3 ? medals[i] : '<span style="font-size:.72rem;color:var(--text-secondary);font-weight:800;">#'+(i+1)+'</span>'}</span>
                     <img src="https://mc-heads.net/avatar/${encodeURIComponent(name)}/20" style="width:20px;height:20px;border-radius:4px;image-rendering:pixelated;flex-shrink:0;">
                     <span style="flex:1;font-weight:700;">${escapeHtml(name)}</span>
                     <span style="font-weight:800;color:#10b981;">${d.total.toFixed(2)}$</span>
                 </div>`).join('')
-            : '<div style="text-align:center;padding:1rem;color:var(--text-secondary);font-size:.8rem;">Brak sprzedaży dziś</div>';
+            : '<div style="text-align:center;padding:1.5rem;color:var(--text-secondary);font-size:.8rem;">Brak sprzedaży dziś</div>';
         }
 
-        // ── Topka wydających DZIŚ (kupno) ──────────────────────────────────────
+        // Topka wydających DZIŚ
         const spendMap = {};
         txDay.filter(t => t.type === 'BUY').forEach(t => {
             const k = t.playerName || '?';
@@ -3289,17 +3858,17 @@ async function loadCShopDailyStats() {
         if (topSpend) {
             const medals = ['🥇','🥈','🥉'];
             topSpend.innerHTML = topSpenders.length ? topSpenders.map(([name, d], i) =>
-                `<div style="display:flex;align-items:center;gap:.5rem;padding:.4rem .5rem;border-bottom:1px solid var(--border);font-size:.82rem;">
-                    <span style="width:22px;text-align:center;flex-shrink:0;">${i<3 ? medals[i] : '<span style="font-size:.7rem;color:var(--text-secondary);">#'+(i+1)+'</span>'}</span>
+                `<div class="cshop-list-item">
+                    <span style="width:24px;text-align:center;flex-shrink:0;font-size:0.9rem;">${i<3 ? medals[i] : '<span style="font-size:.72rem;color:var(--text-secondary);font-weight:800;">#'+(i+1)+'</span>'}</span>
                     <img src="https://mc-heads.net/avatar/${encodeURIComponent(name)}/20" style="width:20px;height:20px;border-radius:4px;image-rendering:pixelated;flex-shrink:0;">
                     <span style="flex:1;font-weight:700;">${escapeHtml(name)}</span>
                     <span style="font-weight:800;color:#ef4444;">${d.total.toFixed(2)}$</span>
                 </div>`).join('')
-            : '<div style="text-align:center;padding:1rem;color:var(--text-secondary);font-size:.8rem;">Brak kupna dziś</div>';
+            : '<div style="text-align:center;padding:1.5rem;color:var(--text-secondary);font-size:.8rem;">Brak kupna dziś</div>';
         }
 
     } catch(e) {
-        if (dailyEl) dailyEl.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:1rem;color:#ef4444;font-size:.82rem;">Błąd: ${escapeHtml(e.message)}</div>`;
+        if (dailyEl) dailyEl.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:2rem;color:#ef4444;font-size:.85rem;">Błąd: ${escapeHtml(e.message)}</div>`;
     }
 }
 
@@ -3307,8 +3876,7 @@ async function loadCShopOverview() {
     const el = document.getElementById('cshop-overview');
     if (!el) return;
     try {
-        // Policz z historii transakcji
-        const snap = await getDocs(query(collection(db, 'cshop_transactions'), orderBy('timestamp', 'desc')));
+        const snap = await getDocs(query(collection(db, 'cshop_transactions'), limit(500)));
         const txns = snap.docs.map(d => d.data());
         const totalBuy  = txns.filter(t => t.type === 'BUY').reduce((s, t) => s + (t.price || 0), 0);
         const totalSell = txns.filter(t => t.type === 'SELL').reduce((s, t) => s + (t.price || 0), 0);
@@ -3317,17 +3885,17 @@ async function loadCShopOverview() {
         el.innerHTML = [
             ['fa-arrow-up-from-bracket', '#ef4444', 'Zakupy (łącznie)', totalBuy.toLocaleString('pl-PL', {minimumFractionDigits:2, maximumFractionDigits:2}) + '$'],
             ['fa-arrow-down-to-bracket', '#10b981', 'Sprzedaż (łącznie)', totalSell.toLocaleString('pl-PL', {minimumFractionDigits:2, maximumFractionDigits:2}) + '$'],
-            ['fa-receipt', '#3b82f6', 'Transakcji', txns.length.toLocaleString('pl-PL')],
+            ['fa-receipt', '#3b82f6', 'Transakcji ogółem', txns.length.toLocaleString('pl-PL')],
             ['fa-users', '#8b5cf6', 'Aktywnych graczy', uniqPlayers.toString()]
         ].map(([icon, color, label, value]) =>
-            `<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:.7rem;text-align:center;">
-                <i class="fa-solid ${icon}" style="color:${color};font-size:.9rem;"></i>
-                <div style="font-size:.62rem;color:var(--text-secondary);text-transform:uppercase;margin:.2rem 0 .1rem;">${label}</div>
-                <div style="font-size:.9rem;font-weight:800;color:${color};">${value}</div>
+            `<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:.8rem;text-align:center;">
+                <i class="fa-solid ${icon}" style="color:${color};font-size:.95rem;"></i>
+                <div style="font-size:.65rem;color:var(--text-secondary);text-transform:uppercase;margin:.3rem 0 .15rem;font-weight:700;">${label}</div>
+                <div style="font-size:1rem;font-weight:800;color:${color};">${value}</div>
             </div>`
         ).join('');
     } catch(e) {
-        el.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:1rem;color:#ef4444;font-size:.8rem;">Błąd: ${e.message}</div>`;
+        el.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:1.5rem;color:#ef4444;font-size:.8rem;">Błąd: ${e.message}</div>`;
     }
 }
 
@@ -3337,42 +3905,47 @@ async function loadCShopTopList(stat, containerId, color, unit) {
     try {
         const snap = await getDoc(doc(db, 'cshop_top', stat));
         if (!snap.exists()) {
-            el.innerHTML = '<div style="text-align:center;padding:1rem;color:var(--text-secondary);font-size:.8rem;">Brak danych — plugin musi być uruchomiony.</div>';
+            el.innerHTML = '<div style="text-align:center;padding:1.5rem;color:var(--text-secondary);font-size:.8rem;">Brak danych w topce — plugin nie przysłał danych.</div>';
             return;
         }
         const entries = (snap.data().entries || []).slice(0, 10);
-        if (!entries.length) { el.innerHTML = '<div style="text-align:center;padding:.8rem;color:var(--text-secondary);font-size:.8rem;">Brak danych.</div>'; return; }
+        if (!entries.length) { el.innerHTML = '<div style="text-align:center;padding:1.5rem;color:var(--text-secondary);font-size:.8rem;">Brak wpisów w topce.</div>'; return; }
         const medals = ['🥇','🥈','🥉'];
         el.innerHTML = entries.map((e, i) => {
             const val = typeof e.value === 'number' ? (Number.isInteger(e.value) ? e.value.toLocaleString('pl-PL') : e.value.toFixed(2)) : e.value;
-            return `<div style="display:flex;align-items:center;gap:.5rem;padding:.4rem .5rem;border-bottom:1px solid var(--border);font-size:.82rem;">
-                <span style="width:22px;text-align:center;flex-shrink:0;">${i < 3 ? medals[i] : '<span style="color:var(--text-secondary);font-size:.72rem;">#' + (i+1) + '</span>'}</span>
+            return `<div class="cshop-list-item">
+                <span style="width:24px;text-align:center;flex-shrink:0;font-size:0.9rem;">${i < 3 ? medals[i] : '<span style="color:var(--text-secondary);font-size:.72rem;font-weight:800;">#' + (i+1) + '</span>'}</span>
                 <img src="https://mc-heads.net/avatar/${encodeURIComponent(e.player||'Steve')}/20" style="width:20px;height:20px;border-radius:4px;image-rendering:pixelated;flex-shrink:0;">
                 <span style="flex:1;font-weight:700;">${escapeHtml(e.player||'?')}</span>
                 <span style="font-weight:800;color:${color};">${val} ${unit}</span>
             </div>`;
         }).join('');
     } catch(e) {
-        el.innerHTML = `<div style="padding:.5rem;color:#ef4444;font-size:.75rem;">Błąd: ${e.message}</div>`;
+        el.innerHTML = `<div style="padding:1rem;color:#ef4444;font-size:.8rem;text-align:center;">Błąd: ${e.message}</div>`;
     }
 }
 
 async function loadCShopHistory() {
+    const tbody = document.getElementById('cshop-history-tbody');
     if (!tbody) return;
-    tbody.innerHTML = '<tr><td colspan="7" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie historii...</td></tr>';
     try {
-        const snap = await getDocs(query(collection(db, 'cshop_transactions'), orderBy('timestamp', 'desc')));
-        _cshopAllHistory = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        const snap = await getDocs(query(collection(db, 'cshop_transactions'), limit(500)));
+        _cshopAllHistory = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => {
+            const ta = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+            const tb = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+            return tb - ta;
+        });
         cshopFilterHistory();
     } catch(e) {
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:1rem;color:#ef4444;font-size:.85rem;">Błąd: ${e.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:1.5rem;color:#ef4444;font-size:.85rem;">Błąd: ${e.message}</td></tr>`;
     }
 }
 
 window.cshopFilterHistory = function() {
     const tbody = document.getElementById('cshop-history-tbody');
     if (!tbody) return;
-    const s = (document.getElementById('cshop-hist-search')?.value || '').toLowerCase();
+    const s = (document.getElementById('cshop-hist-search')?.value || '').toLowerCase().trim();
     const t = document.getElementById('cshop-hist-type')?.value || '';
     const filtered = _cshopAllHistory.filter(tx => {
         if (s && !(tx.playerName || '').toLowerCase().includes(s)) return false;
@@ -3380,22 +3953,22 @@ window.cshopFilterHistory = function() {
         return true;
     });
     if (!filtered.length) {
-        tbody.innerHTML = '<tr><td colspan="7" class="table-empty">Brak transakcji</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="table-empty">Brak transakcji pasujących do filtrów</td></tr>';
         return;
     }
     tbody.innerHTML = filtered.slice(0, 200).map(tx => {
         const isB = tx.type === 'BUY';
         const typeHtml = isB
-            ? '<span class="badge" style="background:rgba(59,130,246,.12);color:#3b82f6;">⬆ Kupno</span>'
-            : '<span class="badge" style="background:rgba(16,185,129,.12);color:#059669;">⬇ Sprzedaż</span>';
+            ? '<span class="badge" style="background:rgba(59,130,246,.12);color:#3b82f6;font-weight:700;">⬆ Kupno</span>'
+            : '<span class="badge" style="background:rgba(16,185,129,.12);color:#059669;font-weight:700;">⬇ Sprzedaż</span>';
         const ts = tx.timestamp ? new Date(tx.timestamp).toLocaleString('pl-PL') : '—';
-        return `<tr>
-            <td><div class="player-cell">${head(tx.playerName||'?')}<div class="player-name">${escapeHtml(tx.playerName||'?')}</div></div></td>
-            <td style="font-size:.82rem;">${escapeHtml(tx.itemName||'?')}</td>
+        return `<tr class="cshop-row-hover">
+            <td><div class="player-cell">${head(tx.playerName||'?')}<div class="player-name" style="font-weight:700;">${escapeHtml(tx.playerName||'?')}</div></div></td>
+            <td style="font-size:.82rem;font-weight:600;">${escapeHtml(tx.itemName||'?')}</td>
             <td style="font-weight:700;text-align:center;">${tx.amount||1}</td>
             <td style="font-weight:800;color:${isB ? '#3b82f6' : '#10b981'};">${Number(tx.price||0).toFixed(2)}$</td>
             <td>${typeHtml}</td>
-            <td style="font-size:.78rem;color:var(--text-secondary);">${escapeHtml(tx.category||'—')}</td>
+            <td style="font-size:.78rem;color:var(--text-secondary);font-weight:600;">${escapeHtml(tx.category||'—')}</td>
             <td style="font-size:.78rem;color:var(--text-secondary);white-space:nowrap;">${ts}</td>
         </tr>`;
     }).join('');
@@ -3410,7 +3983,7 @@ async function loadCShopTaxConfig() {
     try {
         const snap = await getDoc(doc(db, 'cshop_config', 'taxes'));
         if (!snap.exists()) {
-            tiersEl.innerHTML = '<div style="font-size:.8rem;color:var(--text-secondary);text-align:center;padding:.8rem;">Brak danych — uruchom plugin CShop z firebase.enabled=true.</div>';
+            tiersEl.innerHTML = '<div style="font-size:.8rem;color:var(--text-secondary);text-align:center;padding:1.5rem;">Brak danych podatków — kliknij przycisk inicjalizacji powyżej lub uruchom serwer.</div>';
             return;
         }
         const data = snap.data();
@@ -3421,7 +3994,7 @@ async function loadCShopTaxConfig() {
         _cshopTaxTiers = data.tiers || [];
         _renderTaxTiers();
     } catch(e) {
-        tiersEl.innerHTML = `<div style="font-size:.8rem;color:#ef4444;padding:.5rem;">Błąd: ${e.message}</div>`;
+        tiersEl.innerHTML = `<div style="font-size:.8rem;color:#ef4444;padding:.5rem;text-align:center;">Błąd: ${e.message}</div>`;
     }
 }
 
@@ -3429,11 +4002,10 @@ function _renderTaxTiers() {
     const el = document.getElementById('cshop-tax-tiers');
     if (!el) return;
     if (!_cshopTaxTiers.length) {
-        el.innerHTML = '<div style="font-size:.8rem;color:var(--text-secondary);text-align:center;padding:.8rem;">Brak progów podatkowych.</div>';
+        el.innerHTML = '<div style="font-size:.8rem;color:var(--text-secondary);text-align:center;padding:1.5rem;">Brak progów podatkowych.</div>';
         return;
     }
     el.innerHTML = _cshopTaxTiers.map((tier, idx) => `
-        <div style="background:var(--bg);border:1.5px solid var(--border);border-radius:10px;padding:.75rem;position:relative;" id="cshop-tier-${idx}">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem;">
                 <div style="font-weight:800;font-size:.88rem;color:var(--text-primary);">
                     <i class="fa-solid fa-layer-group" style="color:#f59e0b;margin-right:.3rem;"></i>${escapeHtml(tier.name||'Próg '+(idx+1))}
@@ -4114,269 +4686,22 @@ async function loadCShopTop() {
     ]);
 }
 
-/** Karty ze statystykami ogólnymi CShop */
-async function loadCShopStats() {
-    const el = document.getElementById('cshop-stats-cards');
-    if (!el) return;
-    try {
-        const snap = await getDocs(query(collection(db, 'cshop_stats')));
-        const docs = snap.docs.map(d => d.data());
-        const totalSpent       = docs.reduce((s, d) => s + (d.totalSpent || 0), 0);
-        const totalEarned      = docs.reduce((s, d) => s + (d.totalEarned || 0), 0);
-        const totalTaxes       = docs.reduce((s, d) => s + (d.totalTaxes || 0), 0);
-        const totalTransactions= docs.reduce((s, d) => s + (d.totalTransactions || 0), 0);
-        const playerCount      = docs.length;
-        el.innerHTML = `
-            <div class="stat-card"><div class="stat-icon" style="background:rgba(16,185,129,.12);color:#10b981;"><i class="fa-solid fa-cart-shopping"></i></div><div class="stat-info"><div class="stat-value">${totalTransactions.toLocaleString('pl-PL')}</div><div class="stat-label">Transakcje ogółem</div></div></div>
-            <div class="stat-card"><div class="stat-icon" style="background:rgba(239,68,68,.12);color:#ef4444;"><i class="fa-solid fa-coins"></i></div><div class="stat-info"><div class="stat-value">${Math.round(totalSpent).toLocaleString('pl-PL')}$</div><div class="stat-label">Wydano łącznie</div></div></div>
-            <div class="stat-card"><div class="stat-icon" style="background:rgba(34,197,94,.12);color:#22c55e;"><i class="fa-solid fa-sack-dollar"></i></div><div class="stat-info"><div class="stat-value">${Math.round(totalEarned).toLocaleString('pl-PL')}$</div><div class="stat-label">Zarobiono łącznie</div></div></div>
-            <div class="stat-card"><div class="stat-icon" style="background:rgba(245,158,11,.12);color:#f59e0b;"><i class="fa-solid fa-percent"></i></div><div class="stat-info"><div class="stat-value">${Math.round(totalTaxes).toLocaleString('pl-PL')}$</div><div class="stat-label">Pobrane podatki</div></div></div>
-            <div class="stat-card"><div class="stat-icon" style="background:rgba(139,92,246,.12);color:#8b5cf6;"><i class="fa-solid fa-users"></i></div><div class="stat-info"><div class="stat-value">${playerCount}</div><div class="stat-label">Graczy w bazie</div></div></div>`;
-    } catch(e) {
-        el.innerHTML = `<div style="color:#ef4444;font-size:.82rem;padding:.5rem;">Błąd: ${escapeHtml(e.message)}</div>`;
-    }
-}
-
-/** Tabela ostatnich transakcji */
-async function loadCShopTransactions() {
-    const tb = document.getElementById('cshop-transactions-tbody');
-    if (!tb) return;
-    tb.innerHTML = '<tr><td colspan="7" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>';
-    try {
-        const snap = await getDocs(query(collection(db, 'cshop_transactions'), orderBy('timestamp', 'desc')));
-        const rows = snap.docs.map(d => d.data()).slice(0, 200);
-        if (!rows.length) { tb.innerHTML = '<tr><td colspan="7" class="table-empty">Brak transakcji — wgraj CShop z włączonym firebase.enabled=true</td></tr>'; return; }
-        tb.innerHTML = rows.map(t => {
-            const isB = t.type === 'BUY';
-            const col = isB ? '#22c55e' : '#f59e0b';
-            const icon= isB ? 'fa-cart-plus' : 'fa-money-bill-wave';
-            const ts  = t.timestamp ? new Date(t.timestamp).toLocaleString('pl-PL') : '—';
-            return `<tr>
-                <td><span style="color:${col};font-weight:700;font-size:.8rem;"><i class="fa-solid ${icon}"></i> ${t.type||'?'}</span></td>
-                <td><div class="player-cell">${head(t.playerName||'?')}<div class="player-name">${escapeHtml(t.playerName||'?')}</div></div></td>
-                <td style="font-weight:700;">${escapeHtml(t.itemName||'?')}</td>
-                <td style="text-align:center;">${t.amount||1}</td>
-                <td style="font-weight:800;color:${col};">${Number(t.price||0).toFixed(2)}$</td>
-                <td style="font-size:.78rem;color:var(--text-secondary);">${escapeHtml(t.category||'—')}</td>
-                <td style="font-size:.78rem;color:var(--text-secondary);">${ts}</td>
-            </tr>`;
-        }).join('');
-    } catch(e) {
-        tb.innerHTML = `<tr><td colspan="7" style="color:#ef4444;padding:.8rem;">${escapeHtml(e.message)}</td></tr>`;
-    }
-}
-
-window.filterCShopTransactions = function() {
-    const s  = (document.getElementById('cshop-tx-search')?.value || '').toLowerCase();
-    const ty = document.getElementById('cshop-tx-type')?.value || '';
-    document.querySelectorAll('#cshop-transactions-tbody tr').forEach(row => {
-        const txt = row.textContent.toLowerCase();
-        const typeCell = row.cells?.[0]?.textContent?.trim() || '';
-        row.style.display = ((!s || txt.includes(s)) && (!ty || typeCell.includes(ty))) ? '' : 'none';
-    });
-};
-
-/** Topki CShop */
-async function loadCShopTop() {
-    const stat = document.getElementById('cshop-top-stat')?.value || 'top_spent';
-    const list = document.getElementById('cshop-top-list');
-    if (!list) return;
-    list.innerHTML = '<div style="text-align:center;padding:1.5rem;color:var(--text-secondary);font-size:.85rem;"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</div>';
-    try {
-        const snap = await getDoc(doc(db, 'cshop_top', stat));
-        if (!snap.exists()) { list.innerHTML = '<div style="text-align:center;padding:1.5rem;color:var(--text-secondary);">Brak danych — poczekaj na sync pluginu.</div>'; return; }
-        const entries = (snap.data().entries || []).slice(0, 20);
-        if (!entries.length) { list.innerHTML = '<div style="text-align:center;padding:1rem;color:var(--text-secondary);">Brak graczy w rankingu.</div>'; return; }
-        const medals = ['🥇','🥈','🥉'];
-        const isMoney = stat !== 'top_transactions';
-        list.innerHTML = entries.map((e, i) => {
-            const icon = i < 3 ? medals[i] : `<span style="color:var(--text-secondary);font-size:.78rem;">#${e.rank||i+1}</span>`;
-            const val  = isMoney ? `${Math.round(e.value||0).toLocaleString('pl-PL')}$` : `${(e.value||0).toLocaleString('pl-PL')} transakcji`;
-            return `<div style="display:flex;align-items:center;gap:.6rem;padding:.5rem .65rem;border-bottom:1px solid var(--border);font-size:.84rem;">
-                <span style="width:28px;text-align:center;flex-shrink:0;">${icon}</span>
-                ${head(e.player||'Steve')}
-                <span style="flex:1;font-weight:700;">${escapeHtml(e.player||'?')}</span>
-                <span style="color:#10b981;font-weight:800;">${val}</span>
-            </div>`;
-        }).join('');
-    } catch(e) {
-        list.innerHTML = `<div style="padding:.8rem;color:#ef4444;font-size:.82rem;">Błąd: ${escapeHtml(e.message)}</div>`;
-    }
-}
-
-// ─── CSHOP — EDYTOR PODATKÓW ──────────────────────────────────────────────────
-
-let _cshopTaxConfig = null; // lokalny cache podatków
-
-/** Pobiera konfigurację podatków z Firestore i wypełnia edytor */
-async function loadCShopTaxConfig() {
-    const el = document.getElementById('cshop-tax-editor');
-    if (!el) return;
-    el.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-secondary);"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</div>';
-    try {
-        const snap = await getDoc(doc(db, 'cshop_config', 'taxes'));
-        if (!snap.exists()) {
-            el.innerHTML = `<div style="padding:1rem;color:var(--text-secondary);font-size:.85rem;text-align:center;">
-                Brak konfiguracji — uruchom CShop z <code>firebase.enabled: true</code> aby przesłać domyślne podatki.
-            </div>`;
-            return;
-        }
-        _cshopTaxConfig = snap.data();
-        renderCShopTaxEditor(_cshopTaxConfig);
-    } catch(e) {
-        el.innerHTML = `<div style="color:#ef4444;padding:.8rem;font-size:.82rem;">Błąd: ${escapeHtml(e.message)}</div>`;
-    }
-}
-
-function renderCShopTaxEditor(cfg) {
-    const el = document.getElementById('cshop-tax-editor');
-    if (!el) return;
-    const tiers = (cfg.tiers || []).sort((a, b) => (b.threshold || 0) - (a.threshold || 0));
-
-    const enabled = cfg.enabled !== false;
-    el.innerHTML = `
-        <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.2rem;padding:.8rem 1rem;background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.2);border-radius:10px;">
-            <span style="font-weight:700;font-size:.9rem;"><i class="fa-solid fa-toggle-on" style="color:#10b981;"></i> System podatków</span>
-            <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;margin-left:auto;">
-                <input type="checkbox" id="cshop-tax-enabled" ${enabled ? 'checked' : ''}
-                    style="width:18px;height:18px;accent-color:#10b981;cursor:pointer;">
-                <span style="font-weight:700;font-size:.85rem;">${enabled ? 'Włączony' : 'Wyłączony'}</span>
-            </label>
-        </div>
-        <div id="cshop-tax-tiers" style="display:flex;flex-direction:column;gap:1rem;">
-            ${tiers.map((tier, i) => renderTierEditor(tier, i)).join('')}
-        </div>
-        <div style="display:flex;gap:.6rem;margin-top:1.2rem;flex-wrap:wrap;">
-            <button onclick="saveCShopTaxConfig()" style="flex:1;padding:.75rem;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:8px;font-weight:800;cursor:pointer;font-family:var(--font);font-size:.9rem;">
-                <i class="fa-solid fa-floppy-disk"></i> Zapisz zmiany podatków
-            </button>
-            <button onclick="loadCShopTaxConfig()" style="padding:.75rem 1rem;background:transparent;border:1.5px solid var(--border);border-radius:8px;color:var(--text-secondary);cursor:pointer;font-family:var(--font);">
-                <i class="fa-solid fa-rotate-right"></i>
-            </button>
-        </div>
-        <div id="cshop-tax-msg" style="display:none;margin-top:.6rem;"></div>`;
-}
-
-function renderTierEditor(tier, idx) {
-    const n = tier.name || `tier_${idx}`;
-    return `<div style="background:var(--bg);border:1.5px solid var(--border);border-radius:12px;padding:1rem;transition:border-color .15s;" onmouseenter="this.style.borderColor='rgba(245,158,11,.4)'" onmouseleave="this.style.borderColor='var(--border)'">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.8rem;">
-            <div style="font-weight:800;font-size:.92rem;">
-                <i class="fa-solid fa-layer-group" style="color:#f59e0b;margin-right:.4rem;"></i>
-                Próg: <span style="color:#f59e0b;">${escapeHtml(n)}</span>
-            </div>
-            <div style="font-size:.72rem;color:var(--text-secondary);">ID: ${escapeHtml(n)}</div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;">
-            <div>
-                <label style="font-size:.72rem;color:var(--text-secondary);font-weight:700;display:block;margin-bottom:.2rem;">Od kwoty ($)</label>
-                <input type="number" data-tier="${n}" data-field="threshold" value="${tier.threshold||0}" min="0"
-                    style="width:100%;padding:.5rem .7rem;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;background:var(--bg-card);color:var(--text-primary);font-family:var(--font);">
-            </div>
-            <div style="display:flex;align-items:flex-end;gap:.5rem;">
-                <div style="flex:1;">
-                    <label style="font-size:.72rem;color:var(--text-secondary);font-weight:700;display:block;margin-bottom:.2rem;">Podatek wejściowy</label>
-                    <label style="display:flex;align-items:center;gap:.4rem;font-size:.8rem;cursor:pointer;">
-                        <input type="checkbox" data-tier="${n}" data-field="entryEnabled" ${tier.entryEnabled ? 'checked' : ''}
-                            style="accent-color:#ef4444;cursor:pointer;">
-                        <span>Włączony</span>
-                    </label>
-                </div>
-            </div>
-            <div>
-                <label style="font-size:.72rem;color:var(--text-secondary);font-weight:700;display:block;margin-bottom:.2rem;">Wejściowy Min % </label>
-                <input type="number" data-tier="${n}" data-field="entryMin" value="${tier.entryMin||0}" min="0" max="100" step="0.01"
-                    style="width:100%;padding:.5rem .7rem;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;background:var(--bg-card);color:var(--text-primary);font-family:var(--font);">
-            </div>
-            <div>
-                <label style="font-size:.72rem;color:var(--text-secondary);font-weight:700;display:block;margin-bottom:.2rem;">Wejściowy Max %</label>
-                <input type="number" data-tier="${n}" data-field="entryMax" value="${tier.entryMax||0}" min="0" max="100" step="0.01"
-                    style="width:100%;padding:.5rem .7rem;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;background:var(--bg-card);color:var(--text-primary);font-family:var(--font);">
-            </div>
-        </div>
-        <div style="margin-top:.7rem;padding-top:.7rem;border-top:1px solid var(--border);">
-            <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem;">
-                <label style="font-size:.72rem;color:var(--text-secondary);font-weight:700;">Modyfikatory cen na sesję</label>
-                <label style="display:flex;align-items:center;gap:.4rem;font-size:.8rem;cursor:pointer;margin-left:auto;">
-                    <input type="checkbox" data-tier="${n}" data-field="pricesEnabled" ${tier.pricesEnabled ? 'checked' : ''}
-                        style="accent-color:#3b82f6;cursor:pointer;">
-                    <span>Włączone</span>
-                </label>
-            </div>
-            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;">
-                <div>
-                    <label style="font-size:.68rem;color:#22c55e;font-weight:700;display:block;margin-bottom:.15rem;">Kupno +Min %</label>
-                    <input type="number" data-tier="${n}" data-field="buyIncreaseMin" value="${tier.buyIncreaseMin||0}" min="0" step="0.1"
-                        style="width:100%;padding:.4rem .5rem;border:1.5px solid rgba(34,197,94,.3);border-radius:7px;font-size:.82rem;background:var(--bg-card);color:var(--text-primary);font-family:var(--font);">
-                </div>
-                <div>
-                    <label style="font-size:.68rem;color:#22c55e;font-weight:700;display:block;margin-bottom:.15rem;">Kupno +Max %</label>
-                    <input type="number" data-tier="${n}" data-field="buyIncreaseMax" value="${tier.buyIncreaseMax||0}" min="0" step="0.1"
-                        style="width:100%;padding:.4rem .5rem;border:1.5px solid rgba(34,197,94,.3);border-radius:7px;font-size:.82rem;background:var(--bg-card);color:var(--text-primary);font-family:var(--font);">
-                </div>
-                <div>
-                    <label style="font-size:.68rem;color:#ef4444;font-weight:700;display:block;margin-bottom:.15rem;">Sprzedaż -Min %</label>
-                    <input type="number" data-tier="${n}" data-field="sellDecreaseMin" value="${tier.sellDecreaseMin||0}" min="0" step="0.1"
-                        style="width:100%;padding:.4rem .5rem;border:1.5px solid rgba(239,68,68,.3);border-radius:7px;font-size:.82rem;background:var(--bg-card);color:var(--text-primary);font-family:var(--font);">
-                </div>
-                <div>
-                    <label style="font-size:.68rem;color:#ef4444;font-weight:700;display:block;margin-bottom:.15rem;">Sprzedaż -Max %</label>
-                    <input type="number" data-tier="${n}" data-field="sellDecreaseMax" value="${tier.sellDecreaseMax||0}" min="0" step="0.1"
-                        style="width:100%;padding:.4rem .5rem;border:1.5px solid rgba(239,68,68,.3);border-radius:7px;font-size:.82rem;background:var(--bg-card);color:var(--text-primary);font-family:var(--font);">
-                </div>
-            </div>
-        </div>
-    </div>`;
-}
-
-window.saveCShopTaxConfig = async function() {
-    const msgEl = document.getElementById('cshop-tax-msg');
-    if (!requirePermission('all', 'edycja podatków')) return;
-
-    // Zbierz dane z formularza
-    const enabled = document.getElementById('cshop-tax-enabled')?.checked ?? true;
-    const tiersMap = {};
-    document.querySelectorAll('#cshop-tax-tiers [data-tier]').forEach(el => {
-        const t = el.getAttribute('data-tier');
-        const f = el.getAttribute('data-field');
-        if (!tiersMap[t]) tiersMap[t] = { name: t };
-        if (el.type === 'checkbox') tiersMap[t][f] = el.checked;
-        else tiersMap[t][f] = parseFloat(el.value) || 0;
-    });
-
-    const tiers = Object.values(tiersMap);
-    const data = { enabled, tiers, updatedAt: new Date().toISOString(), updatedBy: currentUser?.displayName || 'Panel' };
-
-    try {
-        await setDoc(doc(db, 'cshop_config', 'taxes'), data);
-        _cshopTaxConfig = data;
-        if (msgEl) {
-            msgEl.style.cssText = 'display:block;padding:.55rem .8rem;border-radius:8px;font-size:.82rem;font-weight:700;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25);color:#059669;';
-            msgEl.textContent = '✓ Zapisano! Plugin CShop pobierze zmiany w ciągu ~60s.';
-            setTimeout(() => { if(msgEl) msgEl.style.display = 'none'; }, 5000);
-        }
-        showToast('success', 'Konfiguracja podatków zapisana!');
-    } catch(e) {
-        if (msgEl) {
-            msgEl.style.cssText = 'display:block;padding:.55rem .8rem;border-radius:8px;font-size:.82rem;font-weight:700;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);color:#dc2626;';
-            msgEl.textContent = 'Błąd: ' + e.message;
-        }
-    }
-};
+// Blok zduplikowanych implementacji CShop usunięty w celu uniknięcia konfliktów nazw (SyntaxError: Identifier has already been declared);
 
 // Aktualizuj też stronę Informacje — dodaj sekcję połączeń pluginów
 const _origLoadInfoPage = window.loadInfoPage;
 window.loadInfoPage = async function() {
     if (_origLoadInfoPage) await _origLoadInfoPage();
-    // Odśwież status połączeń jeśli sekcja istnieje
-    const pluginStatusEl = document.getElementById('info-plugin-status');
-    if (!pluginStatusEl) return;
-    pluginStatusEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sprawdzanie...';
+    // Odśwież status połączeń jeśli elementy istnieją
+    if (!document.getElementById('info-mc-plugin-status')) return;
     try {
         const statsSnap = await getDoc(doc(db, 'server_stats', 'current'));
         const cstatsSnap = await getDocs(query(collection(db, 'cstats_players')));
+        const cshopSnap = await getDoc(doc(db, 'cshop_config', 'items'));
+        
         const sData = statsSnap.exists() ? statsSnap.data() : null;
         const cstatsOk = cstatsSnap.size > 0;
+        const cshopOk = cshopSnap.exists();
 
         const _setPluginStatus = (elId, ok, label, detail) => {
             const el = document.getElementById(elId); if(!el)return;
@@ -4386,21 +4711,24 @@ window.loadInfoPage = async function() {
         };
         _setPluginStatus('info-mc-plugin-status', !!sData?.serverOnline, sData?.serverOnline ? 'CritMC Panel Online' : 'CritMC Panel Offline', sData ? `Online: ${sData.online||0}/${sData.max||20} graczy` : 'Brak danych');
         _setPluginStatus('info-cstats-status', cstatsOk, cstatsOk ? 'CStats Aktywny' : 'CStats Offline', `${cstatsSnap.size} graczy w bazie`);
-    } catch(e) { if(pluginStatusEl) pluginStatusEl.innerHTML = '<span style="color:#ef4444;font-size:.8rem;">Błąd sprawdzania</span>'; }
+        _setPluginStatus('info-cshop-status', cshopOk, cshopOk ? 'CShop Aktywny' : 'CShop Offline', cshopOk ? `Zsynchronizowano ${Object.keys(cshopSnap.data()).length} przedmiotów` : 'Brak konfiguracji w bazie');
+    } catch(e) {
+        console.error('Błąd sprawdzania statusu połączeń pluginów:', e);
+    }
 };
 
 // ─── AI ASYSTENT ──────────────────────────────────────────────────────────────
 
-const AI_SYSTEM_PROMPT = `Jesteś CritAI — wszechstronnym asystentem AI panelu administracyjnego serwera Minecraft CritMC.
-Działasz w imieniu zalogowanego admina. Odpowiadasz naturalnie po polsku, jesteś pomocny, konkretny i świadomy kontekstu serwera.
+const AI_SYSTEM_PROMPT = `Jesteś CritAI — elitarnym, wszechstronnym i bezkompromisowym asystentem AI panelu administracyjnego serwera Minecraft CritMC.
+Rozmawiasz z administratorem serwera. Twój styl jest pewny siebie, bezpośredni i dynamiczny (używasz adminowskiego slangu: "szefie", "odpalam banhammera", "baza śmiga", "gracz wyjaśniony", "leci mute"). Nie owijasz w bawełnę, odpowiadasz konkretnie i profesjonalnie, dbając o porządek na serwerze.
 
 WAŻNE: Zawsze zwracaj TYLKO czysty JSON (bez markdown, bez \`\`\`). Dwa możliwe formaty:
 
 ━━━ FORMAT 1: ROZMOWA (pytania, info, porady, analiza) ━━━
-{"reply": "twoja odpowiedź"}
+{"reply": "twoja dynamiczna odpowiedź"}
 
 ━━━ FORMAT 2: AKCJA ADMINA (gdy user WPROST prosi o wykonanie czegoś) ━━━
-{"reply": "krótkie potwierdzenie", "action": "NAZWA_AKCJI", ...pola akcji}
+{"reply": "Krótkie, adminowskie potwierdzenie (np. 'Banhammer gotowy szefie!')", "action": "NAZWA_AKCJI", ...pola akcji}
 
 ════════════════════════════════════════════
 DOSTĘPNE AKCJE (pełna lista):
@@ -4418,9 +4746,13 @@ warn:       {action:"warn",   player:"nick", reason:"powód"}
 set_rank:   {action:"set_rank",   player:"nick", rank:"vip|boss|crit|chatmod|pomocnik|moderator|admin", duration:"30d|permanent"}
 remove_rank:{action:"remove_rank",player:"nick", rank:"vip|boss|crit"}
 
-── SKLEP / NAGRODY ──
+── SKLEP / NAGRODY (Dystrybucja) ──
 shop_grant: {action:"shop_grant", player:"nick", itemType:"ranga|klucz|zestaw|inne", itemId:"ID", qty:1}
 give_item:  {action:"give_item",  player:"nick", item:"DIAMOND_SWORD|NETHERITE_INGOT|...", qty:1, enchants:"sharpness:5,unbreaking:3"}
+
+── KATALOG PRODUKTÓW SKLEPU (Zarządzanie katalogiem shop_items) ──
+shop_item_add:    {action:"shop_item_add", name:"VIP", type:"ranga|klucz|zestaw|item", price:10, oldPrice:15, desc:"opis", items:["linia1", "linia2"], mediaUrl:"../images/vip.png", order:1, rarity:1, active:true, featured:false}
+shop_item_delete: {action:"shop_item_delete", id:"document-id-w bazie (np. vip, pakiet-boss, klucz-crit)"}
 
 ── KOMUNIKACJA ──
 broadcast:  {action:"broadcast", message:"treść", color:"gold|red|green|aqua|yellow|white"}
@@ -4455,11 +4787,11 @@ multi:      {action:"multi",     actions:[{action:"ban",...},{action:"broadcast"
 ════════════════════════════════════════════
 ZASADY:
 - Czas: 1h 6h 12h 1d 3d 7d 14d 30d permanent
-- Jeśli brakuje nicku — zapytaj, nie zakładaj
-- Możesz wykonać multi: kilka akcji naraz
-- console_cmd pozwala na KAŻDĄ komendę serwera
-- ZAWSZE pole "reply" z sensowną odpowiedzią
-- NIE pytaj o potwierdzenie gdy akcja jest jasna — panel sam pokaże kartę potwierdzenia
+- Jeśli brakuje nicku — zapytaj admina, nie zgaduj!
+- Możesz wykonać multi: kilka akcji naraz (np. ban + broadcast).
+- console_cmd pozwala na KAŻDĄ komendę na serwerze MC.
+- ZAWSZE pole "reply" z adminowską, konkretną i dynamiczną odpowiedzią.
+- NIE pytaj o potwierdzenie gdy akcja jest jasna — panel sam pokaże kartę potwierdzenia.
 ════════════════════════════════════════════`;
 
 let _aiHistory = [];
@@ -4709,6 +5041,23 @@ window._aiUseExample = function(el) {
     if (input) { input.value = el.textContent.replace(/^[^\s]+\s/, ''); input.focus(); }
 };
 
+/** Wypełnia pole inputa AI podanym tekstem i (jeśli send=true) wysyła automatycznie */
+window.aiPrompt = function(text, send = false) {
+    const input = document.getElementById('ai-input');
+    if (!input) return;
+    input.value = text;
+    input.focus();
+    // Ustaw kursor na końcu tekstu
+    input.setSelectionRange(text.length, text.length);
+    // Jeśli send=true (np. chipsety akcji "Zrestartuj serwer"), wyślij od razu
+    if (send) window.sendAiMessage?.();
+    // Ukryj ekran powitalny jeśli widoczny — użytkownik zaczyna pisać
+    const welcome = document.getElementById('ai-welcome');
+    if (welcome && welcome.style.display !== 'none') {
+        // Nie ukrywaj — użytkownik jeszcze nie wysłał nic
+    }
+};
+
 window.sendAiMessage = async function() {
     const input = document.getElementById('ai-input');
     const btn   = document.getElementById('ai-send-btn');
@@ -4743,29 +5092,53 @@ window.sendAiMessage = async function() {
     hist.scrollTop = hist.scrollHeight;
 
     try {
-        // Pobierz kontekst serwera asynchronicznie
+        // Pobierz bogaty kontekst serwera asynchronicznie
         let serverContext = '';
         try {
-            const statsSnap = await getDoc(doc(db, 'server_stats', 'current'));
-            if (statsSnap.exists()) {
-                const s = statsSnap.data();
-                const online = s.online || 0;
-                const max = s.max || 20;
-                const tps = s.tps?.toFixed(1) || '?';
-                const playerList = (s.playerList || []).slice(0, 20).join(', ') || 'brak';
-                serverContext = `\n\nKONTEKST SERWERA (aktualny):\n- Online: ${online}/${max} graczy\n- TPS: ${tps}\n- Gracze: ${playerList}\n- Admin: ${currentUser?.displayName} (${currentUser?.role})\n- Czas: ${new Date().toLocaleString('pl-PL')}`;
-            }
-        } catch(e) { /* cicho — kontekst nieobowiązkowy */ }
+            const [statsSnap, logsSnap, playersSnap, cshopSnap] = await Promise.allSettled([
+                getDoc(doc(db, 'server_stats', 'current')),
+                getDocs(query(collection(db, 'admin_logs'), limit(8))),
+                getDocs(query(collection(db, 'players'), limit(20))),
+                getDocs(query(collection(db, 'cshop_transactions'), limit(20)))
+            ]);
 
-        // Pobierz ostatnie 5 logów dla kontekstu
-        try {
-            const logsSnap = await getDocs(query(collection(db, 'admin_logs'), orderBy('date', 'desc'), limit(5)));
-            const recentLogs = logsSnap.docs.map(d => {
-                const l = d.data();
-                return `${l.action} ${l.player} przez ${l.admin}`;
-            }).join(', ');
-            if (recentLogs) serverContext += `\n- Ostatnie akcje: ${recentLogs}`;
-        } catch(e) {}
+            const ctx = [];
+            ctx.push(`Admin: ${currentUser?.displayName} (${currentUser?.role})`);
+            ctx.push(`Czas: ${new Date().toLocaleString('pl-PL')}`);
+
+            // Serwer
+            if (statsSnap.status === 'fulfilled' && statsSnap.value.exists()) {
+                const s = statsSnap.value.data();
+                ctx.push(`Online: ${s.online||0}/${s.max||20} graczy | TPS: ${s.tps?.toFixed(1)||'?'}`);
+                const pl = (s.playerList || []).slice(0, 15);
+                if (pl.length) ctx.push(`Gracze online: ${pl.join(', ')}`);
+                if (!s.serverOnline) ctx.push('Uwaga: serwer jest OFFLINE');
+            }
+
+            // Ostatnie akcje admina
+            if (logsSnap.status === 'fulfilled') {
+                const logs = logsSnap.value.docs.map(d => d.data())
+                    .sort((a, b) => (b.date || 0) - (a.date || 0)).slice(0, 6)
+                    .map(l => `${l.action} ${l.player} przez ${l.admin}`)
+                    .filter(Boolean);
+                if (logs.length) ctx.push(`Ostatnie akcje: ${logs.join(' | ')}`);
+            }
+
+            // Gracze w bazie
+            if (playersSnap.status === 'fulfilled' && playersSnap.value.size > 0) {
+                ctx.push(`Graczy w bazie: ${playersSnap.value.size}+`);
+            }
+
+            // Ostatnie transakcje CShop (skrót)
+            if (cshopSnap.status === 'fulfilled' && cshopSnap.value.size > 0) {
+                const txns = cshopSnap.value.docs.map(d => d.data());
+                const totalBuy  = txns.filter(t => t.type==='BUY').reduce((s,t)=>s+(t.price||0),0);
+                const totalSell = txns.filter(t => t.type==='SELL').reduce((s,t)=>s+(t.price||0),0);
+                ctx.push(`CShop: ${cshopSnap.value.size}+ transakcji | Obrót zakupy=${totalBuy.toFixed(0)}$ sprzedaż=${totalSell.toFixed(0)}$`);
+            }
+
+            if (ctx.length > 2) serverContext = '\n\nKONTEKST SERWERA:\n- ' + ctx.join('\n- ');
+        } catch(e) { /* cicho — kontekst nieobowiązkowy */ }
 
         // Wyślij zapytanie z automatyczną rotacją modeli przy 429/503.
         // Max 4 próby — za każdym razem nowy model z _aiPickWorkingModel.
@@ -4895,12 +5268,37 @@ function _aiAppendMsg(role, text, avatar) {
     const hist = document.getElementById('ai-chat-history');
     if (!hist) return;
     const isUser = role === 'user';
+    // Dla AI: renderuj podstawowy markdown (bold, italic, listy, linki)
+    const renderedText = isUser ? escapeHtml(text) : _aiRenderMarkdown(text);
     hist.insertAdjacentHTML('beforeend', `
         <div class="ai-msg ${isUser ? 'ai-msg-user' : 'ai-msg-ai'}">
             <div class="ai-msg-avatar">${avatar}</div>
-            <div class="ai-msg-bubble">${escapeHtml(text)}</div>
+            <div class="ai-msg-bubble ai-msg-bubble-${role}">${renderedText}</div>
         </div>`);
     hist.scrollTop = hist.scrollHeight;
+}
+
+/** Renderuje podstawowy markdown w odpowiedziach AI */
+function _aiRenderMarkdown(text) {
+    let t = escapeHtml(text);
+    // Nagłówki
+    t = t.replace(/^### (.+)$/gm, '<div style="font-size:.95rem;font-weight:800;margin:.5rem 0 .2rem;">$1</div>');
+    t = t.replace(/^## (.+)$/gm, '<div style="font-size:1rem;font-weight:800;margin:.6rem 0 .2rem;border-bottom:1px solid rgba(255,255,255,.1);padding-bottom:.2rem;">$1</div>');
+    t = t.replace(/^# (.+)$/gm, '<div style="font-size:1.05rem;font-weight:900;margin:.6rem 0 .3rem;">$1</div>');
+    // Bold + italic
+    t = t.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+    t = t.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    t = t.replace(/\*(.+?)\*/g, '<em>$1</em>');
+    // Inline code
+    t = t.replace(/`([^`]+)`/g, '<code style="background:rgba(139,92,246,.2);padding:.1rem .35rem;border-radius:4px;font-family:monospace;font-size:.85em;">$1</code>');
+    // Listy punktowane
+    t = t.replace(/^[\-\*] (.+)$/gm, '<div style="display:flex;gap:.4rem;margin:.1rem 0;"><span style="color:#8b5cf6;flex-shrink:0;">•</span><span>$1</span></div>');
+    // Listy numerowane
+    t = t.replace(/^(\d+)\. (.+)$/gm, '<div style="display:flex;gap:.4rem;margin:.1rem 0;"><span style="color:#8b5cf6;font-weight:700;min-width:1.2em;flex-shrink:0;">$1.</span><span>$2</span></div>');
+    // Nowe linie (podwójne → <br>)
+    t = t.replace(/\n\n/g, '<br><br>');
+    t = t.replace(/\n/g, '<br>');
+    return t;
 }
 
 function _aiShowConfirmCard(parsed, originalText) {
@@ -4966,6 +5364,7 @@ window.aiExecuteAction = async function(cardTimestamp, parsed) {
     if (dangerousActions.includes(parsed.action) && !requirePermission('console', 'komendy konsoli')) return;
     if (['set_rank','remove_rank'].includes(parsed.action) && !requirePermission('rank_manage', 'zarządzanie rangami')) return;
     if (['set_stat','add_stat'].includes(parsed.action) && !requirePermission('stats_edit', 'edycja statystyk')) return;
+    if (['shop_item_add','shop_item_delete'].includes(parsed.action) && !requirePermission('shop', 'zarządzanie sklepem')) return;
 
     const aiAdmin = 'AI (' + (currentUser?.displayName || 'Panel') + ')';
 
@@ -4988,6 +5387,32 @@ window.aiExecuteAction = async function(cardTimestamp, parsed) {
                 admin: aiAdmin, status: 'pending', type: 'admin_grant', createdAt: serverTimestamp()
             });
             if (card) card.innerHTML = `<span style="color:#10b981;font-weight:700;"><i class="fa-solid fa-check"></i> Nadano ${parsed.itemType} ${parsed.itemId} dla ${escapeHtml(parsed.player)}</span>`;
+
+        } else if (parsed.action === 'shop_item_add') {
+            const docId = parsed.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+            await setDoc(doc(db, 'shop_items', docId), {
+                name: parsed.name,
+                type: parsed.type || 'item',
+                desc: parsed.desc || '',
+                price: Number(parsed.price) || 0,
+                oldPrice: parsed.oldPrice ? Number(parsed.oldPrice) : null,
+                order: Number(parsed.order) || 99,
+                items: parsed.items || [],
+                mediaUrl: parsed.mediaUrl || '',
+                active: parsed.active !== false,
+                featured: !!parsed.featured,
+                rarity: Number(parsed.rarity) || 1,
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp(),
+                updatedBy: aiAdmin
+            });
+            window.loadAdminShopItems?.();
+            if (card) card.innerHTML = `<span style="color:#10b981;font-weight:700;"><i class="fa-solid fa-check"></i> Dodano produkt "${escapeHtml(parsed.name)}" do sklepu</span>`;
+
+        } else if (parsed.action === 'shop_item_delete') {
+            await deleteDoc(doc(db, 'shop_items', parsed.id));
+            window.loadAdminShopItems?.();
+            if (card) card.innerHTML = `<span style="color:#10b981;font-weight:700;"><i class="fa-solid fa-check"></i> Usunięto produkt "${escapeHtml(parsed.id)}" ze sklepu</span>`;
 
         } else if (parsed.action === 'set_stat' || parsed.action === 'add_stat') {
             // Bezpośrednio do Firestore cstats_players
@@ -5056,14 +5481,76 @@ window.aiExecuteAction = async function(cardTimestamp, parsed) {
     }
 };
 
+// ─── BRAKUJĄCE FUNKCJE GLOBALNE (wymagane przez HTML onclick/onsubmit) ────────
 
+// Logowanie — formularz ma onsubmit="handleLogin(event)"
+window.handleLogin = function(e) {
+    e.preventDefault();
+    const login    = (document.getElementById('login-username')?.value || '').trim();
+    const password = document.getElementById('login-password')?.value || '';
+    if (!login || !password) { showLoginError('Podaj login i hasło!'); return; }
+    // Blokada bruteforce
+    const blockUntil = parseInt(localStorage.getItem('ap_block') || '0', 10);
+    if (Date.now() < blockUntil) {
+        const secs = Math.ceil((blockUntil - Date.now()) / 1000);
+        showLoginError('Zbyt wiele prób. Poczekaj ' + secs + 's.');
+        return;
+    }
+    window.dispatchEvent(new CustomEvent('adminLogin', { detail: { login, password } }));
+};
 
- : '0.00
-    } catch(e) { body.innerHTML = '<p style="color:#ef4444;">Błąd: '+e.message+'</p>'; }
-});
+// Blokada bruteforce — licznik prób
+window.recordFailedAttempt = function() {
+    const attempts = parseInt(localStorage.getItem('ap_attempts') || '0', 10) + 1;
+    localStorage.setItem('ap_attempts', attempts);
+    if (attempts >= 5) {
+        localStorage.setItem('ap_block', Date.now() + 5 * 60 * 1000);
+        localStorage.setItem('ap_attempts', '0');
+    }
+};
 
-// ─── EKWIPUNEK GRACZA ────────────────────────────────────────────────────────
+// Pokazanie/ukrycie hasła
+window.togglePasswordVisibility = function() {
+    const inp  = document.getElementById('login-password');
+    const icon = document.getElementById('pw-toggle-icon');
+    if (!inp) return;
+    if (inp.type === 'password') {
+        inp.type = 'text';
+        if (icon) { icon.className = 'fa-solid fa-eye-slash'; }
+    } else {
+        inp.type = 'password';
+        if (icon) { icon.className = 'fa-solid fa-eye'; }
+    }
+};
 
-// ─── EKWIPUNEK GRACZA — ulepszona wersja ─────────────────────────────────────
+// Wylogowanie
+window.handleLogout = function() {
+    currentUser = null;
+    document.body.classList.remove('auth-ready');
+    const loginErr = document.getElementById('login-error');
+    if (loginErr) loginErr.style.display = 'none';
+    const loginPw = document.getElementById('login-password');
+    if (loginPw) loginPw.value = '';
+    const loginUser = document.getElementById('login-username');
+    if (loginUser) loginUser.value = '';
+    localStorage.removeItem('ap_block');
+    localStorage.removeItem('ap_attempts');
+};
 
-// Timer auto-odświeżania ekwipunku gdy modal otwarty
+// Nawigacja między stronami panelu
+window.switchPage = function(page) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    const pageEl = document.getElementById('page-' + page);
+    if (pageEl) pageEl.classList.add('active');
+    const navBtn = document.querySelector('.nav-btn[data-page="' + page + '"]');
+    if (navBtn) navBtn.classList.add('active');
+    const title = document.getElementById('topbar-title');
+    if (title && navBtn) title.textContent = navBtn.querySelector('span')?.textContent || page;
+};
+
+// Hamburger menu (sidebar toggle na mobile)
+window.toggleSidebar = function() {
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar) sidebar.classList.toggle('open');
+};
