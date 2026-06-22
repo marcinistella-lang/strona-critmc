@@ -3075,7 +3075,13 @@ window.switchPluginTab = function(tab) {
         p.classList.toggle('sp-active', p.id === 'ptab-' + tab);
     });
     if (tab === 'pconnections') loadPluginConnections();
-    if (tab === 'cshop') loadCShopTab();
+    if (tab === 'cshop') {
+        // NAPRAWA: upewnij się że HTML zakładki CShop istnieje ZANIM loadCShopTab
+        // (loadCShopTab operuje na getElementById które zwraca null bez tego).
+        // Bez tego każdy ze znaczników CShop (8 funkcji) generuje błąd null → 60+ błędów w konsoli.
+        _injectCShopTab();
+        loadCShopTab();
+    }
 };
 
 /** Wstrzykuje zakładkę CShop do strony Pluginy (tylko raz) */
