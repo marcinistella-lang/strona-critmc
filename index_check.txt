@@ -1,71 +1,0 @@
-<!DOCTYPE html>
-<html lang="pl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CritMC - Oficjalny Serwer KitPvP</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="home.css">
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Press+Start+2P&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-</head>
-<body>
-
-    <div class="decor-glow bg-glow-1"></div>
-    <div class="decor-glow bg-glow-2"></div>
-
-    <!-- NagÄ¹â€šÄ‚Å‚wek -->
-    <header>
-        <div class="header-container">
-            <div class="logo-area">
-                <h1 class="logo-main">CritMC</h1>
-                <p class="logo-sub">KitPvP</p>
-            </div>
-            <div class="server-info">
-                <div class="info-box click-to-copy" id="ip-box" data-ip="critmc.pl">
-                    <i class="fa-solid fa-gamepad"></i>
-                    <div>
-                        <span class="info-label">IP SERWERA</span>
-                        <span class="info-value">critmc.pl</span>
-                    </div>
-                    <span class="copy-tooltip">Kliknij, aby skopiowaÃ„â€¡!</span>
-                </div>
-            </div>
-        </div>
-    </header>
-
-    <!-- Nawigacja gÄ¹â€šÄ‚Å‚wna -->
-    <nav class="tabs-nav">
-        <div class="nav-container">
-            <button class="tab-button active" data-tab="nowosci">
-                <i class="fa-solid fa-star"></i> NowoÄ¹â€ºci
-            </button>
-            <button class="tab-button" data-tab="sklep">
-                <i class="fa-solid fa-shop"></i> Sklep
-            </button>
-            <button class="tab-button" data-tab="regulamin">
-                <i class="fa-solid fa-scale-balanced"></i> Regulamin + Administracja
-            </button>
-            <button class="tab-button" data-tab="media">
-                <i class="fa-solid fa-photo-film"></i> Media
-            </button>
-            <button class="tab-button" data-tab="inne-strona">
-                <i class="fa-solid fa-ellipsis"></i> Inne
-            </button>
-        </div>
-    </nav>
-
-    <main class="shop-content">
-
-        <!-- NowoÄ¹â€ºci -->
-        <section id="nowosci" class="tab-content active">
-            <div class="home-placeholder">
-                <div class="launch-banner">PLANOWANY START<br>POD KONIEC SIERPNIA</div>
-            </div>
-
-            <!-- KONKURS -->
-            <div class="contest-card" id="contest-start">
-                <div class="contest-icon"><i class="fa-solid fa-trophy"></i></div>
-                <div class="contest-info">
-                    <div class="contest-title">Konkurs Startowy</div>
-                    <div class="contest-desc"><strong>N
