@@ -3434,15 +3434,6 @@ function _buildCShopTabHtml() {
                 <select id="cshop-hist-category" onchange="cshopFilterHistory()"
                     style="padding:.4rem .6rem;border:1.5px solid var(--border);border-radius:8px;font-size:.8rem;background:var(--bg);color:var(--text-primary);font-family:var(--font);outline:none;">
                     <option value="">Wszystkie kategorie</option>
-                    <option value="bloki">Bloki</option>
-                    <option value="jedzenie">Jedzenie</option>
-                    <option value="narzedzia">Narzędzia</option>
-                    <option value="bron">Broń</option>
-                    <option value="zbroja">Zbroja</option>
-                    <option value="zasoby">Zasoby</option>
-                    <option value="czas">Czas</option>
-                    <option value="premium">Premium</option>
-                    <option value="unknown">Inne</option>
                 </select>
                 <select id="cshop-hist-sort" onchange="cshopFilterHistory()"
                     style="padding:.4rem .6rem;border:1.5px solid var(--border);border-radius:8px;font-size:.8rem;background:var(--bg);color:var(--text-primary);font-family:var(--font);outline:none;">
@@ -4414,6 +4405,16 @@ async function loadCShopHistory() {
             const tb = b.timestamp ? new Date(b.timestamp).getTime() : 0;
             return tb - ta;
         });
+        // Auto-populacja kategorii z danych (zamiast hardcoded listy)
+        const catSelect = document.getElementById('cshop-hist-category');
+        if (catSelect) {
+            const currentVal = catSelect.value;
+            const cats = [...new Set(_cshopAllHistory.map(t => t.category).filter(c => c))].sort();
+            catSelect.innerHTML = '<option value="">Wszystkie kategorie</option>'
+                + cats.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+            // Przywróć wybraną wartość jeśli nadal istnieje
+            if (cats.includes(currentVal)) catSelect.value = currentVal;
+        }
         cshopFilterHistory();
     } catch(e) {
         tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:1.5rem;color:#ef4444;font-size:.85rem;">Błąd: ${e.message}</td></tr>`;
