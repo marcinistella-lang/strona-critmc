@@ -4429,6 +4429,12 @@ window.cshopFilterHistory = function() {
     const cat = document.getElementById('cshop-hist-category')?.value || '';
     const sortVal = document.getElementById('cshop-hist-sort')?.value || 'date_desc';
 
+    // DEBUG: pokaż w konsoli stan filtrów
+    console.log('[CShop Filter]', { search: s, type: t, item: itm, category: cat, sort: sortVal, totalTxns: _cshopAllHistory?.length || 0 });
+    if (!_cshopAllHistory || _cshopAllHistory.length === 0) {
+        console.warn('[CShop Filter] _cshopAllHistory puste — loadCShopHistory się nie wykonał lub brak danych.');
+    }
+
     let filtered = _cshopAllHistory.filter(tx => {
         if (s && !(tx.playerName || '').toLowerCase().includes(s)) return false;
         if (t && tx.type !== t) return false;
@@ -4452,6 +4458,7 @@ window.cshopFilterHistory = function() {
     // Licznik wyników
     const countEl = document.getElementById('cshop-hist-count');
     if (countEl) countEl.textContent = filtered.length + ' / ' + _cshopAllHistory.length;
+    console.log('[CShop Filter] Po filtrach:', filtered.length, 'z', _cshopAllHistory.length);
 
     if (!filtered.length) {
         tbody.innerHTML = '<tr><td colspan="7" class="table-empty">Brak transakcji pasujących do filtrów</td></tr>';
