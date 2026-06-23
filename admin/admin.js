@@ -3086,10 +3086,12 @@ window.switchPluginTab = function(tab) {
 
 /** Wstrzykuje zakładkę CShop do strony Pluginy (tylko raz) */
 function _injectCShopTab() {
+    console.log('[CShop] _injectCShopTab — czy istnieje?', !!document.getElementById('ptab-cshop'));
     if (document.getElementById('ptab-cshop')) return;
 
     // Dodaj przycisk zakładki
     const tabBar = document.querySelector('#page-plugins .site-tab-btn[data-site-tab="pconnections"]');
+    console.log('[CShop] tabBar znaleziony:', !!tabBar);
     if (tabBar) {
         const btn = document.createElement('button');
         btn.className = 'site-tab-btn';
@@ -3468,7 +3470,13 @@ let _cshopAllItemsData = {};
 let _cshopCurrentCategory = 'all';
 
 async function loadCShopTab() {
-    await Promise.allSettled([
+    console.log('[CShop] loadCShopTab START — ptab-cshop istnieje:', !!document.getElementById('ptab-cshop'));
+    // Upewnij się że HTML zakładki istnieje (zabezpieczenie przed null błędami)
+    if (!document.getElementById('ptab-cshop')) {
+        console.warn('[CShop] ptab-cshop nie istnieje — wołam _injectCShopTab()');
+        _injectCShopTab();
+    }
+    const results = await Promise.allSettled([
         loadCShopDailyStats(),
         loadCShopOverview(),
         loadCShopTaxConfig(),
@@ -3478,6 +3486,12 @@ async function loadCShopTab() {
         loadCShopItemsManager(),
         loadCShopHistory()
     ]);
+    // Loguj które funkcje się wywaliły
+    const names = ['dailyStats','overview','taxConfig','topSpent','topEarned','topTxns','items','history'];
+    results.forEach((r, i) => {
+        if (r.status === 'rejected') console.error('[CShop] BŁĄD w', names[i], ':', r.reason);
+    });
+    console.log('[CShop] loadCShopTab END');
 }
 
 window.loadCShopItemsManager = async function() {
