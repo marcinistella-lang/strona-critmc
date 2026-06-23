@@ -4450,70 +4450,95 @@ async function loadCShopHistory() {
 }
 
 window.cshopFilterHistory = function() {
-    const tbody = document.getElementById('cshop-history-tbody');
-    if (!tbody) return;
-    const s   = (document.getElementById('cshop-hist-search')?.value || '').toLowerCase().trim();
-    const t   = document.getElementById('cshop-hist-type')?.value || '';
-    const itm = (document.getElementById('cshop-hist-item')?.value || '').toLowerCase().trim();
-    const cat = document.getElementById('cshop-hist-category')?.value || '';
-    const sortVal = document.getElementById('cshop-hist-sort')?.value || 'date_desc';
+    try {
+        const tbody = document.getElementById('cshop-history-tbody');
+        if (!tbody) { console.warn('[CShop] brak tbody'); return; }
 
-    // DEBUG: pokaż w konsoli stan filtrów
-    console.log('[CShop Filter]', { search: s, type: t, item: itm, category: cat, sort: sortVal, totalTxns: _cshopAllHistory?.length || 0 });
-    if (!_cshopAllHistory || _cshopAllHistory.length === 0) {
-        console.warn('[CShop Filter] _cshopAllHistory puste — loadCShopHistory się nie wykonał lub brak danych.');
-    }
+        // Jeśli dane jeszcze się nie załadowały — pokaż komunikat i spróbuj załadować
+        if (!_cshopAllHistory || _cshopAllHistory.length === 0) {
+            console.warn('[CShop Filter] _cshopAllHistory puste — ładuję ponownie...');
+            tbody.innerHTML = '<tr><td colspan="7" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie danych...</td></tr>';
+            loadCShopHistory();
+            return;
+        }
 
-    let filtered = _cshopAllHistory.filter(tx => {
-        if (s && !(tx.playerName || '').toLowerCase().includes(s)) return false;
-        if (t && tx.type !== t) return false;
-        if (itm && !(tx.itemName || '').toLowerCase().includes(itm)) return false;
-        if (cat && tx.category !== cat) return false;
-        return true;
-    });
+        const s   = (document.getElementById('cshop-hist-search')?.value || '').toLowerCase().trim();
+        const t   = document.getElementById('cshop-hist-type')?.value || '';
+        const itm = (document.getElementById('cshop-hist-item')?.value || '').toLowerCase().trim();
+        const cat = document.getElementById('cshop-hist-category')?.value || '';
+        const sortVal = document.getElementById('cshop-hist-sort')?.value || 'date_desc';
 
-    // Sortowanie
-    filtered.sort((a, b) => {
-        const ta = a.timestamp ? new Date(a.timestamp).getTime() : 0;
-        const tb = b.timestamp ? new Date(b.timestamp).getTime() : 0;
-        if (sortVal === 'date_desc') return tb - ta;
-        if (sortVal === 'date_asc')  return ta - tb;
-        if (sortVal === 'price_desc') return (b.price||0) - (a.price||0);
-        if (sortVal === 'price_asc')  return (a.price||0) - (b.price||0);
-        if (sortVal === 'amount_desc') return (b.amount||0) - (a.amount||0);
-        return 0;
-    });
+        console.log('[CShop Filter] filtruje', _cshopAllHistory.length, 'transakcji:', { s, t, itm, cat, sortVal });
 
-    // Licznik wyników
-    const countEl = document.getElementById('cshop-hist-count');
-    if (countEl) countEl.textContent = filtered.length + ' / ' + _cshopAllHistory.length;
-    console.log('[CShop Filter] Po filtrach:', filtered.length, 'z', _cshopAllHistory.length);
+        // BEZPIECZNE filtrowanie — każdy warunek w try/catch
+        const filtered = _cshopAllHistory.filter(tx => {
+            try {
+                if (s) {
+                    const p = String(tx.playerName || '').toLowerCase();
+                    if (!p.includes(s)) return false;
+                }
+                if (t && String(tx.type || '') !== t) return false;
+                if (itm) {
+                    const i = String(tx.itemName || tx.category || '').toLowerCase();
+                    if (!i.includes(itm)) return false;
+                }
+                if (cat && String(tx.category || '') !== cat) return false;
+                return true;
+            } catch(e) { return false; }
+        });
 
-    if (!filtered.length) {
-        tbody.innerHTML = '<tr><td colspan="7" class="table-empty">Brak transakcji pasujących do filtrów</td></tr>';
-        return;
-    }
-    const limit = filtered.length > 500 ? 500 : filtered.length;
-    tbody.innerHTML = filtered.slice(0, 500).map(tx => {
-        const isB = tx.type === 'BUY';
-        const typeHtml = isB
-            ? '<span class="badge" style="background:rgba(239,68,68,.12);color:#ef4444;font-weight:700;">⬆ Kupno</span>'
-            : '<span class="badge" style="background:rgba(16,185,129,.12);color:#10b981;font-weight:700;">⬇ Sprzedaż</span>';
-        const ts = tx.timestamp ? new Date(tx.timestamp).toLocaleString('pl-PL') : '—';
-        return `<tr class="cshop-row-hover" style="cursor:pointer;" onclick="window.openCShopPlayerModal('${escapeHtml(tx.playerName||'')}')">
-            <td><div class="player-cell">${head(tx.playerName||'?')}<div class="player-name" style="font-weight:700;">${escapeHtml(tx.playerName||'?')}</div></div></td>
-            <td style="font-size:.82rem;font-weight:600;">${escapeHtml(tx.itemName||'?')}</td>
-            <td style="font-weight:700;text-align:center;">${tx.amount||1}</td>
-            <td style="font-weight:800;color:${isB ? '#ef4444' : '#10b981'};">${Number(tx.price||0).toFixed(2)}$</td>
-            <td>${typeHtml}</td>
-            <td style="font-size:.78rem;color:var(--text-secondary);font-weight:600;">${escapeHtml(tx.category||'—')}</td>
-            <td style="font-size:.78rem;color:var(--text-secondary);white-space:nowrap;">${ts}</td>
-        </tr>`;
-    }).join('');
-    if (filtered.length > 500) {
-        tbody.innerHTML += `<tr><td colspan="7" style="text-align:center;padding:.6rem;color:var(--text-secondary);font-size:.78rem;background:var(--bg);">
-            Wyświetlono pierwsze 500 z ${filtered.length} pasujących. Zawęź filtry aby zobaczyć więcej.
-        </td></tr>`;
+        // BEZPIECZNE sortowanie
+        filtered.sort((a, b) => {
+            try {
+                const ta = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+                const tb = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+                if (sortVal === 'date_desc') return tb - ta;
+                if (sortVal === 'date_asc')  return ta - tb;
+                if (sortVal === 'price_desc') return (Number(b.price)||0) - (Number(a.price)||0);
+                if (sortVal === 'price_asc')  return (Number(a.price)||0) - (Number(b.price)||0);
+                if (sortVal === 'amount_desc') return (Number(b.amount)||0) - (Number(a.amount)||0);
+                return 0;
+            } catch(e) { return 0; }
+        });
+
+        // Licznik wyników
+        const countEl = document.getElementById('cshop-hist-count');
+        if (countEl) countEl.textContent = filtered.length + ' / ' + _cshopAllHistory.length;
+        console.log('[CShop Filter] ✅ Po filtrach:', filtered.length, 'z', _cshopAllHistory.length);
+
+        if (!filtered.length) {
+            tbody.innerHTML = '<tr><td colspan="7" class="table-empty">Brak transakcji pasujących do filtrów (za dużo filtrów?)</td></tr>';
+            return;
+        }
+        tbody.innerHTML = filtered.slice(0, 500).map(tx => {
+            try {
+                const isB = String(tx.type) === 'BUY';
+                const typeHtml = isB
+                    ? '<span class="badge" style="background:rgba(239,68,68,.12);color:#ef4444;font-weight:700;">⬆ Kupno</span>'
+                    : '<span class="badge" style="background:rgba(16,185,129,.12);color:#10b981;font-weight:700;">⬇ Sprzedaż</span>';
+                const ts = tx.timestamp ? new Date(tx.timestamp).toLocaleString('pl-PL') : '—';
+                return `<tr class="cshop-row-hover">
+                    <td><div class="player-cell">${head(tx.playerName||'?')}<div class="player-name" style="font-weight:700;">${escapeHtml(tx.playerName||'?')}</div></div></td>
+                    <td style="font-size:.82rem;font-weight:600;">${escapeHtml(tx.itemName||'?')}</td>
+                    <td style="font-weight:700;text-align:center;">${tx.amount||1}</td>
+                    <td style="font-weight:800;color:${isB ? '#ef4444' : '#10b981'};">${Number(tx.price||0).toFixed(2)}$</td>
+                    <td>${typeHtml}</td>
+                    <td style="font-size:.78rem;color:var(--text-secondary);font-weight:600;">${escapeHtml(tx.category||'—')}</td>
+                    <td style="font-size:.78rem;color:var(--text-secondary);white-space:nowrap;">${ts}</td>
+                </tr>`;
+            } catch(e) {
+                return `<tr><td colspan="7" style="color:#ef4444;font-size:.7rem;">Błąd renderowania transakcji: ${escapeHtml(e.message)}</td></tr>`;
+            }
+        }).join('');
+        if (filtered.length > 500) {
+            tbody.innerHTML += `<tr><td colspan="7" style="text-align:center;padding:.6rem;color:var(--text-secondary);font-size:.78rem;background:var(--bg);">
+                Wyświetlono 500 z ${filtered.length} pasujących. Zawęź filtry.
+            </td></tr>`;
+        }
+    } catch(e) {
+        console.error('[CShop Filter] WYJĄTEK:', e);
+        const tbody = document.getElementById('cshop-history-tbody');
+        if (tbody) tbody.innerHTML = `<tr><td colspan="7" style="color:#ef4444;text-align:center;padding:1rem;">Błąd filtrowania: ${escapeHtml(e.message)}</td></tr>`;
     }
 };
 
