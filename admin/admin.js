@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
 import {
     getFirestore, collection, getDocs, doc, getDoc,
-    setDoc, updateDoc, deleteDoc, addDoc, onSnapshot,
+    setDoc, updateDoc, deleteDoc, deleteField, addDoc, onSnapshot,
     query, orderBy, where, limit, serverTimestamp, Timestamp
 } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
 
@@ -3389,6 +3389,9 @@ function _buildCShopTabHtml() {
                 <button onclick="cshopSaveAllPrices()" class="tbl-btn" style="padding:.35rem .7rem;font-size:.8rem;background:rgba(59,130,246,.12);color:#3b82f6;border:1px solid rgba(59,130,246,0.25);border-radius:8px;font-weight:700;cursor:pointer;font-family:var(--font);display:flex;align-items:center;gap:.3rem;">
                     <i class="fa-solid fa-floppy-disk"></i> Zapisz wszystkie ceny
                 </button>
+                <button onclick="window.cshopOpenAddItemModal()" class="tbl-btn" style="padding:.35rem .7rem;font-size:.8rem;background:rgba(16,185,129,.12);color:#10b981;border:1px solid rgba(16,185,129,0.25);border-radius:8px;font-weight:700;cursor:pointer;font-family:var(--font);display:flex;align-items:center;gap:.3rem;">
+                    <i class="fa-solid fa-plus"></i> Dodaj produkt
+                </button>
             </div>
             <div id="cshop-items-categories" style="display:flex;gap:.35rem;flex-wrap:wrap;">
                 <!-- Kategorie zostaną wstrzyknięte -->
@@ -3697,9 +3700,14 @@ function _renderCShopItemsTable() {
                 <input type="number" step="any" min="0" placeholder="Brak (brak sprzedaży)" id="cshop-sell-${item.category}-${item.slot}" value="${sellVal}" class="cshop-input-field">
             </td>
             <td style="text-align:center;">
-                <button class="tbl-btn" onclick="cshopSaveItemPrice('${escapeHtml(item.category)}', ${item.slot})" style="font-size:.72rem;padding:.3rem .6rem;">
-                    <i class="fa-solid fa-floppy-disk"></i> Zapisz
-                </button>
+                <div style="display:flex;gap:.3rem;justify-content:center;">
+                    <button class="tbl-btn" onclick="cshopSaveItemPrice('${escapeHtml(item.category)}', ${item.slot})" style="font-size:.72rem;padding:.3rem .6rem;" title="Zapisz cenę">
+                        <i class="fa-solid fa-floppy-disk"></i>
+                    </button>
+                    <button class="tbl-btn" onclick="window.cshopRemoveItem('${escapeHtml(item.category)}', ${item.slot})" style="font-size:.72rem;padding:.3rem .6rem;color:#ef4444;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);" title="Usuń produkt">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </div>
             </td>
         </tr>`;
     }).join('');
@@ -6088,4 +6096,163 @@ window.switchPage = function(page) {
 window.toggleSidebar = function() {
     const sidebar = document.getElementById('sidebar');
     if (sidebar) sidebar.classList.toggle('open');
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// NAPRAWA KRYTYCZNA: Eksportuj wszystkie async function do window
+// Plik używa `import` (moduł ES), więc onclick w HTML nie widzi zwykłych
+// `async function name()` — musi być window.name. Bez tego ~60 błędów
+// ReferenceError przy każdej akcji w panelu.
+// ═══════════════════════════════════════════════════════════════════════════
+window.loadShopItemsFromStore = loadShopItemsFromStore;
+window.loadShopGrants        = loadShopGrants;
+window.loadCShopTab          = loadCShopTab;
+window.loadCShopDailyStats   = loadCShopDailyStats;
+window.loadCShopOverview     = loadCShopOverview;
+window.loadCShopTopList      = loadCShopTopList;
+window.loadCShopHistory      = loadCShopHistory;
+window.loadCShopTaxConfig    = loadCShopTaxConfig;
+window.loadCStatsTop         = loadCStatsTop;
+window.loadCStatsEditLog     = loadCStatsEditLog;
+window.loadPluginConnections = loadPluginConnections;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CSHOP: Dodawanie / usuwanie produktów z poziomu panelu
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Otwórz modal dodawania nowego produktu do CShop */
+window.cshopOpenAddItemModal = function() {
+    if (!requirePermission('all', 'dodawanie produktów CShop')) return;
+    let modal = document.getElementById('cshop-add-item-modal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'cshop-add-item-modal';
+        modal.className = 'modal-overlay';
+        modal.setAttribute('onclick', "if(event.target===this)this.classList.remove('open')");
+        modal.innerHTML = `
+            <div class="modal-box" style="max-width:90vw;width:480px;max-height:92vh;">
+                <div class="modal-header">
+                    <div class="modal-title">➕ Dodaj nowy produkt</div>
+                    <button class="modal-close" onclick="document.getElementById('cshop-add-item-modal').classList.remove('open')"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div class="modal-body" style="padding:1.2rem;">
+                    <div style="display:flex;flex-direction:column;gap:.7rem;">
+                        <div>
+                            <label style="font-size:.75rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;display:block;margin-bottom:.3rem;">Kategoria</label>
+                            <input type="text" id="cshop-add-category" placeholder="np. przydatne, rudy, bloki" autocomplete="off"
+                                style="width:100%;padding:.55rem .7rem;border:1.5px solid var(--border);border-radius:8px;font-size:.85rem;background:var(--bg);color:var(--text-primary);font-family:var(--font);">
+                        </div>
+                        <div>
+                            <label style="font-size:.75rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;display:block;margin-bottom:.3rem;">Slot (liczba)</label>
+                            <input type="number" id="cshop-add-slot" placeholder="np. 10" min="0" max="53"
+                                style="width:100%;padding:.55rem .7rem;border:1.5px solid var(--border);border-radius:8px;font-size:.85rem;background:var(--bg);color:var(--text-primary);font-family:var(--font);">
+                        </div>
+                        <div>
+                            <label style="font-size:.75rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;display:block;margin-bottom:.3rem;">Materiał (nazwa Minecraft)</label>
+                            <input type="text" id="cshop-add-material" placeholder="np. DIAMOND, ENCHANTED_GOLDEN_APPLE" autocomplete="off"
+                                style="width:100%;padding:.55rem .7rem;border:1.5px solid var(--border);border-radius:8px;font-size:.85rem;background:var(--bg);color:var(--text-primary);font-family:var(--font);">
+                        </div>
+                        <div>
+                            <label style="font-size:.75rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;display:block;margin-bottom:.3rem;">Nazwa wyświetlana (opcjonalnie)</label>
+                            <input type="text" id="cshop-add-displayname" placeholder="np. Kox Premium" autocomplete="off"
+                                style="width:100%;padding:.55rem .7rem;border:1.5px solid var(--border);border-radius:8px;font-size:.85rem;background:var(--bg);color:var(--text-primary);font-family:var(--font);">
+                        </div>
+                        <div style="display:flex;gap:.5rem;">
+                            <div style="flex:1;">
+                                <label style="font-size:.75rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;display:block;margin-bottom:.3rem;">Cena kupna ($)</label>
+                                <input type="number" id="cshop-add-buy" placeholder="100" step="0.01" min="0"
+                                    style="width:100%;padding:.55rem .7rem;border:1.5px solid var(--border);border-radius:8px;font-size:.85rem;background:var(--bg);color:var(--text-primary);font-family:var(--font);">
+                            </div>
+                            <div style="flex:1;">
+                                <label style="font-size:.75rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;display:block;margin-bottom:.3rem;">Cena sprzedaży ($)</label>
+                                <input type="number" id="cshop-add-sell" placeholder="50" step="0.01" min="0"
+                                    style="width:100%;padding:.55rem .7rem;border:1.5px solid var(--border);border-radius:8px;font-size:.85rem;background:var(--bg);color:var(--text-primary);font-family:var(--font);">
+                            </div>
+                        </div>
+                        <div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:8px;padding:.5rem .7rem;font-size:.72rem;color:#f59e0b;margin-top:.3rem;">
+                            <i class="fa-solid fa-circle-info"></i> Produkt zostanie zapisany w Firestore <code>cshop_config/items</code>. Plugin CShop pobierze go automatycznie w ciągu 60s.
+                        </div>
+                        <button onclick="window._cshopConfirmAddItem()"
+                            style="margin-top:.4rem;padding:.7rem;background:linear-gradient(135deg,#10b981,#3b82f6);color:#fff;border:none;border-radius:8px;font-weight:800;cursor:pointer;font-family:var(--font);font-size:.9rem;">
+                            <i class="fa-solid fa-plus"></i> Dodaj produkt
+                        </button>
+                    </div>
+                </div>
+            </div>`;
+        document.body.appendChild(modal);
+    }
+    // Wyczyść pola
+    ['cshop-add-category','cshop-add-slot','cshop-add-material','cshop-add-displayname','cshop-add-buy','cshop-add-sell'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+    modal.classList.add('open');
+};
+
+/** Potwierdź dodanie produktu — zapisuje do Firestore cshop_config/items */
+window._cshopConfirmAddItem = async function() {
+    if (!requirePermission('all', 'dodawanie produktów CShop')) return;
+    const category    = document.getElementById('cshop-add-category')?.value?.trim();
+    const slotStr     = document.getElementById('cshop-add-slot')?.value?.trim();
+    const material    = document.getElementById('cshop-add-material')?.value?.trim();
+    const displayName = document.getElementById('cshop-add-displayname')?.value?.trim();
+    const buyStr      = document.getElementById('cshop-add-buy')?.value?.trim();
+    const sellStr     = document.getElementById('cshop-add-sell')?.value?.trim();
+
+    if (!category || !slotStr || !material) {
+        showToast('error', 'Wypełnij kategorię, slot i materiał!');
+        return;
+    }
+    const slot = parseInt(slotStr);
+    if (isNaN(slot) || slot < 0) { showToast('error', 'Slot musi być liczbą ≥ 0'); return; }
+
+    const buy  = buyStr  ? parseFloat(buyStr)  : null;
+    const sell = sellStr ? parseFloat(sellStr) : null;
+
+    try {
+        // Zapis do cshop_config/items z merge (klucz: {category}_{slot})
+        const key = `${category}_${slot}`;
+        const itemData = {
+            [key]: {
+                category,
+                slot,
+                buyPrice:  buy,
+                sellPrice: sell,
+                material,
+                displayName: displayName || material
+            }
+        };
+        await setDoc(doc(db, 'cshop_config', 'items'), itemData, { merge: true });
+        showToast('success', `✅ Dodano produkt: ${displayName || material} (${category} #${slot})`);
+        document.getElementById('cshop-add-item-modal')?.classList.remove('open');
+        // Odśwież listę produktów
+        loadCShopItemsManager?.();
+    } catch(e) {
+        showToast('error', 'Błąd zapisu: ' + e.message);
+    }
+};
+
+/** Usuń produkt z CShop — usuwa pole {category}_{slot} z cshop_config/items */
+window.cshopRemoveItem = async function(category, slot) {
+    if (!requirePermission('all', 'usuwanie produktów CShop')) return;
+    if (!confirm(`Usunąć produkt ${category} #${slot} ze sklepu?\n\nUwaga: to usunie go z Firestore. Plugin CShop zauważy zmianę w ciągu 60s.`)) return;
+    try {
+        const key = `${category}_${slot}`;
+        // Firestore nie ma "delete field" przez Web SDK bez updateDoc z FieldValue.delete
+        await updateDoc(doc(db, 'cshop_config', 'items'), {
+            [key]: deleteField()
+        });
+        showToast('success', `🗑 Usunięto produkt: ${category} #${slot}`);
+        loadCShopItemsManager?.();
+    } catch(e) {
+        // Fallback — jeśli deleteField nie działa, zapisz null
+        try {
+            const key = `${category}_${slot}`;
+            await setDoc(doc(db, 'cshop_config', 'items'), { [key]: null }, { merge: true });
+            showToast('success', `🗑 Usunięto produkt: ${category} #${slot}`);
+            loadCShopItemsManager?.();
+        } catch(e2) {
+            showToast('error', 'Błąd usuwania: ' + e2.message);
+        }
+    }
 };
