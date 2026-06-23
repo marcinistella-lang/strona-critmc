@@ -3063,8 +3063,8 @@ let _cstatsSelectedPlayer = null; // { name, uuid, stats }
 window.loadPluginsPage = async function() {
     switchPluginTab('cstats');
     await Promise.allSettled([loadCStatsTop(), loadCStatsEditLog()]);
-    // Wstrzyknij zakładkę CShop jeśli jeszcze nie ma
     _injectCShopTab();
+    _injectCUstawieniaTab();
 };
 
 window.switchPluginTab = function(tab) {
@@ -3081,6 +3081,10 @@ window.switchPluginTab = function(tab) {
         // Bez tego każdy ze znaczników CShop (8 funkcji) generuje błąd null → 60+ błędów w konsoli.
         _injectCShopTab();
         loadCShopTab();
+    }
+    if (tab === 'custawienia') {
+        _injectCUstawieniaTab();
+        loadCUstawieniaTab();
     }
 };
 
@@ -3110,6 +3114,295 @@ function _injectCShopTab() {
     panel.innerHTML = _buildCShopTabHtml();
     pluginsPage.appendChild(panel);
 }
+
+const CU_ANALYTICS_COLLECTION = 'server_analytics';
+const CU_ANALYTICS_PLAYERS_COLLECTION = 'server_analytics_players';
+let _cuAnalytics = null;
+let _cuPlayers = [];
+
+function _injectCUstawieniaTab() {
+    if (document.getElementById('ptab-custawienia')) return;
+
+    const tabBar = document.querySelector('#page-plugins .site-tab-btn[data-site-tab="pconnections"]');
+    if (tabBar) {
+        const btn = document.createElement('button');
+        btn.className = 'site-tab-btn';
+        btn.setAttribute('data-site-tab', 'custawienia');
+        btn.setAttribute('onclick', "switchPluginTab('custawienia')");
+        btn.innerHTML = '<i class="fa-solid fa-cubes-stacked"></i> CUstawienia';
+        tabBar.insertAdjacentElement('beforebegin', btn);
+    }
+
+    const pluginsPage = document.getElementById('page-plugins');
+    if (!pluginsPage) return;
+    const panel = document.createElement('div');
+    panel.id = 'ptab-custawienia';
+    panel.className = 'site-tab-panel';
+    panel.innerHTML = _buildCUstawieniaTabHtml();
+    pluginsPage.appendChild(panel);
+}
+
+function _buildCUstawieniaTabHtml() {
+    return `
+    <style>
+        .cu-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(205px,1fr));gap:1rem;margin-bottom:1.2rem}
+        .cu-card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:1rem;box-shadow:var(--shadow-sm)}
+        .cu-title{font-size:.72rem;font-weight:800;text-transform:uppercase;color:var(--text-secondary);display:flex;align-items:center;gap:.45rem;margin-bottom:.55rem}
+        .cu-value{font-size:1.35rem;font-weight:900;color:var(--text-primary);line-height:1.1}
+        .cu-sub{font-size:.72rem;color:var(--text-secondary);margin-top:.25rem}
+        .cu-list{border:1px solid var(--border);border-radius:10px;background:var(--bg-card);max-height:292px;overflow:auto}
+        .cu-row{display:flex;align-items:center;justify-content:space-between;gap:.8rem;padding:.58rem .75rem;border-bottom:1px solid var(--border);font-size:.82rem}
+        .cu-row:last-child{border-bottom:0}
+        .cu-pill{font-size:.72rem;font-weight:800;padding:.16rem .48rem;border-radius:999px;background:rgba(59,130,246,.1);color:#3b82f6;white-space:nowrap}
+        .cu-input{padding:.48rem .72rem;border:1.5px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text-primary);font-family:var(--font);font-size:.82rem;outline:none}
+        .cu-input:focus{border-color:#3b82f6}
+    </style>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:1rem">
+        <div>
+            <div style="font-size:1.1rem;font-weight:900;color:var(--text-primary)">CUstawienia - analiza itemow</div>
+            <div id="cu-last-scan" style="font-size:.78rem;color:var(--text-secondary);margin-top:.15rem">Ladowanie danych z bazy...</div>
+        </div>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+            <button class="tbl-btn" onclick="loadCUstawieniaTab()" style="font-size:.78rem;padding:.45rem .75rem"><i class="fa-solid fa-rotate-right"></i> Odswiez</button>
+            <button class="tbl-btn" onclick="cuExportAnalyticsCsv()" style="font-size:.78rem;padding:.45rem .75rem"><i class="fa-solid fa-file-csv"></i> CSV / Excel</button>
+        </div>
+    </div>
+
+    <div id="cu-summary" class="cu-grid">
+        <div class="cu-card"><div class="cu-title"><i class="fa-solid fa-spinner fa-spin"></i> Ladowanie</div><div class="cu-sub">Pobieram Firestore...</div></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:1.2rem;margin-bottom:1.2rem">
+        <div class="table-card" style="padding:1rem">
+            <div class="cu-title"><i class="fa-solid fa-wand-magic-sparkles" style="color:#8b5cf6"></i> Szybkie pytanie</div>
+            <div style="display:flex;gap:.5rem">
+                <input id="cu-ai-question" class="cu-input" style="flex:1" placeholder="np. ile jest koksow, obsydianu, setow 4/4?">
+                <button class="tbl-btn" onclick="cuAskAnalytics()" style="font-size:.78rem;padding:.45rem .8rem">Zapytaj</button>
+            </div>
+            <div id="cu-ai-answer" style="margin-top:.75rem;font-size:.86rem;color:var(--text-secondary);line-height:1.45">Panel odpowie z ostatniego snapshotu. CritAI dostaje te same dane w kontekscie rozmowy.</div>
+        </div>
+
+        <div class="table-card" style="padding:1rem">
+            <div class="cu-title"><i class="fa-solid fa-star" style="color:#f59e0b"></i> Najwazniejsze itemy</div>
+            <div id="cu-special-list" class="cu-list"><div style="padding:1rem;color:var(--text-secondary)">Ladowanie...</div></div>
+        </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:1.2rem;margin-bottom:1.2rem">
+        <div class="table-card" style="padding:1rem">
+            <div class="cu-title"><i class="fa-solid fa-shield-halved" style="color:#10b981"></i> Sety zbroi</div>
+            <div id="cu-armor-list" class="cu-list"><div style="padding:1rem;color:var(--text-secondary)">Ladowanie...</div></div>
+        </div>
+        <div class="table-card" style="padding:1rem">
+            <div class="cu-title"><i class="fa-solid fa-users" style="color:#3b82f6"></i> Gracze wedlug itemow</div>
+            <div id="cu-players-list" class="cu-list"><div style="padding:1rem;color:var(--text-secondary)">Ladowanie...</div></div>
+        </div>
+    </div>
+
+    <div class="table-card" style="overflow:hidden">
+        <div style="padding:1rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:.75rem;flex-wrap:wrap">
+            <div class="cu-title" style="margin:0"><i class="fa-solid fa-boxes-stacked" style="color:#ef4444"></i> Wszystkie materialy</div>
+            <input id="cu-material-search" class="cu-input" placeholder="Szukaj materialu..." oninput="cuRenderMaterials()">
+        </div>
+        <div style="overflow:auto;max-height:430px">
+            <table class="data-table" style="margin:0">
+                <thead><tr><th>Material</th><th style="text-align:right">Ilosc</th></tr></thead>
+                <tbody id="cu-materials-tbody"><tr><td colspan="2" class="table-loading">Ladowanie...</td></tr></tbody>
+            </table>
+        </div>
+    </div>`;
+}
+
+async function loadCUstawieniaTab() {
+    const summary = document.getElementById('cu-summary');
+    if (summary) summary.innerHTML = '<div class="cu-card"><div class="cu-title"><i class="fa-solid fa-spinner fa-spin"></i> Ladowanie</div><div class="cu-sub">Pobieram Firestore...</div></div>';
+    try {
+        const [currentSnap, materialsSnap, specialSnap, armorSnap, enchantsSnap, catsSnap, playersSnap] = await Promise.all([
+            getDoc(doc(db, CU_ANALYTICS_COLLECTION, 'current')),
+            getDoc(doc(db, CU_ANALYTICS_COLLECTION, 'materials')),
+            getDoc(doc(db, CU_ANALYTICS_COLLECTION, 'special')),
+            getDoc(doc(db, CU_ANALYTICS_COLLECTION, 'armor_sets')),
+            getDoc(doc(db, CU_ANALYTICS_COLLECTION, 'enchants')),
+            getDoc(doc(db, CU_ANALYTICS_COLLECTION, 'categories')),
+            getDocs(query(collection(db, CU_ANALYTICS_PLAYERS_COLLECTION), limit(500)))
+        ]);
+
+        _cuAnalytics = {
+            current: currentSnap.exists() ? currentSnap.data() : {},
+            materials: materialsSnap.exists() ? (materialsSnap.data().items || {}) : {},
+            special: specialSnap.exists() ? (specialSnap.data().items || {}) : {},
+            armor: armorSnap.exists() ? (armorSnap.data().items || {}) : {},
+            enchants: enchantsSnap.exists() ? (enchantsSnap.data().items || {}) : {},
+            categories: catsSnap.exists() ? (catsSnap.data().items || {}) : {}
+        };
+        _cuPlayers = playersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        cuRenderAnalytics();
+    } catch (e) {
+        console.error('[CUstawienia] load analytics error:', e);
+        if (summary) summary.innerHTML = '<div class="cu-card"><div class="cu-title" style="color:#ef4444"><i class="fa-solid fa-triangle-exclamation"></i> Brak danych</div><div class="cu-sub">Nie udalo sie pobrac server_analytics z Firestore.</div></div>';
+    }
+}
+
+function cuFmt(value) {
+    if (value === undefined || value === null || value === '') return '0';
+    const n = Number(value);
+    return Number.isFinite(n) ? Math.round(n).toLocaleString('pl-PL') : String(value);
+}
+
+function cuNorm(value) {
+    return String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+function cuRenderAnalytics() {
+    if (!_cuAnalytics) return;
+    const c = _cuAnalytics.current || {};
+    const sp = _cuAnalytics.special || {};
+    const armor = _cuAnalytics.armor || {};
+    const ench = _cuAnalytics.enchants || {};
+
+    const last = c.updatedAt || (c.lastScanTime ? new Date(Number(c.lastScanTime)).toLocaleString('pl-PL') : 'brak danych');
+    const lastEl = document.getElementById('cu-last-scan');
+    if (lastEl) lastEl.textContent = 'Ostatni snapshot: ' + last;
+
+    const cards = [
+        ['fa-box', 'Itemy lacznie', c.totalItemAmount || 0, `${cuFmt(c.totalStacks || 0)} stackow`],
+        ['fa-users', 'Gracze w skanie', c.onlinePlayersScanned || 0, `${cuFmt(c.playersCount || _cuPlayers.length || 0)} w bazie analizy`],
+        ['fa-apple-whole', 'Koksy', sp.KOKSY || sp.ENCHANTED_GOLDEN_APPLE || 0, 'Enchanted golden apple'],
+        ['fa-apple-whole', 'Refy', sp.REFY || sp.GOLDEN_APPLE || 0, 'Golden apple'],
+        ['fa-network-wired', 'Cobweby', sp.COBWEB || 0, 'Pajeczyny na serwerze'],
+        ['fa-wand-magic-sparkles', 'Mending', ench.MENDING_ITEMS || 0, 'Itemy z Mending'],
+        ['fa-gem', 'Kilofy Silk Touch', sp.PICKAXE_SILK_TOUCH || 0, 'Wszystkie kilofy'],
+        ['fa-shield-halved', 'Netherite 4/4', armor.netherite_4_4 || c.netherite4_4 || 0, `${cuFmt(armor.netherite_4_4_mending || 0)} z pelnym Mending`]
+    ];
+
+    const summary = document.getElementById('cu-summary');
+    if (summary) summary.innerHTML = cards.map(([icon, title, value, sub]) => `
+        <div class="cu-card"><div class="cu-title"><i class="fa-solid ${icon}"></i> ${escapeHtml(title)}</div><div class="cu-value">${cuFmt(value)}</div><div class="cu-sub">${escapeHtml(sub)}</div></div>
+    `).join('');
+
+    cuRenderList('cu-special-list', sp, 18);
+    cuRenderList('cu-armor-list', armor, 18);
+    cuRenderPlayers();
+    cuRenderMaterials();
+}
+
+function cuRenderList(id, data, max = 20) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const entries = Object.entries(data || {}).sort((a, b) => (Number(b[1]) || 0) - (Number(a[1]) || 0)).slice(0, max);
+    el.innerHTML = entries.length ? entries.map(([key, value]) => `
+        <div class="cu-row"><span>${escapeHtml(String(key).replaceAll('_', ' '))}</span><span class="cu-pill">${cuFmt(value)}</span></div>
+    `).join('') : '<div style="padding:1rem;color:var(--text-secondary)">Brak danych.</div>';
+}
+
+function cuRenderPlayers() {
+    const el = document.getElementById('cu-players-list');
+    if (!el) return;
+    const rows = [..._cuPlayers].sort((a, b) => (Number(b.totalItems) || 0) - (Number(a.totalItems) || 0)).slice(0, 35);
+    el.innerHTML = rows.length ? rows.map(p => `
+        <div class="cu-row">
+            <span><b>${escapeHtml(p.name || p.id)}</b><br><span style="font-size:.72rem;color:var(--text-secondary)">${escapeHtml(p.armorType || 'none')} ${cuFmt(p.armorPieces || 0)}/4, Mending ${cuFmt(p.armorMendingPieces || 0)}</span></span>
+            <span class="cu-pill">${cuFmt(p.totalItems || 0)}</span>
+        </div>
+    `).join('') : '<div style="padding:1rem;color:var(--text-secondary)">Brak graczy w analizie.</div>';
+}
+
+function cuRenderMaterials() {
+    const tbody = document.getElementById('cu-materials-tbody');
+    if (!tbody || !_cuAnalytics) return;
+    const q = cuNorm(document.getElementById('cu-material-search')?.value || '');
+    const rows = Object.entries(_cuAnalytics.materials || {})
+        .filter(([key]) => !q || cuNorm(key).includes(q) || cuNorm(String(key).replaceAll('_', ' ')).includes(q))
+        .sort((a, b) => (Number(b[1]) || 0) - (Number(a[1]) || 0))
+        .slice(0, 350);
+    tbody.innerHTML = rows.length ? rows.map(([key, value]) => `<tr><td>${escapeHtml(key)}</td><td style="text-align:right;font-weight:800">${cuFmt(value)}</td></tr>`).join('')
+        : '<tr><td colspan="2" class="table-empty">Brak wynikow.</td></tr>';
+}
+
+function cuMaterialAnswer(question, materials) {
+    const aliases = [
+        { terms: ['obsidian', 'obsydian', 'obsydianu'], key: 'OBSIDIAN' },
+        { terms: ['cobweb', 'pajeczyn', 'pajeczy'], key: 'COBWEB' },
+        { terms: ['netherite scrap', 'netheritowy zlom'], key: 'NETHERITE_SCRAP' },
+        { terms: ['netherite ingot', 'sztabek netherite'], key: 'NETHERITE_INGOT' },
+        { terms: ['diament', 'diamond'], key: 'DIAMOND' },
+        { terms: ['totem'], key: 'TOTEM_OF_UNDYING' },
+        { terms: ['ender pearl', 'perel'], key: 'ENDER_PEARL' },
+        { terms: ['experience bottle', 'butelki exp', 'xp bottle'], key: 'EXPERIENCE_BOTTLE' }
+    ];
+    for (const alias of aliases) {
+        if (alias.terms.some(term => question.includes(term))) return `${alias.key}: ${cuFmt(materials[alias.key] || 0)} sztuk.`;
+    }
+    const found = Object.keys(materials || {}).find(key => question.includes(cuNorm(key)) || question.includes(cuNorm(String(key).replaceAll('_', ' '))));
+    return found ? `${found}: ${cuFmt(materials[found] || 0)} sztuk.` : null;
+}
+
+function cuAskAnalytics() {
+    const input = document.getElementById('cu-ai-question');
+    const answer = document.getElementById('cu-ai-answer');
+    if (!input || !answer || !_cuAnalytics) return;
+
+    const q = cuNorm(input.value);
+    const sp = _cuAnalytics.special || {};
+    const mats = _cuAnalytics.materials || {};
+    const armor = _cuAnalytics.armor || {};
+    const ench = _cuAnalytics.enchants || {};
+    const players = _cuPlayers || [];
+    const player = players.find(p => cuNorm(p.name || '').length >= 3 && q.includes(cuNorm(p.name)));
+    let result = 'Nie znalazlem gotowej odpowiedzi. Wpisz material, nick gracza albo haslo: koxy, refy, cobweby, silk touch, mending, netherite 4/4.';
+
+    if (player) {
+        result = `${player.name}: ${cuFmt(player.totalItems || 0)} itemow, ${cuFmt(player.mendingCount || 0)} z Mending, zbroja ${player.armorType || 'none'} ${cuFmt(player.armorPieces || 0)}/4.`;
+    } else if (q.includes('koks')) {
+        result = `Koksy: ${cuFmt(sp.KOKSY || sp.ENCHANTED_GOLDEN_APPLE || 0)}.`;
+    } else if (q.includes('ref') || q.includes('zlote jabl')) {
+        result = `Refy / zlote jablka: ${cuFmt(sp.REFY || sp.GOLDEN_APPLE || 0)}.`;
+    } else if (q.includes('cobweb') || q.includes('pajecz')) {
+        result = `Cobweby: ${cuFmt(sp.COBWEB || mats.COBWEB || 0)}.`;
+    } else if (q.includes('silk')) {
+        result = `Kilofy z Silk Touch: ${cuFmt(sp.PICKAXE_SILK_TOUCH || 0)}.`;
+    } else if (q.includes('mending') && q.includes('netherite')) {
+        result = `Netherite 4/4 z pelnym Mending: ${cuFmt(armor.netherite_4_4_mending || 0)}, 3/4 z Mending: ${cuFmt(armor.netherite_3_4_mending || 0)}.`;
+    } else if (q.includes('mending')) {
+        result = `Itemy z Mending: ${cuFmt(ench.MENDING_ITEMS || 0)}.`;
+    } else if (q.includes('set')) {
+        result = `Sety: netherite 4/4 ${cuFmt(armor.netherite_4_4 || 0)}, netherite 3/4 ${cuFmt(armor.netherite_3_4 || 0)}, diamond 4/4 ${cuFmt(armor.diamond_4_4 || 0)}.`;
+    } else {
+        result = cuMaterialAnswer(q, mats) || result;
+    }
+
+    answer.textContent = result;
+}
+
+function cuExportAnalyticsCsv() {
+    if (!_cuAnalytics) return;
+    const lines = ['category,key,value'];
+    const addMap = (category, map) => Object.entries(map || {}).forEach(([key, value]) => {
+        lines.push(`${category},"${String(key).replaceAll('"', '""')}",${Number(value) || 0}`);
+    });
+    addMap('material', _cuAnalytics.materials);
+    addMap('special', _cuAnalytics.special);
+    addMap('armor', _cuAnalytics.armor);
+    addMap('enchant', _cuAnalytics.enchants);
+    addMap('category', _cuAnalytics.categories);
+    _cuPlayers.forEach(p => {
+        const name = String(p.name || p.id).replaceAll('"', '""');
+        lines.push(`player_total,"${name}",${Number(p.totalItems) || 0}`);
+        lines.push(`player_mending,"${name}",${Number(p.mendingCount) || 0}`);
+    });
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'critmc-custawienia-analytics.csv';
+    a.click();
+    URL.revokeObjectURL(a.href);
+}
+
+window.loadCUstawieniaTab = loadCUstawieniaTab;
+window.cuRenderMaterials = cuRenderMaterials;
+window.cuAskAnalytics = cuAskAnalytics;
+window.cuExportAnalyticsCsv = cuExportAnalyticsCsv;
 
 // ── CShop Tab HTML ────────────────────────────────────────────────────────────
 
@@ -5182,6 +5475,24 @@ async function loadPluginConnections() {
             }
         },
         {
+            name: 'CUstawienia Analytics',
+            key: 'server_analytics/current',
+            icon: 'fa-cubes-stacked',
+            color: '#3b82f6',
+            check: async () => {
+                const snap = await getDoc(doc(db, CU_ANALYTICS_COLLECTION, 'current'));
+                if (!snap.exists()) return { ok: false, detail: 'Brak snapshotu analizy' };
+                const d = snap.data();
+                const last = d.lastScanTime ? new Date(Number(d.lastScanTime)) : (d.updatedAt ? new Date(d.updatedAt) : null);
+                const ageSec = last ? Math.floor((Date.now() - last.getTime()) / 1000) : 9999;
+                return {
+                    ok: ageSec < 1200,
+                    detail: `${cuFmt(d.totalItemAmount || 0)} itemow, ${cuFmt(d.playersCount || d.onlinePlayersScanned || 0)} graczy`,
+                    lastUpdate: last ? last.toLocaleTimeString('pl-PL') : 'brak'
+                };
+            }
+        },
+        {
             name: 'Cloudflare Worker (R2)',
             key: 'worker',
             icon: 'fa-cloud',
@@ -5663,11 +5974,16 @@ window.sendAiMessage = async function() {
         // Pobierz bogaty kontekst serwera asynchronicznie
         let serverContext = '';
         try {
-            const [statsSnap, logsSnap, playersSnap, cshopSnap] = await Promise.allSettled([
+            const [statsSnap, logsSnap, playersSnap, cshopSnap, cuCurrentSnap, cuSpecialSnap, cuArmorSnap, cuMaterialsSnap, cuPlayersSnap] = await Promise.allSettled([
                 getDoc(doc(db, 'server_stats', 'current')),
                 getDocs(query(collection(db, 'admin_logs'), limit(8))),
                 getDocs(query(collection(db, 'players'), limit(20))),
-                getDocs(query(collection(db, 'cshop_transactions'), limit(20)))
+                getDocs(query(collection(db, 'cshop_transactions'), limit(20))),
+                getDoc(doc(db, CU_ANALYTICS_COLLECTION, 'current')),
+                getDoc(doc(db, CU_ANALYTICS_COLLECTION, 'special')),
+                getDoc(doc(db, CU_ANALYTICS_COLLECTION, 'armor_sets')),
+                getDoc(doc(db, CU_ANALYTICS_COLLECTION, 'materials')),
+                getDocs(query(collection(db, CU_ANALYTICS_PLAYERS_COLLECTION), limit(50)))
             ]);
 
             const ctx = [];
@@ -5703,6 +6019,30 @@ window.sendAiMessage = async function() {
                 const totalBuy  = txns.filter(t => t.type==='BUY').reduce((s,t)=>s+(t.price||0),0);
                 const totalSell = txns.filter(t => t.type==='SELL').reduce((s,t)=>s+(t.price||0),0);
                 ctx.push(`CShop: ${cshopSnap.value.size}+ transakcji | Obrót zakupy=${totalBuy.toFixed(0)}$ sprzedaż=${totalSell.toFixed(0)}$`);
+            }
+
+            if (cuCurrentSnap.status === 'fulfilled' && cuCurrentSnap.value.exists()) {
+                const cu = cuCurrentSnap.value.data();
+                const special = (cuSpecialSnap.status === 'fulfilled' && cuSpecialSnap.value.exists()) ? (cuSpecialSnap.value.data().items || {}) : {};
+                const armor = (cuArmorSnap.status === 'fulfilled' && cuArmorSnap.value.exists()) ? (cuArmorSnap.value.data().items || {}) : {};
+                const materials = (cuMaterialsSnap.status === 'fulfilled' && cuMaterialsSnap.value.exists()) ? (cuMaterialsSnap.value.data().items || {}) : {};
+                const topMaterials = Object.entries(materials)
+                    .sort((a, b) => (Number(b[1]) || 0) - (Number(a[1]) || 0))
+                    .slice(0, 55)
+                    .map(([k, v]) => `${k}=${cuFmt(v)}`)
+                    .join(', ');
+                const topPlayers = cuPlayersSnap.status === 'fulfilled'
+                    ? cuPlayersSnap.value.docs.map(d => d.data())
+                        .sort((a, b) => (Number(b.totalItems) || 0) - (Number(a.totalItems) || 0))
+                        .slice(0, 15)
+                        .map(p => `${p.name || '?'}: items=${cuFmt(p.totalItems || 0)}, mending=${cuFmt(p.mendingCount || 0)}, armor=${p.armorType || 'none'} ${p.armorPieces || 0}/4`)
+                        .join(' | ')
+                    : '';
+                ctx.push(`CUstawienia analiza: itemy=${cuFmt(cu.totalItemAmount || 0)}, stacki=${cuFmt(cu.totalStacks || 0)}, gracze=${cuFmt(cu.playersCount || cu.onlinePlayersScanned || 0)}, ostatni_skan=${cu.updatedAt || cu.lastScanTime || 'brak'}`);
+                ctx.push(`CUstawienia special: koxy=${cuFmt(special.KOKSY || special.ENCHANTED_GOLDEN_APPLE || 0)}, refy=${cuFmt(special.REFY || special.GOLDEN_APPLE || 0)}, cobweb=${cuFmt(special.COBWEB || 0)}, silk_touch_pickaxe=${cuFmt(special.PICKAXE_SILK_TOUCH || 0)}, mending_pickaxe=${cuFmt(special.PICKAXE_MENDING || 0)}`);
+                ctx.push(`CUstawienia sety: netherite_4_4=${cuFmt(armor.netherite_4_4 || 0)}, netherite_4_4_mending=${cuFmt(armor.netherite_4_4_mending || 0)}, netherite_3_4=${cuFmt(armor.netherite_3_4 || 0)}, diamond_4_4=${cuFmt(armor.diamond_4_4 || 0)}`);
+                if (topMaterials) ctx.push(`CUstawienia materialy top: ${topMaterials}`);
+                if (topPlayers) ctx.push(`CUstawienia gracze top: ${topPlayers}`);
             }
 
             if (ctx.length > 2) serverContext = '\n\nKONTEKST SERWERA:\n- ' + ctx.join('\n- ');
