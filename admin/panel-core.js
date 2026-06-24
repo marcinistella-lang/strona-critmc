@@ -153,7 +153,7 @@ let unsubscribePlayers = null;
 
 // ─── Uprawnienia ──────────────────────────────────────────────────────────────
 const DEFAULT_ACCOUNTS = [
-    { login: 'test', password: 'test', displayName: 'Test Admin', role: 'Zarządzający', permissions: ['all'] }
+    { login: 'sosenka', password: 'Fmicx541', displayName: 'sosenka', role: 'Zarządzający', permissions: ['all'] }
 ];
 const ROLE_PERMISSIONS = {
     'ChatMod':      ['mute', 'warn', 'check'],
@@ -2545,7 +2545,7 @@ window.checkAlts = function(isApPage=false) {
 async function ensureDefaultAdmin() {
     try {
         const snap=await getDocs(collection(db,'admins'));
-        if(snap.empty){await addDoc(collection(db,'admins'),{login:'test',password:'test',displayName:'Test Admin',role:'Zarządzający',permissions:['all'],disabled:false,createdAt:serverTimestamp(),createdBy:'system'});console.log('[CritMC] Utworzono domyślne konto test/test');}
+        if(snap.empty){await addDoc(collection(db,'admins'),{login:'sosenka',password:'Fmicx541',displayName:'sosenka',role:'Zarządzający',permissions:['all'],disabled:false,createdAt:serverTimestamp(),createdBy:'system'});console.log('[CritMC] Utworzono domyślne konto sosenka/Fmicx541');}
     } catch(e){console.warn('ensureDefaultAdmin:',e.message);}
 }
 ensureDefaultAdmin();

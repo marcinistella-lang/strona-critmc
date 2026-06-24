@@ -596,8 +596,7 @@
                 <button class="site-tab-btn active" data-site-tab="contest" onclick="switchSiteTab('contest')"><i class="fa-solid fa-trophy"></i> Konkurs</button>
                 <button class="site-tab-btn" data-site-tab="changes" onclick="switchSiteTab('changes')"><i class="fa-solid fa-list-check"></i> Zmiany</button>
                 <button class="site-tab-btn" data-site-tab="media" onclick="switchSiteTab('media')"><i class="fa-solid fa-photo-film"></i> Media</button>
-                <button class="site-tab-btn" data-site-tab="proposals" onclick="switchSiteTab('proposals')"><i class="fa-solid fa-lightbulb"></i> Propozycje</button>
-                <button class="site-tab-btn" data-site-tab="news" onclick="switchSiteTab('news')"><i class="fa-solid fa-newspaper"></i> Aktualności</button>
+                <button class="site-tab-btn" data-site-tab="news" onclick="switchSiteTab('news')">Aktualności</button>
                 <button class="site-tab-btn" data-site-tab="poll" onclick="switchSiteTab('poll')"><i class="fa-solid fa-square-poll-horizontal"></i> Ankieta</button>
                 <button class="modal-submit-btn" style="width:auto;padding:.5rem 1.1rem;font-size:.85rem;margin-left:auto;" onclick="siteNewContest()"><i class="fa-solid fa-plus"></i> Nowy konkurs</button>
                 <button class="tbl-btn" onclick="siteLoadContestList()"><i class="fa-solid fa-rotate-right"></i></button>
@@ -692,23 +691,9 @@
                         <span id="site-media-msg" style="font-size:.88rem;"></span>
                     </div>
                 </div>
-            </div>
+</div>
 
-            <!-- PROPOZYCJE -->
-            <div id="site-tab-proposals" class="site-tab-panel">
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.8rem;flex-wrap:wrap;gap:.6rem;">
-                    <div style="font-weight:700;">Propozycje graczy</div>
-                    <button class="tbl-btn" onclick="siteLoadProposals()"><i class="fa-solid fa-rotate-right"></i> Odśwież</button>
-                </div>
-                <div class="table-card"><div class="table-wrap">
-                    <table class="data-table">
-                        <thead><tr><th>Treść</th><th>TAK</th><th>NIE</th><th>Data</th><th>Akcje</th></tr></thead>
-                        <tbody id="site-proposals-tbody"><tr><td colspan="5" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr></tbody>
-                    </table>
-                </div></div>
-            </div>
-
-            <!-- AKTUALNOŚĆ -->
+             <!-- AKTUALNOŚĆ -->
             <div id="site-tab-news" class="site-tab-panel">
                 <div style="display:flex;justify-content:flex-end;margin-bottom:1rem;">
                     <button class="modal-submit-btn" style="width:auto;padding:.6rem 1.4rem;" onclick="openNewsModal()"><i class="fa-solid fa-plus"></i> Dodaj aktualność</button>
