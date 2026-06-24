@@ -1876,6 +1876,16 @@ window.switchSiteTab = function(tab) {
 
 function _currentContestId() { const sel=document.getElementById('site-contest-select'); return(sel&&sel.value)?sel.value:'start'; }
 
+async function loadSecurityLog() {
+    try {
+        const logs = await getDocs(query(collection(db, 'security_logs')));
+        return logs.docs.map(d => ({id: d.id, ...d.data()}));
+    } catch (e) {
+        console.error('Load security log error:', e.message);
+        throw e;
+    }
+}
+
 window.loadSitePage = async function() {
     window.switchSiteTab('contest');
     await siteLoadContestList();
@@ -2036,22 +2046,7 @@ window.siteSaveMedia = async function(){
     }catch(e){const msg=document.getElementById('site-media-msg');if(msg){msg.style.color='#ef4444';msg.textContent='Błąd: '+e.message;}}
 };
 
-window.siteLoadProposals = async function(){
-    const tb=document.getElementById('site-proposals-tbody');if(!tb)return;
-    tb.innerHTML='<tr><td colspan="5" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>';
-    try{
-        const snap=await getDocs(query(collection(db,'proposals'),orderBy('createdAt','desc')));
-        if(snap.empty){tb.innerHTML='<tr><td colspan="5" class="table-empty">Brak propozycji.</td></tr>';return;}
-        tb.innerHTML=snap.docs.map(d=>{const p={id:d.id,...d.data()};const total=(p.yes||0)+(p.no||0);const yesPct=total?Math.round((p.yes||0)/total*100):0;const date=p.createdAt?new Date(p.createdAt).toLocaleDateString('pl-PL'):'—';
-            return '<tr><td style="max-width:300px;font-size:.88rem;">'+escapeHtml(p.text||'')+'</td><td><span style="color:#00e676;font-weight:700;">'+(p.yes||0)+'</span></td><td><span style="color:#ef4444;font-weight:700;">'+(p.no||0)+'</span>'+(total>0?'<span style="font-size:.75rem;color:var(--text-secondary);"> ('+yesPct+'% TAK)</span>':'')+'</td><td style="font-size:.8rem;color:var(--text-secondary);">'+date+'</td><td><button class="tbl-btn tbl-btn-red" onclick="siteDeleteProposal(\''+p.id+'\')"><i class="fa-solid fa-trash"></i></button></td></tr>';
-        }).join('');
-    }catch(e){tb.innerHTML='<tr><td colspan="5" class="table-empty" style="color:#ef4444;">Błąd: '+e.message+'</td></tr>';}
-};
 
-window.siteDeleteProposal = async function(id){
-    if(!confirm('Usunąć tę propozycję?'))return;
-    try{await deleteDoc(doc(db,'proposals',id));showToast('success','Propozycja usunięta.');await window.siteLoadProposals();}catch(e){showToast('error','Błąd: '+e.message);}
-};
 
 // ─── AKTUALNOŚCI ──────────────────────────────────────────────────────────────
 window.loadNewsTab = async function() {
