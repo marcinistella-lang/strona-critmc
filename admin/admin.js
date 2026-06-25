@@ -5,171 +5,15 @@ import {
     query, orderBy, where, limit, serverTimestamp, Timestamp
 } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// 🔒 ZABEZPIECZENIA – SPRAWDZANIE DOMENY
-// ═══════════════════════════════════════════════════════════════════════════════
-(function() {
-    const allowedDomains = ['critmc.pl', 'localhost', '127.0.0.1'];
-    const host = window.location.hostname;
-    const isAllowed = allowedDomains.some(d => host === d || host.endsWith('.' + d));
-    if (!isAllowed) {
-        document.body.innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0f0c1a;flex-direction:column;gap:1.5rem;padding:2rem;text-align:center;"><div style="font-size:3rem;">🔒</div><div style="font-size:1.2rem;font-weight:800;color:#ef4444;">Dostęp zablokowany</div><div style="color:#9ca3af;">Panel dostępny tylko z autoryzowanych domen.</div></div>';
-        throw new Error('Domain not allowed');
-    }
-})();
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// 🔒 ZABEZPIECZENIA – SESSION TOKEN (closure – niedostępny z konsoli)
-// ═══════════════════════════════════════════════════════════════════════════════
-const _session = (function() {
-    const TOKEN_KEY = '_critmc_panel_session';
-    let _authenticated = false;
-    let _token = null;
-    
-    function generateToken() {
-        const arr = new Uint8Array(32);
-        crypto.getRandomValues(arr);
-        return Array.from(arr, b => b.toString(16).padStart(2, '0')).join('');
-    }
-    
-    return {
-        isAuthenticated: function() { return _authenticated; },
-        getToken: function() { return _token; },
-        authenticate: function() {
-            _token = generateToken();
-            _authenticated = true;
-            try { sessionStorage.setItem(TOKEN_KEY, _token); } catch(e) {}
-            return _token;
-        },
-        validate: function() {
-            if (!_authenticated) {
-                try {
-                    const stored = sessionStorage.getItem(TOKEN_KEY);
-                    if (stored) { _authenticated = true; _token = stored; }
-                } catch(e) {}
-            }
-            return _authenticated;
-        },
-        deauthenticate: function() {
-            _authenticated = false;
-            _token = null;
-            try { sessionStorage.removeItem(TOKEN_KEY); } catch(e) {}
-        }
-    };
-})();
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// 🔒 ZABEZPIECZENIA – BLOKADA NADPISYWANIA recordFailedAttempt (Object.freeze)
-// ═══════════════════════════════════════════════════════════════════════════════
-(function() {
-    // Blokuje nadpisywanie recordFailedAttempt przez konsolę
-    const _origDesc = Object.getOwnPropertyDescriptor(window, 'recordFailedAttempt');
-    Object.defineProperty(window, 'recordFailedAttempt', {
-        get: function() { return _session ? undefined : (_origDesc ? _origDesc.value : undefined); },
-        set: function() { /* read-only */ },
-        configurable: false,
-        enumerable: true
-    });
-})();
-
-(function() {
-    // Blokuje dodanie auth-ready bez ważnej sesji (blokada backdooru z konsoli)
-    const _origAddClass = document.body.classList.add.bind(document.body.classList);
-    document.body.classList.add = function(...tokens) {
-        if (tokens.includes('auth-ready') && (!_session || !_session.validate())) {
-            console.warn('[SECURITY] Próba bypassu logowania zablokowana');
-            return;
-        }
-        return _origAddClass(...tokens);
-    };
-    const _origRemoveClass = document.body.classList.remove.bind(document.body.classList);
-    document.body.classList.remove = function(...tokens) {
-        if (tokens.includes('auth-ready') && _session && _session.validate()) {
-            _session.deauthenticate();
-        }
-        return _origRemoveClass(...tokens);
-    };
-    // MutationObserver — pilnuje czy ktoś nie doda auth-ready na siłę
-    const _obs = new MutationObserver((mutations) => {
-        for (const m of mutations) {
-            if (m.target === document.body && document.body.classList.contains('auth-ready')) {
-                try {
-                    if (!_session.validate()) {
-                        document.body.classList.remove('auth-ready');
-                    }
-                } catch(e) {}
-            }
-        }
-    });
-    _obs.observe(document.body, { attributes: true, attributeFilter: ['class'] });
-})();
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// 🔒 ZABEZPIECZENIA – RATE LIMITER LOGOWANIA (Firestore)
-// ═══════════════════════════════════════════════════════════════════════════════
-const LOGIN_MAX_ATTEMPTS = 5;
-const LOGIN_BLOCK_MINUTES = 30;
-
-async function checkLoginRateLimit(login) {
-    try {
-        const now = Date.now();
-        const snap = await getDocs(query(
-            collection(db, 'security_logs'),
-            where('type', '==', 'login_failed'),
-            where('login', '==', login),
-            where('timestamp', '>', now - LOGIN_BLOCK_MINUTES * 60 * 1000)
-        ));
-        if (snap.size >= LOGIN_MAX_ATTEMPTS) {
-            return { blocked: true, message: `Konto tymczasowo zablokowane (${LOGIN_MAX_ATTEMPTS} błędnych prób). Spróbuj za ${LOGIN_BLOCK_MINUTES} minut.` };
-        }
-        return { blocked: false };
-    } catch(e) {
-        return { blocked: false };
-    }
-}
-
-async function logSecurityEvent(type, details) {
-    try {
-        await addDoc(collection(db, 'security_logs'), {
-            type: type,
-            details: details,
-            timestamp: serverTimestamp(),
-            userAgent: navigator.userAgent || '',
-            ip: '',
-            page: window.location.href
-        });
-    } catch(e) {
-        console.warn('Security log error:', e.message);
-    }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// 🔒 ZABEZPIECZENIA – OBFUSKACJA KLUCZA FIREBASE (base64)
-// ═══════════════════════════════════════════════════════════════════════════════
-const _fbConfig = (function() {
-    const encoded = {
-        apiKey: 'QUl6YVN5QmR3ekNHaFV0cUdtMEdnZm1ybDJNQzhfdTEwY19BdU1R',
-        authDomain: 'c3Ryb25hY3JpdG1jcGwuZmlyZWJhc2VhcHAuY29t',
-        projectId: 'c3Ryb25hY3JpdG1jcGw=',
-        storageBucket: 'c3Ryb25hY3JpdG1jcGwuZmlyZWJhc2VzdG9yYWdlLmFwcA==',
-        messagingSenderId: 'Njc0NTkxMTU0MDk2',
-        appId: 'MTo2NzQ1OTExNTQwOTY6d2ViOmZlZTU1ZDljZjFjODNkY2ZiZTgwNzU='
-    };
-    const decode = (str) => {
-        try { return atob(str); } catch(e) { return str; }
-    };
-    return {
-        apiKey: decode(encoded.apiKey),
-        authDomain: decode(encoded.authDomain),
-        projectId: decode(encoded.projectId),
-        storageBucket: decode(encoded.storageBucket),
-        messagingSenderId: decode(encoded.messagingSenderId),
-        appId: decode(encoded.appId)
-    };
-})();
-
 // ─── Firebase ────────────────────────────────────────────────────────────────
-const app = initializeApp(_fbConfig);
+const app = initializeApp({
+    apiKey: "AIzaSyBdwzCGhUtqGm0Ggfmrl2MC8_u10c_AuMQ",
+    authDomain: "stronacritmcpl.firebaseapp.com",
+    projectId: "stronacritmcpl",
+    storageBucket: "stronacritmcpl.firebasestorage.app",
+    messagingSenderId: "674591154096",
+    appId: "1:674591154096:web:fee55d9cf1c83dcfbe8075"
+});
 const db = getFirestore(app);
 const FILE_WORKER_URL = "https://critmc-b2-files.marcinistella.workers.dev";
 
@@ -181,7 +25,7 @@ let unsubscribePlayers = null;
 
 // ─── Uprawnienia ──────────────────────────────────────────────────────────────
 const DEFAULT_ACCOUNTS = [
-    { login: 'sosenka', password: 'Fmicx541', displayName: 'sosenka', role: 'Zarządzający', permissions: ['all'] }
+    { login: 'test', password: 'test', displayName: 'Test Admin', role: 'Zarządzający', permissions: ['all'] }
 ];
 const ROLE_PERMISSIONS = {
     'ChatMod':      ['mute', 'warn', 'check'],
@@ -1904,16 +1748,6 @@ window.switchSiteTab = function(tab) {
 
 function _currentContestId() { const sel=document.getElementById('site-contest-select'); return(sel&&sel.value)?sel.value:'start'; }
 
-async function loadSecurityLog() {
-    try {
-        const logs = await getDocs(query(collection(db, 'security_logs')));
-        return logs.docs.map(d => ({id: d.id, ...d.data()}));
-    } catch (e) {
-        console.error('Load security log error:', e.message);
-        throw e;
-    }
-}
-
 window.loadSitePage = async function() {
     window.switchSiteTab('contest');
     await siteLoadContestList();
@@ -2073,9 +1907,6 @@ window.siteSaveMedia = async function(){
         const msg=document.getElementById('site-media-msg');if(msg){msg.style.color='#10b981';msg.textContent='✓ Zapisano!';setTimeout(()=>msg.textContent='',2000);}
     }catch(e){const msg=document.getElementById('site-media-msg');if(msg){msg.style.color='#ef4444';msg.textContent='Błąd: '+e.message;}}
 };
-
-
-
 // ─── AKTUALNOŚCI ──────────────────────────────────────────────────────────────
 window.loadNewsTab = async function() {
     const container = document.getElementById('news-list'); if (!container) return;
@@ -2568,7 +2399,7 @@ window.checkAlts = function(isApPage=false) {
 async function ensureDefaultAdmin() {
     try {
         const snap=await getDocs(collection(db,'admins'));
-        if(snap.empty){await addDoc(collection(db,'admins'),{login:'sosenka',password:'Fmicx541',displayName:'sosenka',role:'Zarządzający',permissions:['all'],disabled:false,createdAt:serverTimestamp(),createdBy:'system'});console.log('[CritMC] Utworzono domyślne konto sosenka/Fmicx541');}
+        if(snap.empty){await addDoc(collection(db,'admins'),{login:'test',password:'test',displayName:'Test Admin',role:'Zarządzający',permissions:['all'],disabled:false,createdAt:serverTimestamp(),createdBy:'system'});console.log('[CritMC] Utworzono domyślne konto test/test');}
     } catch(e){console.warn('ensureDefaultAdmin:',e.message);}
 }
 ensureDefaultAdmin();
@@ -2582,10 +2413,8 @@ window._extendedApplyPermissions = function() {};
 // Nadpisz filterShopItems żeby uwzględniała aktywną kategorię
 window.filterShopItems = function() {
     const search = (document.getElementById('shop-search')?.value || '').toLowerCase();
-    const activeCat = document.querySelector('.shop-cat-btn.active')?.getAttribute('data-cat') || 'all';
     const filtered = allShopItems.filter(item => {
         // Filtr kategorii
-        if (activeCat !== 'all' && item.type !== activeCat) return false;
         // Filtr wyszukiwania
         if (search && !(item.name||'').toLowerCase().includes(search) && !(item.desc||'').toLowerCase().includes(search)) return false;
         return true;
