@@ -269,6 +269,7 @@ function showLoginError(msg) {
 function initPanelUI() {
     localStorage.removeItem('ap_block');
     localStorage.removeItem('ap_attempts');
+    _session.authenticate(); // ← DODAJ TĘ LINIĘ
     document.body.classList.add('auth-ready');
     document.getElementById('su-name').textContent   = currentUser.displayName;
     document.getElementById('su-role').textContent   = currentUser.role;
