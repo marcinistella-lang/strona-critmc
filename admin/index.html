@@ -54,6 +54,62 @@
 
     <!-- SIDEBAR -->
     <aside class="sidebar" id="sidebar">
+        <!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CritMC - Panel Administracyjny</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://*.gstatic.com https://*.googleapis.com https://*.firebaseio.com https://*.cloudflare.com https://mc-heads.net https://minecraftitemids.com https://raw.githubusercontent.com https://fonts.googleapis.com https://fonts.gstatic.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: https://mc-heads.net https://minecraftitemids.com https://raw.githubusercontent.com https://*.cloudflare.com; script-src 'self' 'unsafe-inline' https://*.gstatic.com; connect-src 'self' https://*.firebaseio.com https://*.googleapis.com https://*.cloudflare.com https://critmc-b2-files.marcinistella.workers.dev;">
+    <link rel="stylesheet" href="admin.css">
+    <style>
+        #admin-panel { display: none !important; }
+        .auth-ready #admin-panel { display: flex !important; }
+        .auth-ready #login-screen { display: none !important; }
+        .site-tab-panel { display: none !important; }
+        .site-tab-panel.sp-active { display: block !important; }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+
+<!-- ===== EKRAN LOGOWANIA ===== -->
+<div id="login-screen" class="login-screen">
+    <div class="login-box">
+        <div class="login-logo">
+            <span class="login-logo-crit">Crit</span><span class="login-logo-mc">MC</span>
+            <div class="login-logo-sub">Panel Administracyjny</div>
+        </div>
+        <form id="login-form" onsubmit="handleLogin(event)">
+            <div class="login-field">
+                <label><i class="fa-solid fa-user"></i> Login</label>
+                <input type="text" id="login-username" placeholder="Wpisz login..." autocomplete="off" required>
+            </div>
+            <div class="login-field">
+                <label><i class="fa-solid fa-lock"></i> Hasło</label>
+                <div class="password-wrap">
+                    <input type="password" id="login-password" placeholder="Wpisz hasło..." autocomplete="new-password" required>
+                    <button type="button" class="pw-toggle" onclick="togglePasswordVisibility()">
+                        <i class="fa-solid fa-eye" id="pw-toggle-icon"></i>
+                    </button>
+                </div>
+            </div>
+            <div id="login-error" class="login-error" style="display:none;">
+                <i class="fa-solid fa-circle-exclamation"></i> Błędny login lub hasło!
+            </div>
+            <button type="submit" class="login-btn">
+                <i class="fa-solid fa-right-to-bracket"></i> Zaloguj się
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- ===== PANEL GŁÓWNY ===== -->
+<div id="admin-panel" class="admin-panel" style="display:none;">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <div class="sidebar-logo">
                 <span class="sl-crit">Crit</span><span class="sl-mc">MC</span>
@@ -116,7 +172,6 @@
             <button class="nav-btn" data-page="info" onclick="switchPage('info');loadInfoPage();">
                 <i class="fa-solid fa-circle-info"></i><span>Informacje</span>
             </button>
-            <button class="nav-btn" data-page="security" onclick="switchPage('security');loadSecurityLog();"><i class="fa-solid fa-lock"></i><span>Bezpieczeństwo</span></button>
         </nav>
 
         <div class="sidebar-footer">
@@ -597,7 +652,8 @@
                 <button class="site-tab-btn active" data-site-tab="contest" onclick="switchSiteTab('contest')"><i class="fa-solid fa-trophy"></i> Konkurs</button>
                 <button class="site-tab-btn" data-site-tab="changes" onclick="switchSiteTab('changes')"><i class="fa-solid fa-list-check"></i> Zmiany</button>
                 <button class="site-tab-btn" data-site-tab="media" onclick="switchSiteTab('media')"><i class="fa-solid fa-photo-film"></i> Media</button>
-                <button class="site-tab-btn" data-site-tab="news" onclick="switchSiteTab('news')">Aktualności</button>
+                <button class="site-tab-btn" data-site-tab="proposals" onclick="switchSiteTab('proposals')"><i class="fa-solid fa-lightbulb"></i> Propozycje</button>
+                <button class="site-tab-btn" data-site-tab="news" onclick="switchSiteTab('news')"><i class="fa-solid fa-newspaper"></i> Aktualności</button>
                 <button class="site-tab-btn" data-site-tab="poll" onclick="switchSiteTab('poll')"><i class="fa-solid fa-square-poll-horizontal"></i> Ankieta</button>
                 <button class="modal-submit-btn" style="width:auto;padding:.5rem 1.1rem;font-size:.85rem;margin-left:auto;" onclick="siteNewContest()"><i class="fa-solid fa-plus"></i> Nowy konkurs</button>
                 <button class="tbl-btn" onclick="siteLoadContestList()"><i class="fa-solid fa-rotate-right"></i></button>
@@ -635,9 +691,80 @@
                             <button style="background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);color:#f59e0b;padding:.55rem;border-radius:var(--radius-sm);font-weight:700;cursor:pointer;font-family:var(--font);" onclick="siteEndContest()"><i class="fa-solid fa-flag-checkered"></i> Zakończ bez wyników</button>
                             <button style="background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.25);color:#3b82f6;padding:.55rem;border-radius:var(--radius-sm);font-weight:700;cursor:pointer;font-family:var(--font);" onclick="siteRestartContest()"><i class="fa-solid fa-rotate-right"></i> Zresetuj (nowa tura)</button>
                             <button style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);color:#ef4444;padding:.55rem;border-radius:var(--radius-sm);font-weight:700;cursor:pointer;font-family:var(--font);" onclick="siteDeleteContest()"><i class="fa-solid fa-trash"></i> Usuń konkurs całkowicie</button>
-</div>
+                        </div>
+                        <div id="site-contest-msg" style="margin-top:.7rem;font-size:.85rem;text-align:center;min-height:1.2em;"></div>
+                    </div>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.8rem;">
+                    <div style="font-weight:700;">Uczestnicy <span id="site-entries-count" style="color:var(--text-secondary);font-weight:400;font-size:.82rem;"></span></div>
+                    <button class="tbl-btn" onclick="siteLoadEntries()"><i class="fa-solid fa-rotate-right"></i> Odśwież</button>
+                </div>
+                <div class="table-card"><div class="table-wrap">
+                    <table class="data-table">
+                        <thead><tr><th>Nick MC</th><th>Nick DC</th><th>Słowo weryfikacyjne</th><th>Dołączył</th><th>Akcje</th></tr></thead>
+                        <tbody id="site-entries-tbody"><tr><td colspan="5" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr></tbody>
+                    </table>
+                </div></div>
+            </div>
 
-             <!-- AKTUALNOŚĆ -->
+            <!-- ZMIANY -->
+            <div id="site-tab-changes" class="site-tab-panel">
+                <div class="table-card" style="padding:1.4rem;">
+                    <div style="display:flex;flex-direction:column;gap:1rem;">
+                        <div><label style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;display:block;margin-bottom:.4rem;">Tryb: Zwykłe</label>
+                            <textarea id="site-edit-zwykle" rows="5" style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea></div>
+                        <div><label style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;display:block;margin-bottom:.4rem;">Tryb: Szczegółowe</label>
+                            <textarea id="site-edit-szczegolowe" rows="5" style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea></div>
+                        <div><label style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;display:block;margin-bottom:.4rem;">Tryb: Najmocniejsze</label>
+                            <textarea id="site-edit-najmocniejsze" rows="5" style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea></div>
+                        <div style="display:flex;gap:.8rem;align-items:center;">
+                            <button class="modal-submit-btn" style="width:auto;padding:.65rem 1.4rem;" onclick="siteSaveChanges()"><i class="fa-solid fa-floppy-disk"></i> Zapisz i opublikuj</button>
+                            <span id="site-changes-msg" style="font-size:.88rem;"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MEDIA -->
+            <div id="site-tab-media" class="site-tab-panel">
+                <div class="table-card" style="padding:1.4rem;">
+                    <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:1rem;"><i class="fa-brands fa-discord" style="color:#7289da;"></i> Discord</div>
+                    <div style="display:flex;gap:.6rem;margin-bottom:1.2rem;">
+                        <input type="text" id="site-dc-url" placeholder="URL Discord" style="flex:1;padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                        <input type="text" id="site-dc-sub" placeholder="Podtytuł" style="flex:1;padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                    </div>
+                    <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.6rem;"><i class="fa-brands fa-youtube" style="color:#ff0000;"></i> YouTube</div>
+                    <div style="display:flex;gap:.6rem;margin-bottom:1.2rem;">
+                        <input type="text" id="site-yt-url" placeholder="URL YouTube" style="flex:1;padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                        <input type="text" id="site-yt-handle" placeholder="@handle" style="flex:1;padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                    </div>
+                    <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.6rem;"><i class="fa-brands fa-tiktok" style="color:#00f0ff;"></i> TikTok</div>
+                    <div style="display:flex;gap:.6rem;margin-bottom:1.2rem;">
+                        <input type="text" id="site-tt-url" placeholder="URL TikTok" style="flex:1;padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                        <input type="text" id="site-tt-handle" placeholder="@handle" style="flex:1;padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                    </div>
+                    <div style="display:flex;gap:.8rem;align-items:center;">
+                        <button class="modal-submit-btn" style="width:auto;padding:.65rem 1.4rem;" onclick="siteSaveMedia()"><i class="fa-solid fa-floppy-disk"></i> Zapisz linki</button>
+                        <span id="site-media-msg" style="font-size:.88rem;"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PROPOZYCJE -->
+            <div id="site-tab-proposals" class="site-tab-panel">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.8rem;flex-wrap:wrap;gap:.6rem;">
+                    <div style="font-weight:700;">Propozycje graczy</div>
+                    <button class="tbl-btn" onclick="siteLoadProposals()"><i class="fa-solid fa-rotate-right"></i> Odśwież</button>
+                </div>
+                <div class="table-card"><div class="table-wrap">
+                    <table class="data-table">
+                        <thead><tr><th>Treść</th><th>TAK</th><th>NIE</th><th>Data</th><th>Akcje</th></tr></thead>
+                        <tbody id="site-proposals-tbody"><tr><td colspan="5" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr></tbody>
+                    </table>
+                </div></div>
+            </div>
+
+            <!-- AKTUALNOŚĆ -->
             <div id="site-tab-news" class="site-tab-panel">
                 <div style="display:flex;justify-content:flex-end;margin-bottom:1rem;">
                     <button class="modal-submit-btn" style="width:auto;padding:.6rem 1.4rem;" onclick="openNewsModal()"><i class="fa-solid fa-plus"></i> Dodaj aktualność</button>
@@ -1542,4 +1669,1865 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 
 </body>
-</html>
+</html><div class="sidebar-header">
+            <div class="sidebar-logo">
+                <span class="sl-crit">Crit</span><span class="sl-mc">MC</span>
+            </div>
+            <div class="sidebar-sub">Admin Panel</div>
+        </div>
+
+        <nav class="sidebar-nav">
+            <div class="nav-section-label">Minecraft</div>
+            <button class="nav-btn active" data-page="players" onclick="switchPage('players')">
+                <i class="fa-solid fa-users"></i><span>Gracze</span>
+            </button>
+            <button class="nav-btn" data-page="penalties" onclick="switchPage('penalties')">
+                <i class="fa-solid fa-gavel"></i><span>Kary</span>
+                <span class="nav-badge" id="badge-penalties">0</span>
+            </button>
+            <button class="nav-btn" data-page="action" onclick="switchPage('action')">
+                <i class="fa-solid fa-plus-circle"></i><span>Nadaj karę</span>
+            </button>
+            <button class="nav-btn" data-page="guides" onclick="switchPage('guides');loadGuidesPage();">
+                <i class="fa-solid fa-book-open"></i><span>Poradniki</span>
+            </button>
+            <button class="nav-btn" data-page="logs" onclick="switchPage('logs')">
+                <i class="fa-solid fa-clock-rotate-left"></i><span>Logi akcji</span>
+            </button>
+
+            <div class="nav-section-label" style="margin-top:1.5rem;">Strona</div>
+            <button class="nav-btn" data-page="site" onclick="switchPage('site');loadSitePage();">
+                <i class="fa-solid fa-globe"></i><span>Strona</span>
+            </button>
+            <button class="nav-btn" data-page="shop" onclick="switchPage('shop');loadShopPage();">
+                <i class="fa-solid fa-shop"></i><span>Sklep</span>
+            </button>
+            <button class="nav-btn" data-page="personel" onclick="switchPage('personel');loadPersonel();">
+                <i class="fa-solid fa-id-badge"></i><span>Personel</span>
+            </button>
+            <button class="nav-btn" data-page="files" onclick="switchPage('files');loadFilesPage();">
+                <i class="fa-solid fa-folder-open"></i><span>Pliki</span>
+            </button>
+
+            <div class="nav-section-label" style="margin-top:1.5rem;">Konto</div>
+            <button class="nav-btn" data-page="admins" onclick="switchPage('admins');loadAdminAccounts();">
+                <i class="fa-solid fa-user-shield"></i><span>Administratorzy</span>
+            </button>
+            <button class="nav-btn" data-page="permissions" onclick="switchPage('permissions');loadPermissionsPage();">
+                <i class="fa-solid fa-key"></i><span>Uprawnienia</span>
+            </button>
+
+            <div class="nav-section-label" style="margin-top:1.5rem;">System</div>
+            <button class="nav-btn" data-page="plugins" onclick="switchPage('plugins');loadPluginsPage();" style="background:rgba(16,185,129,.08);border-left:3px solid #10b981;">
+                <i class="fa-solid fa-puzzle-piece" style="color:#10b981;"></i><span style="color:#6ee7b7;">Pluginy</span>
+            </button>
+            <button class="nav-btn" data-page="ai" onclick="switchPage('ai');loadAiPage();" style="background:linear-gradient(135deg,rgba(139,92,246,.15),rgba(59,130,246,.1));border-left:3px solid #8b5cf6;">
+                <i class="fa-solid fa-robot" style="color:#8b5cf6;"></i><span style="color:#a78bfa;">AI Asystent</span>
+                <span class="nav-badge" style="background:linear-gradient(135deg,#8b5cf6,#3b82f6);">AI</span>
+            </button>
+            <button class="nav-btn" data-page="stats" onclick="switchPage('stats')">
+                <i class="fa-solid fa-chart-bar"></i><span>Statystyki</span>
+            </button>
+            <button class="nav-btn" data-page="info" onclick="switchPage('info');loadInfoPage();">
+                <i class="fa-solid fa-circle-info"></i><span>Informacje</span>
+            </button>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="sidebar-user">
+                <div class="su-avatar" id="su-avatar">A</div>
+                <div class="su-info">
+                    <div class="su-name" id="su-name">Admin</div>
+                    <div class="su-role" id="su-role">Zarządzający</div>
+                </div>
+            </div>
+            <button class="logout-btn" onclick="handleLogout()">
+                <i class="fa-solid fa-right-from-bracket"></i>
+            </button>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+
+        <!-- TOP BAR -->
+        <div class="topbar">
+            <button class="sidebar-toggle" onclick="toggleSidebar()">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+            <div class="topbar-title" id="topbar-title">Gracze</div>
+
+            <!-- Przycisk odświeżania danych -->
+            <button id="topbar-refresh-btn" onclick="refreshAllData()" title="Odśwież wszystkie dane"
+                style="margin-left:auto;padding:.55rem .9rem;background:var(--bg-card);border:1.5px solid var(--border);border-radius:var(--radius-sm);display:flex;align-items:center;gap:.45rem;color:var(--text-secondary);font-weight:700;font-size:.82rem;cursor:pointer;transition:all .2s;white-space:nowrap;"
+                onmouseenter="this.style.borderColor='var(--accent-blue)';this.style.color='var(--accent-blue)'"
+                onmouseleave="this.style.borderColor='var(--border)';this.style.color='var(--text-secondary)'">
+                <i class="fa-solid fa-rotate-right" id="topbar-refresh-icon"></i> Odśwież
+            </button>
+
+            <a href="../index.html" style="margin-left:.5rem;padding:.65rem 1.4rem;background:var(--bg-card);border:1.5px solid var(--border);border-radius:var(--radius-sm);display:flex;align-items:center;gap:.5rem;color:var(--text-secondary);text-decoration:none;font-weight:700;font-size:.9rem;white-space:nowrap;transition:all .2s;" onmouseenter="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseleave="this.style.borderColor='var(--border)';this.style.color='var(--text-secondary)'" title="Wróć do strony głównej">
+                <i class="fa-solid fa-house"></i> Strona główna
+            </a>
+        </div>
+
+        <!-- ===== GRACZE ===== -->
+        <div id="page-players" class="page active">
+            <div class="page-header">
+                <h1>Gracze</h1>
+                <p>Przeglądaj i zarządzaj graczami serwera</p>
+            </div>
+            <div class="filters-bar">
+                <div class="filter-search">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="players-search" placeholder="Szukaj po nicku lub IP..." oninput="filterPlayers()">
+                </div>
+                <div class="filter-group">
+                    <select id="players-filter-rank" onchange="filterPlayers()">
+                        <option value="">Wszystkie rangi</option>
+                        <option value="default">Gracz</option>
+                        <option value="vip">VIP</option>
+                        <option value="boss">BOSS</option>
+                        <option value="crit">CRIT</option>
+                        <option value="chatmod">ChatMod</option>
+                        <option value="pomocnik">Pomocnik</option>
+                        <option value="moderator">Moderator</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                    <select id="players-filter-status" onchange="filterPlayers()">
+                        <option value="">Wszystkie statusy</option>
+                        <option value="online">Online</option>
+                        <option value="offline">Offline</option>
+                        <option value="banned">Zbanowani</option>
+                        <option value="muted">Zmutowani</option>
+                    </select>
+                </div>
+            </div>
+            <div class="table-card">
+                <div class="table-wrap">
+                    <table class="data-table">
+                        <thead><tr>
+                            <th>Gracz</th><th>Adres IP</th><th>Status</th><th>Ostatnie logowanie</th><th>Akcje</th>
+                        </tr></thead>
+                        <tbody id="players-tbody">
+                            <tr><td colspan="5" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== KARY (bany + muty) ===== -->
+        <div id="page-penalties" class="page">
+            <div class="page-header">
+                <h1>Kary</h1>
+                <p>Aktywne bany i muty na serwerze</p>
+            </div>
+            <div style="display:flex;gap:.5rem;margin-bottom:1.2rem;">
+                <button class="tbl-btn" id="pen-tab-bans" onclick="switchPenaltyTab('bans')" style="font-weight:700;background:rgba(239,68,68,.1);color:#dc2626;border-color:rgba(220,38,38,.3);">
+                    <i class="fa-solid fa-ban"></i> Bany <span class="nav-badge" id="badge-bans" style="background:#ef4444;">0</span>
+                </button>
+                <button class="tbl-btn" id="pen-tab-mutes" onclick="switchPenaltyTab('mutes')" style="font-weight:700;">
+                    <i class="fa-solid fa-microphone-slash"></i> Muty <span class="nav-badge" id="badge-mutes" style="background:#f59e0b;">0</span>
+                </button>
+            </div>
+            <div id="pen-panel-bans">
+                <div class="filters-bar">
+                    <div class="filter-search"><i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="bans-search" placeholder="Szukaj po nicku lub powodzie..." oninput="filterBans()">
+                    </div>
+                    <div class="filter-group">
+                        <select id="bans-filter-type" onchange="filterBans()">
+                            <option value="">Wszystkie typy</option>
+                            <option value="permanent">Permanentne</option>
+                            <option value="temporary">Czasowe</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="table-card"><div class="table-wrap">
+                    <table class="data-table">
+                        <thead><tr><th>Gracz</th><th>Powód</th><th>Przez kogo</th><th>Data</th><th>Czas trwania</th><th>Załącznik</th><th>Akcje</th></tr></thead>
+                        <tbody id="bans-tbody"><tr><td colspan="7" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr></tbody>
+                    </table>
+                </div></div>
+            </div>
+            <div id="pen-panel-mutes" style="display:none;">
+                <div class="filters-bar">
+                    <div class="filter-search"><i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="mutes-search" placeholder="Szukaj po nicku lub powodzie..." oninput="filterMutes()">
+                    </div>
+                    <div class="filter-group">
+                        <select id="mutes-filter-type" onchange="filterMutes()">
+                            <option value="">Wszystkie typy</option>
+                            <option value="permanent">Permanentne</option>
+                            <option value="temporary">Czasowe</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="table-card"><div class="table-wrap">
+                    <table class="data-table">
+                        <thead><tr><th>Gracz</th><th>Powód</th><th>Przez kogo</th><th>Data</th><th>Czas trwania</th><th>Załącznik</th><th>Akcje</th></tr></thead>
+                        <tbody id="mutes-tbody"><tr><td colspan="7" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr></tbody>
+                    </table>
+                </div></div>
+            </div>
+        </div>
+        <div id="page-bans" class="page" style="display:none!important;"></div>
+        <div id="page-mutes" class="page" style="display:none!important;"></div>
+
+        <!-- ===== NADAJ KARĘ ===== -->
+        <div id="page-action" class="page">
+            <div class="page-header">
+                <h1>Nadaj karę</h1>
+                <p>Zbanuj, zmutuj, wyrzuć lub ostrzeż gracza</p>
+            </div>
+            <div class="action-page-grid">
+                <!-- Formularz -->
+                <div class="table-card" style="padding:1.5rem;">
+                    <div class="modal-field" style="margin-bottom:1.2rem;">
+                        <label>Nick gracza</label>
+                        <div style="position:relative;">
+                            <i class="fa-solid fa-user" style="position:absolute;left:.85rem;top:50%;transform:translateY(-50%);color:var(--text-secondary);"></i>
+                            <input type="text" id="ap-nick" placeholder="Wpisz nick gracza..."
+                   <!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CritMC - Panel Administracyjny</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://*.gstatic.com https://*.googleapis.com https://*.firebaseio.com https://*.cloudflare.com https://mc-heads.net https://minecraftitemids.com https://raw.githubusercontent.com https://fonts.googleapis.com https://fonts.gstatic.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: https://mc-heads.net https://minecraftitemids.com https://raw.githubusercontent.com https://*.cloudflare.com; script-src 'self' 'unsafe-inline' https://*.gstatic.com; connect-src 'self' https://*.firebaseio.com https://*.googleapis.com https://*.cloudflare.com https://critmc-b2-files.marcinistella.workers.dev;">
+    <link rel="stylesheet" href="admin.css">
+    <style>
+        #admin-panel { display: none !important; }
+        .auth-ready #admin-panel { display: flex !important; }
+        .auth-ready #login-screen { display: none !important; }
+        .site-tab-panel { display: none !important; }
+        .site-tab-panel.sp-active { display: block !important; }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+
+<!-- ===== EKRAN LOGOWANIA ===== -->
+<div id="login-screen" class="login-screen">
+    <div class="login-box">
+        <div class="login-logo">
+            <span class="login-logo-crit">Crit</span><span class="login-logo-mc">MC</span>
+            <div class="login-logo-sub">Panel Administracyjny</div>
+        </div>
+        <form id="login-form" onsubmit="handleLogin(event)">
+            <div class="login-field">
+                <label><i class="fa-solid fa-user"></i> Login</label>
+                <input type="text" id="login-username" placeholder="Wpisz login..." autocomplete="off" required>
+            </div>
+            <div class="login-field">
+                <label><i class="fa-solid fa-lock"></i> Hasło</label>
+                <div class="password-wrap">
+                    <input type="password" id="login-password" placeholder="Wpisz hasło..." autocomplete="new-password" required>
+                    <button type="button" class="pw-toggle" onclick="togglePasswordVisibility()">
+                        <i class="fa-solid fa-eye" id="pw-toggle-icon"></i>
+                    </button>
+                </div>
+            </div>
+            <div id="login-error" class="login-error" style="display:none;">
+                <i class="fa-solid fa-circle-exclamation"></i> Błędny login lub hasło!
+            </div>
+            <button type="submit" class="login-btn">
+                <i class="fa-solid fa-right-to-bracket"></i> Zaloguj się
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- ===== PANEL GŁÓWNY ===== -->
+<div id="admin-panel" class="admin-panel" style="display:none;">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">
+                <span class="sl-crit">Crit</span><span class="sl-mc">MC</span>
+            </div>
+            <div class="sidebar-sub">Admin Panel</div>
+        </div>
+
+        <nav class="sidebar-nav">
+            <div class="nav-section-label">Minecraft</div>
+            <button class="nav-btn active" data-page="players" onclick="switchPage('players')">
+                <i class="fa-solid fa-users"></i><span>Gracze</span>
+            </button>
+            <button class="nav-btn" data-page="penalties" onclick="switchPage('penalties')">
+                <i class="fa-solid fa-gavel"></i><span>Kary</span>
+                <span class="nav-badge" id="badge-penalties">0</span>
+            </button>
+            <button class="nav-btn" data-page="action" onclick="switchPage('action')">
+                <i class="fa-solid fa-plus-circle"></i><span>Nadaj karę</span>
+            </button>
+            <button class="nav-btn" data-page="guides" onclick="switchPage('guides');loadGuidesPage();">
+                <i class="fa-solid fa-book-open"></i><span>Poradniki</span>
+            </button>
+            <button class="nav-btn" data-page="logs" onclick="switchPage('logs')">
+                <i class="fa-solid fa-clock-rotate-left"></i><span>Logi akcji</span>
+            </button>
+
+            <div class="nav-section-label" style="margin-top:1.5rem;">Strona</div>
+            <button class="nav-btn" data-page="site" onclick="switchPage('site');loadSitePage();">
+                <i class="fa-solid fa-globe"></i><span>Strona</span>
+            </button>
+            <button class="nav-btn" data-page="shop" onclick="switchPage('shop');loadShopPage();">
+                <i class="fa-solid fa-shop"></i><span>Sklep</span>
+            </button>
+            <button class="nav-btn" data-page="personel" onclick="switchPage('personel');loadPersonel();">
+                <i class="fa-solid fa-id-badge"></i><span>Personel</span>
+            </button>
+            <button class="nav-btn" data-page="files" onclick="switchPage('files');loadFilesPage();">
+                <i class="fa-solid fa-folder-open"></i><span>Pliki</span>
+            </button>
+
+            <div class="nav-section-label" style="margin-top:1.5rem;">Konto</div>
+            <button class="nav-btn" data-page="admins" onclick="switchPage('admins');loadAdminAccounts();">
+                <i class="fa-solid fa-user-shield"></i><span>Administratorzy</span>
+            </button>
+            <button class="nav-btn" data-page="permissions" onclick="switchPage('permissions');loadPermissionsPage();">
+                <i class="fa-solid fa-key"></i><span>Uprawnienia</span>
+            </button>
+
+            <div class="nav-section-label" style="margin-top:1.5rem;">System</div>
+            <button class="nav-btn" data-page="plugins" onclick="switchPage('plugins');loadPluginsPage();" style="background:rgba(16,185,129,.08);border-left:3px solid #10b981;">
+                <i class="fa-solid fa-puzzle-piece" style="color:#10b981;"></i><span style="color:#6ee7b7;">Pluginy</span>
+            </button>
+            <button class="nav-btn" data-page="ai" onclick="switchPage('ai');loadAiPage();" style="background:linear-gradient(135deg,rgba(139,92,246,.15),rgba(59,130,246,.1));border-left:3px solid #8b5cf6;">
+                <i class="fa-solid fa-robot" style="color:#8b5cf6;"></i><span style="color:#a78bfa;">AI Asystent</span>
+                <span class="nav-badge" style="background:linear-gradient(135deg,#8b5cf6,#3b82f6);">AI</span>
+            </button>
+            <button class="nav-btn" data-page="stats" onclick="switchPage('stats')">
+                <i class="fa-solid fa-chart-bar"></i><span>Statystyki</span>
+            </button>
+            <button class="nav-btn" data-page="info" onclick="switchPage('info');loadInfoPage();">
+                <i class="fa-solid fa-circle-info"></i><span>Informacje</span>
+            </button>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="sidebar-user">
+                <div class="su-avatar" id="su-avatar">A</div>
+                <div class="su-info">
+                    <div class="su-name" id="su-name">Admin</div>
+                    <div class="su-role" id="su-role">Zarządzający</div>
+                </div>
+            </div>
+            <button class="logout-btn" onclick="handleLogout()">
+                <i class="fa-solid fa-right-from-bracket"></i>
+            </button>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+
+        <!-- TOP BAR -->
+        <div class="topbar">
+            <button class="sidebar-toggle" onclick="toggleSidebar()">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+            <div class="topbar-title" id="topbar-title">Gracze</div>
+
+            <!-- Przycisk odświeżania danych -->
+            <button id="topbar-refresh-btn" onclick="refreshAllData()" title="Odśwież wszystkie dane"
+                style="margin-left:auto;padding:.55rem .9rem;background:var(--bg-card);border:1.5px solid var(--border);border-radius:var(--radius-sm);display:flex;align-items:center;gap:.45rem;color:var(--text-secondary);font-weight:700;font-size:.82rem;cursor:pointer;transition:all .2s;white-space:nowrap;"
+                onmouseenter="this.style.borderColor='var(--accent-blue)';this.style.color='var(--accent-blue)'"
+                onmouseleave="this.style.borderColor='var(--border)';this.style.color='var(--text-secondary)'">
+                <i class="fa-solid fa-rotate-right" id="topbar-refresh-icon"></i> Odśwież
+            </button>
+
+            <a href="../index.html" style="margin-left:.5rem;padding:.65rem 1.4rem;background:var(--bg-card);border:1.5px solid var(--border);border-radius:var(--radius-sm);display:flex;align-items:center;gap:.5rem;color:var(--text-secondary);text-decoration:none;font-weight:700;font-size:.9rem;white-space:nowrap;transition:all .2s;" onmouseenter="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseleave="this.style.borderColor='var(--border)';this.style.color='var(--text-secondary)'" title="Wróć do strony głównej">
+                <i class="fa-solid fa-house"></i> Strona główna
+            </a>
+        </div>
+
+        <!-- ===== GRACZE ===== -->
+        <div id="page-players" class="page active">
+            <div class="page-header">
+                <h1>Gracze</h1>
+                <p>Przeglądaj i zarządzaj graczami serwera</p>
+            </div>
+            <div class="filters-bar">
+                <div class="filter-search">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="players-search" placeholder="Szukaj po nicku lub IP..." oninput="filterPlayers()">
+                </div>
+                <div class="filter-group">
+                    <select id="players-filter-rank" onchange="filterPlayers()">
+                        <option value="">Wszystkie rangi</option>
+                        <option value="default">Gracz</option>
+                        <option value="vip">VIP</option>
+                        <option value="boss">BOSS</option>
+                        <option value="crit">CRIT</option>
+                        <option value="chatmod">ChatMod</option>
+                        <option value="pomocnik">Pomocnik</option>
+                        <option value="moderator">Moderator</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                    <select id="players-filter-status" onchange="filterPlayers()">
+                        <option value="">Wszystkie statusy</option>
+                        <option value="online">Online</option>
+                        <option value="offline">Offline</option>
+                        <option value="banned">Zbanowani</option>
+                        <option value="muted">Zmutowani</option>
+                    </select>
+                </div>
+            </div>
+            <div class="table-card">
+                <div class="table-wrap">
+                    <table class="data-table">
+                        <thead><tr>
+                            <th>Gracz</th><th>Adres IP</th><th>Status</th><th>Ostatnie logowanie</th><th>Akcje</th>
+                        </tr></thead>
+                        <tbody id="players-tbody">
+                            <tr><td colspan="5" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== KARY (bany + muty) ===== -->
+        <div id="page-penalties" class="page">
+            <div class="page-header">
+                <h1>Kary</h1>
+                <p>Aktywne bany i muty na serwerze</p>
+            </div>
+            <div style="display:flex;gap:.5rem;margin-bottom:1.2rem;">
+                <button class="tbl-btn" id="pen-tab-bans" onclick="switchPenaltyTab('bans')" style="font-weight:700;background:rgba(239,68,68,.1);color:#dc2626;border-color:rgba(220,38,38,.3);">
+                    <i class="fa-solid fa-ban"></i> Bany <span class="nav-badge" id="badge-bans" style="background:#ef4444;">0</span>
+                </button>
+                <button class="tbl-btn" id="pen-tab-mutes" onclick="switchPenaltyTab('mutes')" style="font-weight:700;">
+                    <i class="fa-solid fa-microphone-slash"></i> Muty <span class="nav-badge" id="badge-mutes" style="background:#f59e0b;">0</span>
+                </button>
+            </div>
+            <div id="pen-panel-bans">
+                <div class="filters-bar">
+                    <div class="filter-search"><i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="bans-search" placeholder="Szukaj po nicku lub powodzie..." oninput="filterBans()">
+                    </div>
+                    <div class="filter-group">
+                        <select id="bans-filter-type" onchange="filterBans()">
+                            <option value="">Wszystkie typy</option>
+                            <option value="permanent">Permanentne</option>
+                            <option value="temporary">Czasowe</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="table-card"><div class="table-wrap">
+                    <table class="data-table">
+                        <thead><tr><th>Gracz</th><th>Powód</th><th>Przez kogo</th><th>Data</th><th>Czas trwania</th><th>Załącznik</th><th>Akcje</th></tr></thead>
+                        <tbody id="bans-tbody"><tr><td colspan="7" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr></tbody>
+                    </table>
+                </div></div>
+            </div>
+            <div id="pen-panel-mutes" style="display:none;">
+                <div class="filters-bar">
+                    <div class="filter-search"><i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="mutes-search" placeholder="Szukaj po nicku lub powodzie..." oninput="filterMutes()">
+                    </div>
+                    <div class="filter-group">
+                        <select id="mutes-filter-type" onchange="filterMutes()">
+                            <option value="">Wszystkie typy</option>
+                            <option value="permanent">Permanentne</option>
+                            <option value="temporary">Czasowe</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="table-card"><div class="table-wrap">
+                    <table class="data-table">
+                        <thead><tr><th>Gracz</th><th>Powód</th><th>Przez kogo</th><th>Data</th><th>Czas trwania</th><th>Załącznik</th><th>Akcje</th></tr></thead>
+                        <tbody id="mutes-tbody"><tr><td colspan="7" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr></tbody>
+                    </table>
+                </div></div>
+            </div>
+        </div>
+        <div id="page-bans" class="page" style="display:none!important;"></div>
+        <div id="page-mutes" class="page" style="display:none!important;"></div>
+
+        <!-- ===== NADAJ KARĘ ===== -->
+        <div id="page-action" class="page">
+            <div class="page-header">
+                <h1>Nadaj karę</h1>
+                <p>Zbanuj, zmutuj, wyrzuć lub ostrzeż gracza</p>
+            </div>
+            <div class="action-page-grid">
+                <!-- Formularz -->
+                <div class="table-card" style="padding:1.5rem;">
+                    <div class="modal-field" style="margin-bottom:1.2rem;">
+                        <label>Nick gracza</label>
+                        <div style="position:relative;">
+                            <i class="fa-solid fa-user" style="position:absolute;left:.85rem;top:50%;transform:translateY(-50%);color:var(--text-secondary);"></i>
+                            <input type="text" id="ap-nick" placeholder="Wpisz nick gracza..."
+                                style="width:100%;padding:.7rem .9rem .7rem 2.4rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);"
+                                oninput="apSearchPlayer(this.value)">
+                        </div>
+                        <div id="ap-player-preview" style="display:none;margin-top:.6rem;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:.7rem 1rem;align-items:center;gap:.75rem;"></div>
+                    </div>
+                    <div class="modal-field" style="margin-bottom:1.2rem;">
+                        <label>Rodzaj akcji</label>
+                        <div class="action-btns">
+                            <button class="action-btn ban-btn"    onclick="apSetAction('ban')"><i class="fa-solid fa-ban"></i> Ban</button>
+                            <button class="action-btn unban-btn"  onclick="apSetAction('unban')"><i class="fa-solid fa-ban" style="opacity:.4"></i> Unban</button>
+                            <button class="action-btn mute-btn"   onclick="apSetAction('mute')"><i class="fa-solid fa-microphone-slash"></i> Mute</button>
+                            <button class="action-btn unmute-btn" onclick="apSetAction('unmute')"><i class="fa-solid fa-microphone"></i> Unmute</button>
+                            <button class="action-btn kick-btn"   onclick="apSetAction('kick')"><i class="fa-solid fa-door-open"></i> Kick</button>
+                            <button class="action-btn warn-btn"   onclick="apSetAction('warn')"><i class="fa-solid fa-triangle-exclamation"></i> Na Ekran</button>
+                            <button class="action-btn check-btn"  onclick="apSetAction('check')"><i class="fa-solid fa-magnifying-glass"></i> Sprawdź</button>
+                            <button class="action-btn alts-btn"   onclick="checkAlts(true)" style="background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.3);color:#8b5cf6;"><i class="fa-solid fa-users-viewfinder"></i> Multikonta</button>
+                            <button class="action-btn message-btn" onclick="apSetAction('message')" style="background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3);color:#3b82f6;"><i class="fa-solid fa-envelope"></i> Wiadomość</button>
+                        </div>
+                    </div>
+                    <div class="modal-field" id="ap-duration-field" style="margin-bottom:1.2rem;">
+                        <label>Czas trwania</label>
+                        <div class="duration-options">
+                            <button class="dur-btn" onclick="apSetDuration('1h',this)">1h</button>
+                            <button class="dur-btn" onclick="apSetDuration('6h',this)">6h</button>
+                            <button class="dur-btn" onclick="apSetDuration('12h',this)">12h</button>
+                            <button class="dur-btn" onclick="apSetDuration('1d',this)">1 dzień</button>
+                            <button class="dur-btn" onclick="apSetDuration('3d',this)">3 dni</button>
+                            <button class="dur-btn" onclick="apSetDuration('7d',this)">7 dni</button>
+                            <button class="dur-btn" onclick="apSetDuration('30d',this)">30 dni</button>
+                            <button class="dur-btn perm-btn" onclick="apSetDuration('permanent',this)">Permanentny</button>
+                        </div>
+                        <input type="text" id="ap-duration-custom" placeholder="Lub wpisz własny: 2h, 5d..."
+                            style="width:100%;margin-top:.5rem;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.88rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                    </div>
+                    <div class="modal-field" style="margin-bottom:1.5rem;">
+                        <label>Powód <span style="color:#999;font-weight:400;">(wymagany)</span></label>
+                        <input type="text" id="ap-reason" placeholder="Wpisz powód..."
+                            style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                    </div>
+                    <div class="modal-field" style="margin-bottom:1.5rem;">
+                        <label>Załącznik <span style="color:#999;font-weight:400;">(opcjonalny)</span></label>
+                        <select id="ap-attachment-type" onchange="toggleActionAttachmentFields('ap')"
+                            style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);margin-bottom:.6rem;">
+                            <option value="">Brak załącznika</option>
+                            <option value="link">Link</option>
+                            <option value="text">Tekst / notatka</option>
+                            <option value="file">Plik / zdjęcie / nagranie</option>
+                        </select>
+                        <input type="text" id="ap-attachment-link" placeholder="https://..." style="display:none;width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                        <textarea id="ap-attachment-text" rows="3" style="display:none;width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea>
+                        <input type="file" id="ap-attachment-file" accept="image/*,video/*,.zip,.rar,.txt,.pdf" style="display:none;width:100%;padding:.55rem .7rem;border:1.5px dashed var(--border);border-radius:var(--radius-sm);font-size:.88rem;color:var(--text-primary);background:var(--bg);">
+                    </div>
+                    <div id="ap-msg" style="display:none;margin-bottom:1rem;padding:.7rem 1rem;border-radius:var(--radius-sm);font-size:.88rem;font-weight:600;"></div>
+                    <button onclick="apSubmit()" style="width:100%;padding:.9rem;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:.95rem;font-weight:800;cursor:pointer;font-family:var(--font);">
+                        <i class="fa-solid fa-check"></i> Wykonaj akcję
+                    </button>
+                </div>
+                <!-- Gracze z bazy -->
+                <div class="table-card" style="overflow:hidden;">
+                    <div style="padding:1rem 1.2rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:.5rem;">
+                        <div style="font-size:.8rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;"><i class="fa-solid fa-users"></i> Gracze</div>
+                        <input type="text" id="ap-players-search" placeholder="Szukaj..." oninput="apFilterPlayers()"
+                            style="padding:.35rem .7rem;border:1.5px solid var(--border);border-radius:6px;font-size:.82rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);width:140px;">
+                    </div>
+                    <div id="ap-players-list" style="max-height:460px;overflow-y:auto;"></div>
+                </div>
+            </div>
+
+            <!-- Brak poradnika - przeniesiony do zakładki Poradniki -->
+        </div>
+
+        
+        <!-- ===== PORADNIKI ===== -->
+        <div id="page-guides" class="page">
+            <div class="page-header">
+                <h1>Poradniki</h1>
+                <p>Przewodniki dla administracji</p>
+            </div>
+            <div id="guides-list" style="display:flex;flex-direction:column;gap:1.5rem;">
+                <!-- Poradnik kar -->
+                <div class="table-card" style="overflow:hidden;">
+                    <div style="padding:1rem 1.4rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,rgba(59,130,246,.06),rgba(99,102,241,.06));">
+                        <div>
+                            <div style="font-size:1rem;font-weight:800;color:var(--text-primary);">
+                                <i class="fa-solid fa-gavel" style="color:var(--accent-blue);margin-right:.5rem;"></i>Poradnik kar
+                            </div>
+                            <div style="font-size:.78rem;color:var(--text-secondary);margin-top:.15rem;">Tabela kar — za co jaki ban/mute</div>
+                        </div>
+                        <button class="tbl-btn" onclick="openPunishmentGuideModal()" style="padding:.6rem 1.2rem;font-weight:700;border-color:var(--accent-blue);color:var(--accent-blue);background:rgba(59,130,246,.08);">
+                            <i class="fa-solid fa-eye"></i> Otwórz poradnik
+                        </button>
+                    </div>
+                    <div id="guides-punishment-preview" style="padding:.75rem 1.2rem;">
+                        <div style="font-size:.82rem;color:var(--text-secondary);">Kliknij "Otwórz poradnik" aby zobaczyć tabelę kar. Możesz ją edytować klikając przycisk Edytuj w oknie.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+<!-- ===== LOGI AKCJI ===== -->
+        <div id="page-logs" class="page">
+            <div class="page-header"><h1>Logi Akcji</h1><p>Historia wszystkich akcji administracyjnych</p></div>
+            <div class="filters-bar">
+                <div class="filter-search"><i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="logs-search" placeholder="Szukaj po graczu lub adminie..." oninput="filterLogs()">
+                </div>
+                <div class="filter-group">
+                    <select id="logs-filter-action" onchange="filterLogs()">
+                        <option value="">Wszystkie akcje</option>
+                        <option value="ban">Ban</option><option value="unban">Unban</option>
+                        <option value="mute">Mute</option><option value="unmute">Unmute</option>
+                        <option value="kick">Kick</option><option value="warn">Warn</option>
+                    </select>
+                    <select id="logs-filter-admin" onchange="filterLogs()"><option value="">Wszyscy admini</option></select>
+                    <input type="date" id="logs-filter-date" onchange="filterLogs()" title="Filtruj po dacie">
+                </div>
+            </div>
+            <div class="table-card"><div class="table-wrap">
+                <table class="data-table">
+                    <thead><tr><th>Akcja</th><th>Gracz</th><th>Admin</th><th>Powód</th><th>Czas</th><th>Załącznik</th><th>Data</th></tr></thead>
+                    <tbody id="logs-tbody"><tr><td colspan="7" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr></tbody>
+                </table>
+            </div></div>
+        </div>
+
+        <!-- ===== STATYSTYKI (ukryta, dostępna przez link) ===== -->
+        <div id="page-stats" class="page">
+            <div class="page-header"><h1>Statystyki Adminów</h1><p>Aktywność i efektywność administracji</p></div>
+            <div class="stats-overview" id="stats-overview">
+                <div class="stat-card"><div class="stat-icon" style="background:rgba(239,68,68,.12);color:#ef4444;"><i class="fa-solid fa-ban"></i></div><div class="stat-info"><div class="stat-value" id="stat-total-bans">—</div><div class="stat-label">Łączne bany</div></div></div>
+                <div class="stat-card"><div class="stat-icon" style="background:rgba(245,158,11,.12);color:#f59e0b;"><i class="fa-solid fa-microphone-slash"></i></div><div class="stat-info"><div class="stat-value" id="stat-total-mutes">—</div><div class="stat-label">Łączne muty</div></div></div>
+                <div class="stat-card"><div class="stat-icon" style="background:rgba(99,102,241,.12);color:#6366f1;"><i class="fa-solid fa-door-open"></i></div><div class="stat-info"><div class="stat-value" id="stat-total-kicks">—</div><div class="stat-label">Łączne kicki</div></div></div>
+                <div class="stat-card"><div class="stat-icon" style="background:rgba(16,185,129,.12);color:#10b981;"><i class="fa-solid fa-shield-halved"></i></div><div class="stat-info"><div class="stat-value" id="stat-total-admins">—</div><div class="stat-label">Aktywnych adminów</div></div></div>
+            </div>
+            <div class="table-card" style="margin-top:1.5rem;"><div class="table-wrap">
+                <table class="data-table">
+                    <thead><tr><th>#</th><th>Admin</th><th>Bany</th><th>Unban</th><th>Muty</th><th>Kicki</th><th>Warny</th><th>Sprawdz.</th><th>Razem</th><th>Ostatnia akcja</th></tr></thead>
+                    <tbody id="stats-tbody"><tr><td colspan="10" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr></tbody>
+                </table>
+            </div></div>
+        </div>
+
+        <!-- ===== SKLEP ===== -->
+        <div id="page-shop" class="page">
+            <div class="page-header">
+                <h1>Sklep</h1>
+                <p>Nadaj produkty graczom i przeglądaj historię zakupów</p>
+            </div>
+
+            <!-- Zakładki dla Sklepu -->
+            <div style="display:flex;gap:.5rem;margin-bottom:1.5rem;flex-wrap:wrap;" id="shop-tabs-nav">
+                <button class="site-tab-btn active" data-shop-tab="grant" onclick="switchShopTab('grant')"><i class="fa-solid fa-gift"></i> Nadawanie i Historia</button>
+                <button class="site-tab-btn" data-shop-tab="manage" onclick="switchShopTab('manage')"><i class="fa-solid fa-store"></i> Katalog Produktów</button>
+            </div>
+
+            <!-- TAB: Nadawanie i Historia -->
+            <div id="shop-tab-grant" class="site-tab-panel sp-active">
+                <!-- Dwie kolumny: formularz + historia -->
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;align-items:start;">
+
+                    <!-- LEWA: Formularz nadania -->
+                    <div>
+                        <div class="table-card" style="padding:1.4rem;">
+                            <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:1rem;letter-spacing:.05em;">
+                                <i class="fa-solid fa-gift" style="color:var(--accent);margin-right:.4rem;"></i>Nadaj produkty graczowi
+                            </div>
+
+                            <!-- Wybór gracza -->
+                            <div class="modal-field" style="margin-bottom:1rem;">
+                                <label>Nick gracza *</label>
+                                <div style="position:relative;">
+                                    <i class="fa-solid fa-user" style="position:absolute;left:.85rem;top:50%;transform:translateY(-50%);color:var(--text-secondary);"></i>
+                                    <input type="text" id="shop-grant-nick" placeholder="Wpisz lub wybierz nick gracza..."
+                                        autocomplete="off"
+                                        oninput="shopGrantSearchPlayer(this.value)"
+                                        style="width:100%;padding:.7rem .9rem .7rem 2.4rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                                    <!-- Dropdown sugestii -->
+                                    <div id="shop-grant-suggestions" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg-card);border:1.5px solid var(--border);border-top:none;border-radius:0 0 var(--radius-sm) var(--radius-sm);max-height:200px;overflow-y:auto;z-index:100;box-shadow:var(--shadow-md);"></div>
+                                </div>
+                            </div>
+
+                            <!-- Wybór produktów -->
+                            <div class="modal-field" style="margin-bottom:1rem;">
+                                <label>Produkty do nadania *</label>
+
+                                <!-- Rangi -->
+                                <div style="margin-bottom:.8rem;">
+                                    <div style="font-size:.72rem;font-weight:700;color:#8b5cf6;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem;"><i class="fa-solid fa-crown"></i> Rangi (30 dni / 60 przy 2×)</div>
+                                    <div style="display:flex;flex-direction:column;gap:.35rem;">
+                                        <div class="sgib-row">
+                                            <button class="shop-grant-item-btn" data-type="ranga" data-id="vip" data-label="Ranga VIP" onclick="toggleShopGrantItem(this)" style="border-color:#c026d3;color:#c026d3;"><i class="fa-solid fa-crown"></i> VIP</button>
+                                            <input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="ranga:vip" oninput="onSgibQty(this)" title="Ilość">
+                                        </div>
+                                        <div class="sgib-row">
+                                            <button class="shop-grant-item-btn" data-type="ranga" data-id="boss" data-label="Ranga BOSS" onclick="toggleShopGrantItem(this)" style="border-color:#2563eb;color:#2563eb;"><i class="fa-solid fa-crown"></i> BOSS</button>
+                                            <input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="ranga:boss" oninput="onSgibQty(this)" title="Ilość">
+                                        </div>
+                                        <div class="sgib-row">
+                                            <button class="shop-grant-item-btn" data-type="ranga" data-id="crit" data-label="Ranga CRIT" onclick="toggleShopGrantItem(this)" style="border-color:#dc2626;color:#dc2626;"><i class="fa-solid fa-crown"></i> CRIT</button>
+                                            <input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="ranga:crit" oninput="onSgibQty(this)" title="Ilość">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Klucze -->
+                                <div style="margin-bottom:.8rem;">
+                                    <div style="font-size:.72rem;font-weight:700;color:#f59e0b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem;"><i class="fa-solid fa-key"></i> Klucze</div>
+                                    <div id="shop-grant-keys" style="display:flex;flex-direction:column;gap:.35rem;">
+                                        <div class="sgib-row"><button class="shop-grant-item-btn" data-type="klucz" data-id="zwykly" data-label="Klucz Zwykły" onclick="toggleShopGrantItem(this)">🔑 Zwykły</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="klucz:zwykly" oninput="onSgibQty(this)" title="Ilość"></div>
+                                        <div class="sgib-row"><button class="shop-grant-item-btn" data-type="klucz" data-id="rzadki" data-label="Klucz Rzadki" onclick="toggleShopGrantItem(this)">🔑 Rzadki</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="klucz:rzadki" oninput="onSgibQty(this)" title="Ilość"></div>
+                                        <div class="sgib-row"><button class="shop-grant-item-btn" data-type="klucz" data-id="epicki" data-label="Klucz Epicki" onclick="toggleShopGrantItem(this)">🔑 Epicki</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="klucz:epicki" oninput="onSgibQty(this)" title="Ilość"></div>
+                                        <div class="sgib-row"><button class="shop-grant-item-btn" data-type="klucz" data-id="crit" data-label="Klucz CRIT" onclick="toggleShopGrantItem(this)">🔑 CRIT</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="klucz:crit" oninput="onSgibQty(this)" title="Ilość"></div>
+                                        <div class="sgib-row"><button class="shop-grant-item-btn" data-type="klucz" data-id="premium" data-label="Klucz Premium" onclick="toggleShopGrantItem(this)">🔑 Premium</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="klucz:premium" oninput="onSgibQty(this)" title="Ilość"></div>
+                                        <div class="sgib-row"><button class="shop-grant-item-btn" data-type="klucz" data-id="losowy" data-label="Klucz Losowy" onclick="toggleShopGrantItem(this)">🔑 Losowy</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="klucz:losowy" oninput="onSgibQty(this)" title="Ilość"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Zestawy -->
+                                <div style="margin-bottom:.8rem;">
+                                    <div style="font-size:.72rem;font-weight:700;color:#3b82f6;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem;"><i class="fa-solid fa-boxes-packing"></i> Zestawy</div>
+                                    <div style="display:flex;flex-direction:column;gap:.35rem;">
+                                        <div class="sgib-row"><button class="shop-grant-item-btn" data-type="zestaw" data-id="pakiet-vip" data-label="Pakiet VIP" onclick="toggleShopGrantItem(this)">📦 Pakiet VIP</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="zestaw:pakiet-vip" oninput="onSgibQty(this)" title="Ilość"></div>
+                                        <div class="sgib-row"><button class="shop-grant-item-btn" data-type="zestaw" data-id="pakiet-boss" data-label="Pakiet BOSS" onclick="toggleShopGrantItem(this)">📦 Pakiet BOSS</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="zestaw:pakiet-boss" oninput="onSgibQty(this)" title="Ilość"></div>
+                                        <div class="sgib-row"><button class="shop-grant-item-btn" data-type="zestaw" data-id="pakiet-crit" data-label="Pakiet CRIT" onclick="toggleShopGrantItem(this)">📦 Pakiet CRIT</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="zestaw:pakiet-crit" oninput="onSgibQty(this)" title="Ilość"></div>
+                                        <div class="sgib-row"><button class="shop-grant-item-btn" data-type="zestaw" data-id="maly-klucze" data-label="Mały Zestaw Kluczy" onclick="toggleShopGrantItem(this)">📦 Mały Zestaw</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="zestaw:maly-klucze" oninput="onSgibQty(this)" title="Ilość"></div>
+                                        <div class="sgib-row"><button class="shop-grant-item-btn" data-type="zestaw" data-id="sredni-klucze" data-label="Średni Zestaw Kluczy" onclick="toggleShopGrantItem(this)">📦 Średni Zestaw</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="zestaw:sredni-klucze" oninput="onSgibQty(this)" title="Ilość"></div>
+                                        <div class="sgib-row"><button class="shop-grant-item-btn" data-type="zestaw" data-id="duzy-klucze" data-label="Duży Zestaw Kluczy" onclick="toggleShopGrantItem(this)">📦 Duży Zestaw</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="zestaw:duzy-klucze" oninput="onSgibQty(this)" title="Ilość"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Inne -->
+                                <div>
+                                    <div style="font-size:.72rem;font-weight:700;color:#10b981;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem;"><i class="fa-solid fa-sparkles"></i> Inne</div>
+                                    <div style="display:flex;flex-direction:column;gap:.35rem;">
+                                        <div class="sgib-row"><button class="shop-grant-item-btn" data-type="item" data-id="nick-color" data-label="Nick Color Permanent" onclick="toggleShopGrantItem(this)">🎨 Nick Color</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="item:nick-color" oninput="onSgibQty(this)" title="Ilość"></div>
+                                        <div class="sgib-row"><button class="shop-grant-item-btn" data-type="item" data-id="repair-30" data-label="/repair 30 dni" onclick="toggleShopGrantItem(this)">🔧 /repair 30d</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="item:repair-30" oninput="onSgibQty(this)" title="Ilość"></div>
+                                        <div class="sgib-row"><button class="shop-grant-item-btn" data-type="item" data-id="ec-30" data-label="/ec 30 dni" onclick="toggleShopGrantItem(this)">📜 /ec 30d</button><input class="sgib-qty" type="number" min="1" max="999" value="1" data-for="item:ec-30" oninput="onSgibQty(this)" title="Ilość"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Wiadomość na czacie -->
+                            <div class="modal-field" style="margin-bottom:1rem;">
+                                <label>Ogłoszenie na czacie serwera <span style="color:#999;font-weight:400;">(opcjonalne)</span></label>
+                                <input type="text" id="shop-grant-message" placeholder="np. Dziękujemy za zakup! - zostaw puste = domyślne ogłoszenie"
+                                    style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                            </div>
+
+                            <!-- Podgląd wyboru -->
+                            <div id="shop-grant-preview" style="display:none;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:.75rem 1rem;margin-bottom:1rem;">
+                                <div style="font-size:.72rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.4rem;">Podsumowanie:</div>
+                                <div id="shop-grant-preview-content" style="font-size:.88rem;"></div>
+                            </div>
+
+                            <div id="shop-grant-msg" class="modal-msg" style="display:none;"></div>
+
+                            <button class="modal-submit-btn" onclick="submitShopGrant()" id="shop-grant-btn">
+                                <i class="fa-solid fa-gift"></i> Nadaj produkty
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- PRAWA: Historia nadań -->
+                    <div>
+                        <div class="table-card" style="overflow:hidden;">
+                            <div style="padding:.9rem 1.2rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+                                <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;">
+                                    <i class="fa-solid fa-clock-rotate-left"></i> Historia nadań
+                                </div>
+                                <button class="tbl-btn" onclick="loadShopGrants()" style="font-size:.75rem;"><i class="fa-solid fa-rotate-right"></i></button>
+                            </div>
+                            <div id="shop-grants-list" style="max-height:600px;overflow-y:auto;">
+                                <div style="text-align:center;padding:2rem;color:var(--text-secondary);font-size:.88rem;"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- TAB: Katalog Produktów -->
+            <div id="shop-tab-manage" class="site-tab-panel">
+                <div class="table-card" style="padding:1.4rem;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem;flex-wrap:wrap;gap:1rem;">
+                        <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;">
+                            <i class="fa-solid fa-store" style="color:var(--accent);margin-right:.4rem;"></i>Zarządzanie produktami w sklepie internetowym
+                        </div>
+                        <div style="display:flex;gap:.5rem;">
+                            <button onclick="importDefaultShopItems()" class="tbl-btn" style="background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;font-weight:700;padding:.5rem .85rem;font-size:.78rem;cursor:pointer;"><i class="fa-solid fa-file-import"></i> Zaimportuj domyślne</button>
+                            <button onclick="openShopItemModal(null)" class="modal-submit-btn" style="width:auto;margin:0;padding:.5rem .95rem;font-size:.78rem;cursor:pointer;"><i class="fa-solid fa-plus"></i> Dodaj produkt</button>
+                            <button class="tbl-btn" onclick="loadAdminShopItems()"><i class="fa-solid fa-rotate-right"></i></button>
+                        </div>
+                    </div>
+                    <div class="table-wrap">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th style="width:60px;text-align:center;">Obrazek</th>
+                                    <th>Nazwa produktu</th>
+                                    <th>Typ</th>
+                                    <th>Cena</th>
+                                    <th style="width:80px;text-align:center;">Sortowanie</th>
+                                    <th style="width:100px;">Status</th>
+                                    <th style="width:100px;">Akcje</th>
+                                </tr>
+                            </thead>
+                            <tbody id="shop-manage-tbody">
+                                <tr><td colspan="7" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+                <!-- ===== ZARZĄDZANIE STRONĄ ===== -->
+        <div id="page-site" class="page">
+            <div class="page-header"><h1>Zarządzanie stroną</h1><p>Konkurs, zmiany, media, aktualności, ankieta</p></div>
+
+            <!-- Zakładki -->
+            <div style="display:flex;gap:.5rem;margin-bottom:1.5rem;flex-wrap:wrap;">
+                <button class="site-tab-btn active" data-site-tab="contest" onclick="switchSiteTab('contest')"><i class="fa-solid fa-trophy"></i> Konkurs</button>
+                <button class="site-tab-btn" data-site-tab="changes" onclick="switchSiteTab('changes')"><i class="fa-solid fa-list-check"></i> Zmiany</button>
+                <button class="site-tab-btn" data-site-tab="media" onclick="switchSiteTab('media')"><i class="fa-solid fa-photo-film"></i> Media</button>
+                <button class="site-tab-btn" data-site-tab="proposals" onclick="switchSiteTab('proposals')"><i class="fa-solid fa-lightbulb"></i> Propozycje</button>
+                <button class="site-tab-btn" data-site-tab="news" onclick="switchSiteTab('news')"><i class="fa-solid fa-newspaper"></i> Aktualności</button>
+                <button class="site-tab-btn" data-site-tab="poll" onclick="switchSiteTab('poll')"><i class="fa-solid fa-square-poll-horizontal"></i> Ankieta</button>
+                <button class="modal-submit-btn" style="width:auto;padding:.5rem 1.1rem;font-size:.85rem;margin-left:auto;" onclick="siteNewContest()"><i class="fa-solid fa-plus"></i> Nowy konkurs</button>
+                <button class="tbl-btn" onclick="siteLoadContestList()"><i class="fa-solid fa-rotate-right"></i></button>
+            </div>
+
+            <!-- KONKURS -->
+            <div id="site-tab-contest" class="site-tab-panel sp-active">
+                <div style="display:flex;align-items:center;gap:.8rem;margin-bottom:1.2rem;flex-wrap:wrap;">
+                    <label style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;">Konkurs:</label>
+                    <select id="site-contest-select" onchange="siteLoadContestInfo();siteLoadEntries();"
+                        style="flex:1;min-width:180px;padding:.55rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                        <option value="start">start (domyślny)</option>
+                    </select>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem;">
+                    <div class="table-card" style="padding:1.2rem;">
+                        <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.8rem;"><i class="fa-solid fa-trophy" style="color:#f2c84a;"></i> Ustawienia</div>
+                        <div id="site-contest-status-badge" style="margin-bottom:.6rem;"></div>
+                        <div style="display:flex;flex-direction:column;gap:.7rem;">
+                            <div><label style="font-size:.75rem;font-weight:700;color:var(--text-secondary);display:block;margin-bottom:.3rem;">Nagroda</label>
+                                <input type="text" id="site-contest-nagroda" placeholder="np. 2x Ranga CRIT na 14 dni" style="width:100%;padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);"></div>
+                            <div><label style="font-size:.75rem;font-weight:700;color:var(--text-secondary);display:block;margin-bottom:.3rem;">Data wyników</label>
+                                <input type="datetime-local" id="site-contest-date" style="width:100%;padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);"></div>
+                            <div><label style="font-size:.75rem;font-weight:700;color:var(--text-secondary);display:block;margin-bottom:.3rem;">Ilość zwycięzców</label>
+                                <input type="number" id="site-contest-winners-count" min="1" max="20" value="2" oninput="_buildWinnersInputs(parseInt(this.value)||2)" style="width:100px;padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);"></div>
+                            <button class="modal-submit-btn" style="padding:.6rem;" onclick="siteUpdateContest()"><i class="fa-solid fa-floppy-disk"></i> Zapisz ustawienia</button>
+                        </div>
+                    </div>
+                    <div class="table-card" style="padding:1.2rem;">
+                        <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.8rem;"><i class="fa-solid fa-flag-checkered" style="color:#00e676;"></i> Akcje konkursu</div>
+                        <div style="display:flex;flex-direction:column;gap:.6rem;">
+                            <div style="font-size:.75rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.2rem;">Nicki zwycięzców</div>
+                            <div id="site-winners-inputs" style="display:flex;flex-direction:column;gap:.35rem;margin-bottom:.3rem;"></div>
+                            <button style="background:linear-gradient(135deg,#f2c84a,#ff8c00);color:#000;border:none;padding:.65rem;border-radius:var(--radius-sm);font-weight:900;cursor:pointer;font-family:var(--font);" onclick="siteAnnounceWinners()"><i class="fa-solid fa-trophy"></i> Ogłoś zwycięzców i zakończ</button>
+                            <button style="background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);color:#f59e0b;padding:.55rem;border-radius:var(--radius-sm);font-weight:700;cursor:pointer;font-family:var(--font);" onclick="siteEndContest()"><i class="fa-solid fa-flag-checkered"></i> Zakończ bez wyników</button>
+                            <button style="background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.25);color:#3b82f6;padding:.55rem;border-radius:var(--radius-sm);font-weight:700;cursor:pointer;font-family:var(--font);" onclick="siteRestartContest()"><i class="fa-solid fa-rotate-right"></i> Zresetuj (nowa tura)</button>
+                            <button style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);color:#ef4444;padding:.55rem;border-radius:var(--radius-sm);font-weight:700;cursor:pointer;font-family:var(--font);" onclick="siteDeleteContest()"><i class="fa-solid fa-trash"></i> Usuń konkurs całkowicie</button>
+                        </div>
+                        <div id="site-contest-msg" style="margin-top:.7rem;font-size:.85rem;text-align:center;min-height:1.2em;"></div>
+                    </div>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.8rem;">
+                    <div style="font-weight:700;">Uczestnicy <span id="site-entries-count" style="color:var(--text-secondary);font-weight:400;font-size:.82rem;"></span></div>
+                    <button class="tbl-btn" onclick="siteLoadEntries()"><i class="fa-solid fa-rotate-right"></i> Odśwież</button>
+                </div>
+                <div class="table-card"><div class="table-wrap">
+                    <table class="data-table">
+                        <thead><tr><th>Nick MC</th><th>Nick DC</th><th>Słowo weryfikacyjne</th><th>Dołączył</th><th>Akcje</th></tr></thead>
+                        <tbody id="site-entries-tbody"><tr><td colspan="5" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr></tbody>
+                    </table>
+                </div></div>
+            </div>
+
+            <!-- ZMIANY -->
+            <div id="site-tab-changes" class="site-tab-panel">
+                <div class="table-card" style="padding:1.4rem;">
+                    <div style="display:flex;flex-direction:column;gap:1rem;">
+                        <div><label style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;display:block;margin-bottom:.4rem;">Tryb: Zwykłe</label>
+                            <textarea id="site-edit-zwykle" rows="5" style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea></div>
+                        <div><label style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;display:block;margin-bottom:.4rem;">Tryb: Szczegółowe</label>
+                            <textarea id="site-edit-szczegolowe" rows="5" style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea></div>
+                        <div><label style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;display:block;margin-bottom:.4rem;">Tryb: Najmocniejsze</label>
+                            <textarea id="site-edit-najmocniejsze" rows="5" style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea></div>
+                        <div style="display:flex;gap:.8rem;align-items:center;">
+                            <button class="modal-submit-btn" style="width:auto;padding:.65rem 1.4rem;" onclick="siteSaveChanges()"><i class="fa-solid fa-floppy-disk"></i> Zapisz i opublikuj</button>
+                            <span id="site-changes-msg" style="font-size:.88rem;"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MEDIA -->
+            <div id="site-tab-media" class="site-tab-panel">
+                <div class="table-card" style="padding:1.4rem;">
+                    <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:1rem;"><i class="fa-brands fa-discord" style="color:#7289da;"></i> Discord</div>
+                    <div style="display:flex;gap:.6rem;margin-bottom:1.2rem;">
+                        <input type="text" id="site-dc-url" placeholder="URL Discord" style="flex:1;padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                        <input type="text" id="site-dc-sub" placeholder="Podtytuł" style="flex:1;padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                    </div>
+                    <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.6rem;"><i class="fa-brands fa-youtube" style="color:#ff0000;"></i> YouTube</div>
+                    <div style="display:flex;gap:.6rem;margin-bottom:1.2rem;">
+                        <input type="text" id="site-yt-url" placeholder="URL YouTube" style="flex:1;padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                        <input type="text" id="site-yt-handle" placeholder="@handle" style="flex:1;padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                    </div>
+                    <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.6rem;"><i class="fa-brands fa-tiktok" style="color:#00f0ff;"></i> TikTok</div>
+                    <div style="display:flex;gap:.6rem;margin-bottom:1.2rem;">
+                        <input type="text" id="site-tt-url" placeholder="URL TikTok" style="flex:1;padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                        <input type="text" id="site-tt-handle" placeholder="@handle" style="flex:1;padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                    </div>
+                    <div style="display:flex;gap:.8rem;align-items:center;">
+                        <button class="modal-submit-btn" style="width:auto;padding:.65rem 1.4rem;" onclick="siteSaveMedia()"><i class="fa-solid fa-floppy-disk"></i> Zapisz linki</button>
+                        <span id="site-media-msg" style="font-size:.88rem;"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PROPOZYCJE -->
+            <div id="site-tab-proposals" class="site-tab-panel">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.8rem;flex-wrap:wrap;gap:.6rem;">
+                    <div style="font-weight:700;">Propozycje graczy</div>
+                    <button class="tbl-btn" onclick="siteLoadProposals()"><i class="fa-solid fa-rotate-right"></i> Odśwież</button>
+                </div>
+                <div class="table-card"><div class="table-wrap">
+                    <table class="data-table">
+                        <thead><tr><th>Treść</th><th>TAK</th><th>NIE</th><th>Data</th><th>Akcje</th></tr></thead>
+                        <tbody id="site-proposals-tbody"><tr><td colspan="5" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr></tbody>
+                    </table>
+                </div></div>
+            </div>
+
+            <!-- AKTUALNOŚĆ -->
+            <div id="site-tab-news" class="site-tab-panel">
+                <div style="display:flex;justify-content:flex-end;margin-bottom:1rem;">
+                    <button class="modal-submit-btn" style="width:auto;padding:.6rem 1.4rem;" onclick="openNewsModal()"><i class="fa-solid fa-plus"></i> Dodaj aktualność</button>
+                </div>
+                <div id="news-list" style="display:flex;flex-direction:column;gap:.8rem;">
+                    <div class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</div>
+                </div>
+            </div>
+
+            <!-- ANKIETA -->
+            <div id="site-tab-poll" class="site-tab-panel">
+                <div class="table-card" style="padding:1.4rem;margin-bottom:1rem;">
+                    <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.9rem;"><i class="fa-solid fa-square-poll-horizontal" style="color:#8b5cf6;margin-right:.4rem;"></i>Utwórz / edytuj ankietę</div>
+                    <div style="display:flex;flex-direction:column;gap:.7rem;">
+                        <div><label style="font-size:.75rem;font-weight:700;color:var(--text-secondary);display:block;margin-bottom:.3rem;">Pytanie</label>
+                            <input type="text" id="poll-question" placeholder="np. Który tryb gry powinniśmy dodać?" style="width:100%;padding:.65rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);"></div>
+                        <div><label style="font-size:.75rem;font-weight:700;color:var(--text-secondary);display:block;margin-bottom:.3rem;">Opcje (jedna na linię)</label>
+                            <textarea id="poll-options" rows="4" placeholder="Survival&#10;Skyblock&#10;Bedwars" style="width:100%;padding:.65rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea></div>
+                        <label style="display:flex;align-items:center;gap:.5rem;font-size:.88rem;font-weight:600;cursor:pointer;"><input type="checkbox" id="poll-active" checked> Ankieta aktywna</label>
+                        <div style="display:flex;gap:.6rem;align-items:center;">
+                            <button class="modal-submit-btn" style="width:auto;padding:.65rem 1.4rem;" onclick="savePoll()"><i class="fa-solid fa-floppy-disk"></i> Zapisz</button>
+                            <button class="tbl-btn" onclick="resetPollVotes()"><i class="fa-solid fa-rotate-left"></i> Resetuj głosy</button>
+                            <span id="poll-msg" style="font-size:.85rem;font-weight:600;"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="table-card" style="padding:1.2rem;">
+                    <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.9rem;">Wyniki</div>
+                    <div id="poll-results"><div style="color:var(--text-secondary);text-align:center;padding:1.5rem;">Brak danych.</div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== PERSONEL ===== -->
+        <div id="page-personel" class="page">
+            <div class="page-header"><h1>Personel</h1><p>Zarządzaj ekipą serwera — wyświetlane na stronie głównej</p></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem;">
+                <div class="table-card" style="padding:1.2rem;">
+                    <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.8rem;"><i class="fa-solid fa-crown" style="color:#fc84fb;"></i> Właściciel</div>
+                    <div style="display:flex;flex-direction:column;gap:.6rem;">
+                        <input type="text" id="owner-nick" placeholder="Nick MC właściciela..." style="padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                        <input type="text" id="owner-yt" placeholder="URL YouTube..." style="padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                        <input type="text" id="owner-tt" placeholder="URL TikTok..." style="padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                        <textarea id="owner-desc" rows="2" placeholder="Opis..." style="padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea>
+                        <button class="modal-submit-btn" style="padding:.6rem;" onclick="saveOwner()"><i class="fa-solid fa-floppy-disk"></i> Zapisz</button>
+                    </div>
+                </div>
+                <div class="table-card" style="padding:1.2rem;">
+                    <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.8rem;"><i class="fa-solid fa-crown" style="color:#88c5ff;"></i> Współwłaściciel</div>
+                    <div style="display:flex;flex-direction:column;gap:.6rem;">
+                        <input type="text" id="cowowner-nick" placeholder="Nick MC lub łłł jeśli ukryty..." style="padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                        <input type="text" id="cowowner-yt" placeholder="URL YouTube..." style="padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                        <input type="text" id="cowowner-dc" placeholder="URL Discord..." style="padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                        <textarea id="cowowner-desc" rows="2" placeholder="Opis..." style="padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea>
+                        <button class="modal-submit-btn" style="padding:.6rem;" onclick="saveCowowner()"><i class="fa-solid fa-floppy-disk"></i> Zapisz</button>
+                    </div>
+                </div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:.8rem;">
+                <div style="font-size:.9rem;font-weight:700;">Członkowie personelu <span id="personel-count" style="color:var(--text-secondary);font-weight:400;font-size:.82rem;"></span></div>
+                <button class="modal-submit-btn" style="width:auto;padding:.55rem 1.2rem;" onclick="openPersonelModal()"><i class="fa-solid fa-plus"></i> Dodaj członka</button>
+            </div>
+            <div class="table-card"><div class="table-wrap">
+                <table class="data-table">
+                    <thead><tr><th>Avatar</th><th>Nick</th><th>Ranga</th><th>Opis</th><th>Socials</th><th>Kolejność</th><th>Akcje</th></tr></thead>
+                    <tbody id="personel-tbody"><tr><td colspan="7" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr></tbody>
+                </table>
+            </div></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin:1.5rem 0 1rem;flex-wrap:wrap;gap:.8rem;">
+                <div style="font-size:.9rem;font-weight:700;">Twórcy serwerowi <span id="creators-count" style="color:var(--text-secondary);font-weight:400;font-size:.82rem;"></span></div>
+                <button class="modal-submit-btn" style="width:auto;padding:.55rem 1.2rem;background:linear-gradient(135deg,#aa00ff,#ff00ff);" onclick="openCreatorModal()"><i class="fa-solid fa-plus"></i> Dodaj twórcę</button>
+            </div>
+            <div class="table-card"><div class="table-wrap">
+                <table class="data-table">
+                    <thead><tr><th>Avatar</th><th>Nick</th><th>Opis</th><th>Socials</th><th>Akcje</th></tr></thead>
+                    <tbody id="creators-tbody"><tr><td colspan="5" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr></tbody>
+                </table>
+            </div></div>
+        </div>
+
+        <!-- ===== PLIKI ===== -->
+        <div id="page-files" class="page">
+            <div class="page-header"><h1>Pliki</h1><p>Podgląd i zarządzanie plikami z panelu</p></div>
+            <div class="filters-bar">
+                <div class="filter-search"><i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="files-search" placeholder="Szukaj po nazwie, graczu..." oninput="filterFiles()">
+                </div>
+                <div class="filter-group">
+                    <select id="files-filter-status" onchange="filterFiles()">
+                        <option value="">Wszystkie statusy</option>
+                        <option value="ready">Gotowe</option>
+                        <option value="deleted">Usunięte</option>
+                    </select>
+                    <button class="tbl-btn" onclick="loadFilesPage()"><i class="fa-solid fa-rotate-right"></i> Odśwież</button>
+                </div>
+            </div>
+            <div class="table-card"><div class="table-wrap">
+                <table class="data-table">
+                    <thead><tr><th>Podgląd</th><th>Nazwa</th><th>Gracz</th><th>Akcja</th><th>Autor</th><th>Data</th><th>Status</th><th>Akcje</th></tr></thead>
+                    <tbody id="files-tbody"><tr><td colspan="8" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr></tbody>
+                </table>
+            </div></div>
+        </div>
+
+        <!-- ===== ADMINISTRATORZY ===== -->
+        <div id="page-admins" class="page">
+            <div class="page-header"><h1>Administratorzy</h1><p>Zarządzaj kontami administracyjnymi</p></div>
+            <div style="display:flex;justify-content:flex-end;margin-bottom:1rem;">
+                <button class="modal-submit-btn" style="width:auto;padding:.6rem 1.4rem;" onclick="openAddAdminModal()"><i class="fa-solid fa-plus"></i> Dodaj administratora</button>
+            </div>
+            <div class="table-card"><div class="table-wrap">
+                <table class="data-table">
+                    <thead><tr><th>Nazwa</th><th>Opis</th><th>Login</th><th>Ranga</th><th>Uprawnienia</th><th>Status</th><th>Akcje</th></tr></thead>
+                    <tbody id="admin-accounts-tbody"><tr><td colspan="7" class="table-loading"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</td></tr></tbody>
+                </table>
+            </div></div>
+        </div>
+
+        <!-- ===== UPRAWNIENIA ===== -->
+        <div id="page-permissions" class="page">
+            <div class="page-header"><h1>Uprawnienia</h1><p>Zarządzaj uprawnieniami rang administracyjnych</p></div>
+            <div class="table-card" style="padding:1.2rem;margin-bottom:1rem;">
+                <div style="font-size:.88rem;color:var(--text-secondary);line-height:1.6;">Tutaj ustawiasz domyślne uprawnienia dla rang. Nowe konta administratorów będą mogły automatycznie korzystać z tych zestawów.</div>
+            </div>
+            <div id="permissions-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:1rem;margin-bottom:2rem;">
+                <div class="table-card" style="padding:1.5rem;text-align:center;color:var(--text-secondary);"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</div>
+            </div>
+            <div id="luckperms-permissions-container"></div>
+        </div>
+
+        <!-- ===== INFORMACJE ===== -->
+        <div id="page-info" class="page">
+            <div class="page-header"><h1>Informacje systemowe</h1><p>Status połączeń, zasoby serwera i statystyki</p></div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin-bottom:1.5rem;">
+                <div class="table-card" style="padding:1.2rem;">
+                    <div style="font-size:.72rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.7rem;"><i class="fa-solid fa-database" style="color:#3b82f6;margin-right:.4rem;"></i>Firebase / Firestore</div>
+                    <div id="info-db-status" style="display:flex;align-items:center;gap:.6rem;"><span style="width:10px;height:10px;border-radius:50%;background:#9ca3af;flex-shrink:0;"></span><span style="font-size:.88rem;font-weight:600;">Sprawdzanie...</span></div>
+                    <div id="info-db-detail" style="margin-top:.5rem;font-size:.75rem;color:var(--text-secondary);">—</div>
+                </div>
+                <div class="table-card" style="padding:1.2rem;">
+                    <div style="font-size:.72rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.7rem;"><i class="fa-solid fa-box-archive" style="color:#8b5cf6;margin-right:.4rem;"></i>Baza plików (Worker)</div>
+                    <div id="info-b2-status" style="display:flex;align-items:center;gap:.6rem;"><span style="width:10px;height:10px;border-radius:50%;background:#9ca3af;flex-shrink:0;"></span><span style="font-size:.88rem;font-weight:600;">Sprawdzanie...</span></div>
+                    <div id="info-b2-detail" style="margin-top:.5rem;font-size:.75rem;color:var(--text-secondary);">—</div>
+                </div>
+                <div class="table-card" style="padding:1.2rem;">
+                    <div style="font-size:.72rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.7rem;"><i class="fa-solid fa-server" style="color:#10b981;margin-right:.4rem;"></i>Serwer Minecraft</div>
+                    <div id="info-mc-status" style="display:flex;align-items:center;gap:.6rem;"><span style="width:10px;height:10px;border-radius:50%;background:#9ca3af;flex-shrink:0;"></span><span style="font-size:.88rem;font-weight:600;">Sprawdzanie...</span></div>
+                    <div id="info-mc-detail" style="margin-top:.5rem;font-size:.75rem;color:var(--text-secondary);">—</div>
+                </div>
+                <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:1.2rem;">
+                    <div style="font-size:.75rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.6rem;">Plugin MC (CritMC)</div>
+                    <div id="info-mc-plugin-status" style="display:flex;align-items:center;gap:.5rem;margin-bottom:.3rem;">
+                        <span style="width:9px;height:9px;border-radius:50%;background:#9ca3af;"></span>
+                        <span style="font-size:.82rem;color:var(--text-secondary);">Sprawdzanie...</span>
+                    </div>
+                    <div id="info-mc-plugin-detail" style="font-size:.72rem;color:var(--text-secondary);"></div>
+                </div>
+                <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:1.2rem;">
+                    <div style="font-size:.75rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.6rem;">CStats Plugin</div>
+                    <div id="info-cstats-status" style="display:flex;align-items:center;gap:.5rem;margin-bottom:.3rem;">
+                        <span style="width:9px;height:9px;border-radius:50%;background:#9ca3af;"></span>
+                        <span style="font-size:.82rem;color:var(--text-secondary);">Sprawdzanie...</span>
+                    </div>
+                    <div id="info-cstats-detail" style="font-size:.72rem;color:var(--text-secondary);"></div>
+                </div>
+                <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:1.2rem;">
+                    <div style="font-size:.75rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.6rem;">CShop Plugin</div>
+                    <div id="info-cshop-status" style="display:flex;align-items:center;gap:.5rem;margin-bottom:.3rem;">
+                        <span style="width:9px;height:9px;border-radius:50%;background:#9ca3af;"></span>
+                        <span style="font-size:.82rem;color:var(--text-secondary);">Sprawdzanie...</span>
+                    </div>
+                    <div id="info-cshop-detail" style="font-size:.72rem;color:var(--text-secondary);"></div>
+                </div>
+                <div class="table-card" style="padding:1.2rem;">
+                    <div style="font-size:.72rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.7rem;"><i class="fa-solid fa-clock" style="color:#f59e0b;margin-right:.4rem;"></i>Czas działania</div>
+                    <div style="font-size:1.4rem;font-weight:800;color:var(--text-primary);" id="info-uptime">—</div>
+                    <div style="margin-top:.3rem;font-size:.75rem;color:var(--text-secondary);">od zalogowania</div>
+                </div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1rem;margin-bottom:1.5rem;">
+                <div class="table-card" style="padding:1rem;text-align:center;"><div style="font-size:2rem;font-weight:800;color:var(--accent);" id="info-stat-players">—</div><div style="font-size:.75rem;color:var(--text-secondary);font-weight:600;text-transform:uppercase;">Graczy w bazie</div></div>
+                <div class="table-card" style="padding:1rem;text-align:center;"><div style="font-size:2rem;font-weight:800;color:#10b981;" id="info-stat-online">—</div><div style="font-size:.75rem;color:var(--text-secondary);font-weight:600;text-transform:uppercase;">Online teraz</div></div>
+                <div class="table-card" style="padding:1rem;text-align:center;"><div style="font-size:2rem;font-weight:800;color:#ef4444;" id="info-stat-bans">—</div><div style="font-size:.75rem;color:var(--text-secondary);font-weight:600;text-transform:uppercase;">Aktywnych banów</div></div>
+                <div class="table-card" style="padding:1rem;text-align:center;"><div style="font-size:2rem;font-weight:800;color:#f59e0b;" id="info-stat-mutes">—</div><div style="font-size:.75rem;color:var(--text-secondary);font-weight:600;text-transform:uppercase;">Aktywnych mutów</div></div>
+                <div class="table-card" style="padding:1rem;text-align:center;"><div style="font-size:2rem;font-weight:800;color:#3b82f6;" id="info-stat-logs">—</div><div style="font-size:.75rem;color:var(--text-secondary);font-weight:600;text-transform:uppercase;">Wpisów w logach</div></div>
+                <div class="table-card" style="padding:1rem;text-align:center;"><div style="font-size:2rem;font-weight:800;color:#8b5cf6;" id="info-stat-files">—</div><div style="font-size:.75rem;color:var(--text-secondary);font-weight:600;text-transform:uppercase;">Plików w bazie</div></div>
+                <div class="table-card" style="padding:1rem;text-align:center;"><div style="font-size:2rem;font-weight:800;color:#0ea5e9;" id="info-stat-admins">—</div><div style="font-size:.75rem;color:var(--text-secondary);font-weight:600;text-transform:uppercase;">Kont adminów</div></div>
+                <div class="table-card" style="padding:1rem;text-align:center;"><div style="font-size:2rem;font-weight:800;color:#f97316;" id="info-stat-shop">—</div><div style="font-size:.75rem;color:var(--text-secondary);font-weight:600;text-transform:uppercase;">Produktów w sklepie</div></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem;">
+                <div class="table-card" style="padding:1.2rem;">
+                    <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.9rem;"><i class="fa-solid fa-laptop" style="color:#3b82f6;margin-right:.4rem;"></i>Sesja</div>
+                    <table style="width:100%;font-size:.85rem;border-collapse:collapse;">
+                        <tr><td style="padding:.3rem 0;color:var(--text-secondary);width:45%;">Zalogowany jako</td><td style="padding:.3rem 0;font-weight:700;" id="info-s-user">—</td></tr>
+                        <tr><td style="padding:.3rem 0;color:var(--text-secondary);">Ranga</td><td style="padding:.3rem 0;font-weight:700;" id="info-s-role">—</td></tr>
+                        <tr><td style="padding:.3rem 0;color:var(--text-secondary);">Czas logowania</td><td style="padding:.3rem 0;font-weight:700;" id="info-s-login-time">—</td></tr>
+                        <tr><td style="padding:.3rem 0;color:var(--text-secondary);">Przeglądarka</td><td style="padding:.3rem 0;font-weight:700;font-size:.78rem;" id="info-s-browser">—</td></tr>
+                        <tr><td style="padding:.3rem 0;color:var(--text-secondary);">Rozdzielczość</td><td style="padding:.3rem 0;font-weight:700;" id="info-s-res">—</td></tr>
+                        <tr><td style="padding:.3rem 0;color:var(--text-secondary);">Strefa czasowa</td><td style="padding:.3rem 0;font-weight:700;" id="info-s-tz">—</td></tr>
+                    </table>
+                </div>
+                <div class="table-card" style="padding:1.2rem;">
+                    <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.9rem;"><i class="fa-solid fa-code" style="color:#8b5cf6;margin-right:.4rem;"></i>Zasoby</div>
+                    <table style="width:100%;font-size:.85rem;border-collapse:collapse;">
+                        <tr><td style="padding:.3rem 0;color:var(--text-secondary);width:45%;">Firebase</td><td style="padding:.3rem 0;font-weight:700;">12.14.0</td></tr>
+                        <tr><td style="padding:.3rem 0;color:var(--text-secondary);">Projekt</td><td style="padding:.3rem 0;font-weight:700;font-size:.78rem;">stronacritmcpl</td></tr>
+                        <tr><td style="padding:.3rem 0;color:var(--text-secondary);">Worker URL</td><td style="padding:.3rem 0;font-weight:700;font-size:.72rem;" id="info-worker-url">—</td></tr>
+                        <tr><td style="padding:.3rem 0;color:var(--text-secondary);">Pamięć JS</td><td style="padding:.3rem 0;font-weight:700;" id="info-memory">—</td></tr>
+                        <tr><td style="padding:.3rem 0;color:var(--text-secondary);">Skryptów</td><td style="padding:.3rem 0;font-weight:700;" id="info-scripts">—</td></tr>
+                        <tr><td style="padding:.3rem 0;color:var(--text-secondary);">Odświeżono</td><td style="padding:.3rem 0;font-weight:700;" id="info-last-refresh">—</td></tr>
+                    </table>
+                </div>
+            </div>
+            <div style="display:flex;gap:.75rem;align-items:center;">
+                <button class="modal-submit-btn" style="width:auto;padding:.65rem 1.4rem;" onclick="loadInfoPage()"><i class="fa-solid fa-rotate-right"></i> Odśwież dane</button>
+                <span style="font-size:.82rem;color:var(--text-secondary);" id="info-refreshed-at"></span>
+            </div>
+        </div>
+
+    </main>
+</div>
+
+<!-- ===== AI ASYSTENT PAGE ===== -->
+<script>
+// Wstrzykuje page-ai do main po załadowaniu DOM
+document.addEventListener('DOMContentLoaded', function() {
+    const main = document.querySelector('.main-content');
+    if (!main) return;
+
+    // ── Strona PLUGINY ──────────────────────────────────────────────────────
+    const pluginsPage = document.createElement('div');
+    pluginsPage.id = 'page-plugins';
+    pluginsPage.className = 'page';
+    pluginsPage.innerHTML = `
+    <div class="page-header">
+        <h1><i class="fa-solid fa-puzzle-piece" style="color:#10b981;margin-right:.5rem;"></i>Pluginy</h1>
+        <p>Statystyki i zarządzanie pluginami serwera</p>
+    </div>
+    <div style="display:flex;gap:.5rem;margin-bottom:1.5rem;flex-wrap:wrap;">
+        <button class="site-tab-btn active" data-site-tab="cstats" onclick="switchPluginTab('cstats')"><i class="fa-solid fa-chart-bar"></i> CStats</button>
+        <button class="site-tab-btn" data-site-tab="pconnections" onclick="switchPluginTab('pconnections')"><i class="fa-solid fa-network-wired"></i> Połączenia</button>
+    </div>
+    <div id="ptab-cstats" class="site-tab-panel sp-active">
+        <!-- GÓRA: wyszukiwarka gracza (duża, centralna) -->
+        <div class="table-card" style="padding:1.4rem;margin-bottom:1.2rem;">
+            <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.8rem;text-align:center;">
+                <i class="fa-solid fa-magnifying-glass" style="color:#10b981;"></i> Wpisz nick gracza
+            </div>
+            <div style="position:relative;max-width:480px;margin:0 auto;">
+                <div style="display:flex;gap:.5rem;">
+                    <input type="text" id="cstats-edit-nick" placeholder="Wpisz nick gracza (np. sosenka8)..." autocomplete="off" oninput="cstatsSearchPlayer(this.value)" onfocus="cstatsSearchPlayer(this.value)"
+                        style="flex:1;padding:.85rem 1.1rem;border:2px solid var(--border);border-radius:10px;font-size:1rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);font-weight:600;transition:border-color .15s;"
+                        onfocus="this.style.borderColor='#8b5cf6'" onblur="setTimeout(()=>{this.style.borderColor='var(--border)'},200)">
+                    <button onclick="window.cstatsClearPlayer()" title="Wyczyść wybór" style="padding:0 1rem;background:transparent;border:2px solid var(--border);border-radius:10px;color:var(--text-secondary);cursor:pointer;font-size:1rem;font-family:var(--font);">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                <div id="cstats-suggestions" style="display:none;position:absolute;top:calc(100% + 2px);left:0;right:0;background:var(--bg-card);border:1.5px solid rgba(139,92,246,.3);border-top:none;border-radius:0 0 12px 12px;max-height:340px;overflow-y:auto;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.4);"></div>
+                <div style="font-size:.72rem;color:var(--text-secondary);text-align:center;margin-top:.6rem;">
+                    💡 Wskazówka: kliknij gracza w <b>Topkach</b> poniżej aby szybko go otworzyć
+                </div>
+            </div>
+            <div id="cstats-player-stats" style="display:none;margin-top:1.2rem;">
+                <div id="cstats-player-info" style="display:flex;align-items:center;gap:.8rem;margin-bottom:1rem;background:linear-gradient(135deg,rgba(16,185,129,.08),rgba(59,130,246,.05));border:1.5px solid rgba(16,185,129,.2);border-radius:12px;padding:.8rem 1rem;"></div>
+            </div>
+        </div>
+
+        <!-- PO WYBORZE: staty+osiągnięcia (lewa) | edycja (prawa) -->
+        <div id="cstats-player-content" style="display:grid;grid-template-columns:1.6fr 1fr;gap:1.2rem;margin-bottom:1.2rem;">
+            <!-- Lewa: statystyki + osiągnięcia -->
+            <div>
+                <div class="table-card" style="padding:1.2rem;margin-bottom:1.2rem;">
+                    <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.8rem;">
+                        <i class="fa-solid fa-chart-line" style="color:#3b82f6;"></i> Statystyki gracza
+                    </div>
+                    <div id="cstats-player-statgrid" style="color:var(--text-secondary);text-align:center;padding:2rem;font-size:.88rem;">
+                        Wpisz nick powyżej, aby zobaczyć statystyki.
+                    </div>
+                </div>
+                <div class="table-card" style="padding:1.2rem;">
+                    <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.8rem;display:flex;align-items:center;justify-content:space-between;">
+                        <span><i class="fa-solid fa-award" style="color:#8b5cf6;"></i> Osiągnięcia</span>
+                        <span id="cstats-ach-player" style="font-size:.8rem;font-weight:700;color:var(--text-primary);"></span>
+                    </div>
+                    <div id="cstats-achievements" style="color:var(--text-secondary);text-align:center;padding:1.5rem;font-size:.85rem;">Wpisz nick powyżej.</div>
+                </div>
+            </div>
+            <!-- Prawa: edycja statystyki -->
+            <div class="table-card" style="padding:1.2rem;align-self:start;position:sticky;top:1rem;">
+                <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.8rem;">
+                    <i class="fa-solid fa-pen-to-square" style="color:#f59e0b;"></i> Edycja statystyki
+                </div>
+                <div style="display:flex;flex-direction:column;gap:.6rem;">
+                    <select id="cstats-stat-name" style="width:100%;padding:.6rem .7rem;border:1.5px solid var(--border);border-radius:8px;font-size:.85rem;background:var(--bg);color:var(--text-primary);font-family:var(--font);">
+                        <option value="kills">Zabójstwa</option><option value="deaths">Śmierci</option>
+                        <option value="killstreak">Killstreak</option><option value="max_killstreak">Max Killstreak</option>
+                        <option value="blocks_mined">Wykopane bloki</option><option value="stone_mined">Wykopany kamień</option>
+                        <option value="ores_mined">Wykopane rudy</option><option value="mobs_killed">Zabite moby</option>
+                        <option value="damage_dealt">Zadane obrażenia</option><option value="distance">Dystans</option>
+                        <option value="jumps">Skoki</option><option value="playtime">Czas gry (sek.)</option>
+                        <option value="points">Punkty</option><option value="koksy">Koksy</option>
+                        <option value="refile">Refile</option><option value="potions">Mikstury</option>
+                        <option value="premium_chests">Skrzynki Premium</option><option value="events_won">Wygrane eventy</option>
+                    </select>
+                    <input type="number" id="cstats-stat-value" placeholder="Nowa wartość" min="0"
+                        style="width:100%;padding:.6rem .7rem;border:1.5px solid var(--border);border-radius:8px;font-size:.9rem;background:var(--bg);color:var(--text-primary);font-family:var(--font);">
+                    <button onclick="cstatsSaveStat()" style="width:100%;padding:.7rem;background:linear-gradient(135deg,#3b82f6,#10b981);color:#fff;border:none;border-radius:8px;font-weight:800;cursor:pointer;font-family:var(--font);font-size:.88rem;">
+                        <i class="fa-solid fa-floppy-disk"></i> Zapisz statystykę
+                    </button>
+                    <div id="cstats-edit-msg" style="display:none;margin-top:.2rem;padding:.5rem .7rem;border-radius:6px;font-size:.8rem;font-weight:600;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- DÓŁ: historia edycji + topki (obok siebie) -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;">
+            <div class="table-card" style="overflow:hidden;">
+                <div style="padding:.8rem 1.2rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+                    <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;"><i class="fa-solid fa-clock-rotate-left" style="color:#ef4444;"></i> Historia edycji</div>
+                    <button class="tbl-btn" onclick="loadCStatsEditLog()" style="font-size:.72rem;"><i class="fa-solid fa-rotate-right"></i></button>
+                </div>
+                <div id="cstats-editlog-list" style="max-height:340px;overflow-y:auto;">
+                    <div style="text-align:center;padding:2rem;color:var(--text-secondary);font-size:.85rem;"><i class="fa-solid fa-spinner fa-spin"></i> Ładowanie...</div>
+                </div>
+            </div>
+            <div class="table-card" style="padding:1.2rem;">
+                <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.8rem;display:flex;align-items:center;justify-content:space-between;">
+                    <span><i class="fa-solid fa-trophy" style="color:#f59e0b;"></i> Top rankingi</span>
+                    <select id="cstats-top-stat" onchange="loadCStatsTop()" style="padding:.35rem .6rem;border:1px solid var(--border);border-radius:6px;font-size:.78rem;background:var(--bg);color:var(--text-primary);font-family:var(--font);">
+                        <option value="kills">Zabójstwa</option><option value="deaths">Śmierci</option>
+                        <option value="blocks_mined">Wykopane bloki</option><option value="playtime">Czas gry</option>
+                        <option value="points">Punkty</option><option value="mobs_killed">Zabite moby</option>
+                        <option value="damage_dealt">Zadane obrażenia</option><option value="kdr">KDR</option>
+                    </select>
+                </div>
+                <div id="cstats-top-list" style="max-height:340px;overflow-y:auto;"></div>
+            </div>
+        </div>
+    </div>
+    <div id="ptab-pconnections" class="site-tab-panel">
+        <div id="plugin-connections-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem;"></div>
+    </div>`;
+    main.appendChild(pluginsPage);
+    const aiPage = document.createElement('div');
+    aiPage.id = 'page-ai';
+    aiPage.className = 'page';
+    aiPage.innerHTML = `
+    <div class="page-header" style="margin-bottom:1.5rem;">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;">
+            <div style="display:flex;align-items:center;gap:1rem;">
+                <div style="width:50px;height:50px;background:linear-gradient(135deg,#8b5cf6,#3b82f6);border-radius:14px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.5rem;box-shadow:0 4px 12px rgba(139,92,246,0.35);">
+                    <i class="fa-solid fa-robot"></i>
+                </div>
+                <div>
+                    <h1 style="margin:0;font-weight:900;letter-spacing:-0.5px;">CritAI Asystent</h1>
+                    <p style="margin:0;color:var(--text-secondary);font-size:.85rem;">Zaawansowana sztuczna inteligencja zarządzająca serwerem</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 350px;gap:1.5rem;align-items:start;">
+        
+        <!-- LEWA KOLUMNA: CHAT -->
+        <div class="table-card" style="display:flex;flex-direction:column;height:650px;overflow:hidden;border:1px solid var(--border);border-radius:12px;">
+            <div id="ai-chat-history" style="flex:1;overflow-y:auto;padding:1.5rem;display:flex;flex-direction:column;gap:1.2rem;background:var(--bg);">
+                <div id="ai-welcome" style="text-align:center;margin:auto 0;padding:2rem;">
+                    <div style="font-size:3.5rem;margin-bottom:1.2rem;">🤖</div>
+                    <h2 style="margin-bottom:.5rem;font-weight:800;">Witaj w CritAI Intelligence</h2>
+                    <p style="color:var(--text-secondary);font-size:.88rem;max-width:440px;margin:0 auto 1.5rem;line-height:1.6;">
+                        Jestem zintegrowanym asystentem AI posiadającym pełne uprawnienia administratorskie. Możesz pisać do mnie naturalnym językiem.
+                    </p>
+                    <div style="font-size:.75rem;text-transform:uppercase;color:var(--text-secondary);font-weight:700;margin-bottom:.8rem;letter-spacing:1px;">Przykłady zapytań:</div>
+                    <div style="display:flex;flex-direction:column;gap:.5rem;max-width:400px;margin:0 auto;">
+                        <button class="ai-chip" onclick="window.aiPrompt('Zbanuj sosenka8 za reklamowanie innego serwera na 7 dni')" style="text-align:left;justify-content:flex-start;">🔨 Ban: sosenka8 na 7d za reklamę</button>
+                        <button class="ai-chip" onclick="window.aiPrompt('Nadaj rangę VIP dla srhzz na 30 dni')" style="text-align:left;justify-content:flex-start;">👑 Ranga: VIP dla srhzz na 30 dni</button>
+                        <button class="ai-chip" onclick="window.aiPrompt('Daj graczowi sosenka8 diamentowy miecz ostrosc:5 unbreaking:3')" style="text-align:left;justify-content:flex-start;">⚔️ Przedmiot: Diamentowy miecz Ostrość V</button>
+                        <button class="ai-chip" onclick="window.aiPrompt('Restart serwera za 10 sekund z ogłoszeniem')" style="text-align:left;justify-content:flex-start;">🔄 Akcja: Restart serwera za 10s</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="padding:1.2rem;border-top:1px solid var(--border);background:var(--bg-card);">
+                <div style="display:flex;gap:.5rem;position:relative;">
+                    <input type="text" id="ai-input" placeholder="Napisz polecenie np. Zmutuj gracza X na 2h za przekleństwa..." onkeydown="if(event.key==='Enter') sendAiMessage()"
+                        style="flex:1;padding:.85rem 1.2rem;border:1.5px solid var(--border);border-radius:10px;background:var(--bg);color:var(--text-primary);outline:none;font-family:var(--font);font-size:.9rem;transition:border-color .25s;"
+                        onfocus="this.style.borderColor='#8b5cf6'" onblur="this.style.borderColor='var(--border)'">
+                    <button id="ai-send-btn" onclick="sendAiMessage()" style="background:#8b5cf6;color:#fff;border:none;padding:0 1.6rem;border-radius:10px;cursor:pointer;font-weight:700;font-size:.9rem;display:flex;align-items:center;justify-content:center;transition:all .2s;box-shadow:0 3px 8px rgba(139,92,246,0.3);"
+                        onmouseover="this.style.background='#7c3aed';this.style.transform='translateY(-1px)'" onmouseout="this.style.background='#8b5cf6';this.style.transform='none'">
+                        <i class="fa-solid fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- PRAWA KOLUMNA: STATUS & USTAWIENIA -->
+        <div style="display:flex;flex-direction:column;gap:1.5rem;">
+            
+            <!-- KARTA STATUSU -->
+            <div class="table-card" style="padding:1.25rem;border-radius:12px;border:1px solid var(--border);">
+                <h4 style="margin-top:0;margin-bottom:1rem;font-size:.75rem;text-transform:uppercase;color:var(--text-secondary);letter-spacing:1px;font-weight:800;display:flex;align-items:center;gap:.4rem;">
+                    <i class="fa-solid fa-circle-nodes" style="color:#8b5cf6;"></i> Stan systemu AI
+                </h4>
+                <div style="font-size:.85rem;display:flex;flex-direction:column;gap:.8rem;color:var(--text-primary);">
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <span>Aktywny model:</span>
+                        <b id="ai-active-model" style="color:#a78bfa;font-family:monospace;background:rgba(139,92,246,.08);padding:.15rem .45rem;border-radius:5px;border:1px solid rgba(139,92,246,.15);">Brak</b>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <span>Status połączenia:</span>
+                        <span id="ai-key-status" style="color:#ef4444;font-weight:700;display:flex;align-items:center;gap:.3rem;"><i class="fa-solid fa-triangle-exclamation"></i> Nieaktywny</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <span>Użycie dzisiaj:</span>
+                        <span style="font-weight:700;"><span id="ai-usage-count">0</span> zapytanych</span>
+                    </div>
+                    <button id="ai-test-btn" onclick="window.testAiKey()" style="margin-top:.3rem;padding:.6rem;background:transparent;border:1.5px solid rgba(139,92,246,.3);border-radius:8px;color:#a78bfa;font-weight:700;font-size:.78rem;cursor:pointer;font-family:var(--font);transition:all .2s;display:flex;align-items:center;justify-content:center;gap:.4rem;"
+                        onmouseover="this.style.background='rgba(139,92,246,.06)';this.style.borderColor='#8b5cf6'" onmouseout="this.style.background='transparent';this.style.borderColor='rgba(139,92,246,.3)'">
+                        <i class="fa-solid fa-vial"></i> Testuj połączenie API
+                    </button>
+                </div>
+            </div>
+
+            <!-- KONFIGURACJA KLUCZA -->
+            <div class="table-card" id="ai-api-setup" style="padding:1.25rem;border-radius:12px;border:1px solid var(--border);">
+                <!-- Widok zapisanego klucza -->
+                <div id="ai-key-saved-view" style="display:none;">
+                    <h4 style="margin-top:0;margin-bottom:1rem;font-size:.75rem;text-transform:uppercase;color:var(--text-secondary);letter-spacing:1px;font-weight:800;display:flex;align-items:center;gap:.4rem;">
+                        <i class="fa-solid fa-key" style="color:#10b981;"></i> Klucz Gemini API
+                    </h4>
+                    <div style="font-size:.85rem;color:var(--text-primary);display:flex;flex-direction:column;gap:.75rem;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg);border:1px solid var(--border);padding:.55rem .75rem;border-radius:8px;font-family:monospace;">
+                            <span id="ai-key-masked" style="color:var(--text-secondary);">AIza****</span>
+                            <span style="color:#10b981;font-size:.7rem;font-weight:800;"><i class="fa-solid fa-shield-halved"></i> Zapisano</span>
+                        </div>
+                        <div style="display:flex;gap:.5rem;margin-top:.2rem;">
+                            <button onclick="showAiKeyForm()" class="tbl-btn" style="flex:1;font-size:.75rem;padding:.5rem;font-weight:700;"><i class="fa-solid fa-pen"></i> Zmień klucz</button>
+                            <button onclick="removeAiApiKey()" class="tbl-btn" style="color:#ef4444;border-color:rgba(239,68,68,.3);background:rgba(239,68,68,.04);font-size:.75rem;padding:.5rem;font-weight:700;"><i class="fa-solid fa-trash"></i> Usuń</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Formularz wprowadzania klucza -->
+                <div id="ai-key-form-view">
+                    <h4 id="ai-key-form-title" style="margin-top:0;margin-bottom:1rem;font-size:.75rem;text-transform:uppercase;color:var(--text-secondary);letter-spacing:1px;font-weight:800;display:flex;align-items:center;gap:.4rem;">
+                        <i class="fa-solid fa-key" style="color:#8b5cf6;"></i> Klucz Gemini API
+                    </h4>
+                    <div style="font-size:.82rem;color:var(--text-secondary);line-height:1.5;margin-bottom:.8rem;">
+                        Wprowadź swój bezpłatny klucz API z konsoli <a href="https://aistudio.google.com/" target="_blank" style="color:#8b5cf6;font-weight:700;text-decoration:none;">Google AI Studio</a>.
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:.6rem;">
+                        <input type="password" id="ai-api-key-input" placeholder="Wklej klucz API (AIza... lub AQ...)"
+                            style="width:100%;padding:.65rem .8rem;border:1.5px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text-primary);outline:none;font-family:monospace;font-size:.82rem;">
+                        <div style="display:flex;gap:.4rem;">
+                            <button onclick="saveAiApiKey()" style="flex:1;padding:.65rem;background:#8b5cf6;color:#fff;border:none;border-radius:8px;font-weight:800;font-size:.78rem;cursor:pointer;font-family:var(--font);transition:background .2s;" onmouseover="this.style.background='#7c3aed'" onmouseout="this.style.background='#8b5cf6'">
+                                Zapisz klucz
+                            </button>
+                            <button id="ai-cancel-btn" onclick="cancelAiKeyEdit()" class="tbl-btn" style="font-size:.78rem;padding:.65rem;font-weight:700;display:none;">
+                                Anuluj
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SZYBKIE AKCJE -->
+            <div class="table-card" style="padding:1.25rem;border-radius:12px;border:1px solid var(--border);">
+                <h4 style="margin-top:0;margin-bottom:1rem;font-size:.75rem;text-transform:uppercase;color:var(--text-secondary);letter-spacing:1px;font-weight:800;display:flex;align-items:center;gap:.4rem;">
+                    <i class="fa-solid fa-bolt" style="color:#f59e0b;"></i> Szybkie szablony
+                </h4>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;">
+                    <button class="ai-chip" onclick="window.aiPrompt('Zbanuj ')">🔨 Banuj</button>
+                    <button class="ai-chip" onclick="window.aiPrompt('Zmutuj ')">🔇 Mute</button>
+                    <button class="ai-chip" onclick="window.aiPrompt('Warn ')">⚠️ Warn</button>
+                    <button class="ai-chip" onclick="window.aiPrompt('Check ')">🔍 Sprawdź</button>
+                    <button class="ai-chip" onclick="window.aiPrompt('Console_cmd ')">💻 Konsola</button>
+                    <button class="ai-chip" onclick="window.aiPrompt('Broadcast ')">📢 Rozgłoś</button>
+                </div>
+            </div>
+            
+        </div>
+    </div>`;
+    main.appendChild(aiPage);
+});
+</script>
+
+<!-- TOAST -->
+<div id="toast-container" class="toast-container"></div>
+
+<!-- MODAL: AKCJA NA GRACZU -->
+<div class="modal-overlay" id="action-modal" onclick="closeModal(event)">
+    <div class="modal-box">
+        <div class="modal-header"><div class="modal-title" id="modal-title">Akcja</div><button class="modal-close" onclick="closeActionModal()"><i class="fa-solid fa-xmark"></i></button></div>
+        <div class="modal-body">
+            <div class="modal-player-info" id="modal-player-info"></div>
+            <div class="modal-field"><label>Akcja</label>
+                <div class="action-btns" id="modal-action-btns">
+                    <button class="action-btn ban-btn" onclick="setAction('ban')"><i class="fa-solid fa-ban"></i> Ban</button>
+                    <button class="action-btn unban-btn" onclick="setAction('unban')"><i class="fa-solid fa-ban" style="opacity:.4"></i> Unban</button>
+                    <button class="action-btn mute-btn" onclick="setAction('mute')"><i class="fa-solid fa-microphone-slash"></i> Mute</button>
+                    <button class="action-btn unmute-btn" onclick="setAction('unmute')"><i class="fa-solid fa-microphone"></i> Unmute</button>
+                    <button class="action-btn kick-btn" onclick="setAction('kick')"><i class="fa-solid fa-door-open"></i> Kick</button>
+                    <button class="action-btn warn-btn" onclick="setAction('warn')"><i class="fa-solid fa-triangle-exclamation"></i> Na Ekran</button>
+                    <button class="action-btn check-btn" onclick="setAction('check')"><i class="fa-solid fa-magnifying-glass"></i> Sprawdź</button>
+                    <button class="action-btn alts-btn" onclick="checkAlts()" style="background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.3);color:#8b5cf6;"><i class="fa-solid fa-users-viewfinder"></i> Multikonta</button>
+                    <button class="action-btn message-btn" onclick="setAction('message')" style="background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3);color:#3b82f6;"><i class="fa-solid fa-envelope"></i> Wiadomość</button>
+                </div>
+            </div>
+            <div class="modal-field" id="duration-field">
+                <label id="reason-label">Powód <span style="color:#888;font-weight:400;">(wymagany)</span></label>
+                <div class="duration-options">
+                    <button class="dur-btn" onclick="setDuration('1h')">1h</button>
+                    <button class="dur-btn" onclick="setDuration('6h')">6h</button>
+                    <button class="dur-btn" onclick="setDuration('12h')">12h</button>
+                    <button class="dur-btn" onclick="setDuration('1d')">1 dzień</button>
+                    <button class="dur-btn" onclick="setDuration('3d')">3 dni</button>
+                    <button class="dur-btn" onclick="setDuration('7d')">7 dni</button>
+                    <button class="dur-btn" onclick="setDuration('30d')">30 dni</button>
+                    <button class="dur-btn perm-btn" onclick="setDuration('permanent')">Permanentny</button>
+                </div>
+                <input type="text" id="duration-custom" placeholder="Lub wpisz własny np. 2h, 5d..." style="margin-top:.5rem;">
+            </div>
+            <div class="modal-field"><input type="text" id="action-reason" placeholder="Podaj powód..."></div>
+            <div id="modal-msg" class="modal-msg" style="display:none;"></div>
+            <button class="modal-submit-btn" id="modal-submit" onclick="submitAction()"><i class="fa-solid fa-check"></i> Wykonaj akcję</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: SZCZEGÓŁY GRACZA (Problem 4: powiększony do ~1100px) -->
+<div class="modal-overlay" id="player-detail-modal" onclick="closeModal(event)">
+    <div class="modal-box" style="max-width:92vw;width:1100px;max-height:92vh;">
+        <div class="modal-header"><div class="modal-title">Szczegóły gracza</div><button class="modal-close" onclick="closePlayerDetail()"><i class="fa-solid fa-xmark"></i></button></div>
+        <div class="modal-body" id="player-detail-body" style="max-height:80vh;overflow-y:auto;"></div>
+    </div>
+</div>
+
+<!-- MODAL: NOTATKA -->
+<div class="modal-overlay" id="note-modal" onclick="closeModal(event)">
+    <div class="modal-box" style="max-width:480px;">
+        <div class="modal-header"><div class="modal-title"><i class="fa-solid fa-note-sticky" style="color:var(--accent-yellow);margin-right:.5rem;"></i> Dodaj notatkę</div><button class="modal-close" onclick="closeNoteModal()"><i class="fa-solid fa-xmark"></i></button></div>
+        <div class="modal-body">
+            <div class="modal-player-info" id="note-player-info"></div>
+            <div class="modal-field"><label>Treść notatki <span style="color:#999;font-weight:400;">(nie można usunąć)</span></label>
+                <textarea id="note-content" rows="4" placeholder="Wpisz notatkę o graczu..."
+                    style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea>
+            </div>
+            <div id="note-msg" class="modal-msg" style="display:none;"></div>
+            <button class="modal-submit-btn" onclick="submitNote()" style="background:var(--accent-yellow);color:#000;"><i class="fa-solid fa-floppy-disk"></i> Zapisz notatkę</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: KONTO ADMINA -->
+<div class="modal-overlay" id="admin-account-modal" onclick="closeModal(event)">
+    <div class="modal-box" style="max-width:520px;">
+        <div class="modal-header"><div class="modal-title" id="admin-account-modal-title">Dodaj administratora</div><button class="modal-close" onclick="document.getElementById('admin-account-modal').classList.remove('open')"><i class="fa-solid fa-xmark"></i></button></div>
+        <div class="modal-body">
+            <input type="hidden" id="aa-id">
+            <div class="modal-field"><label>Nazwa wyświetlana</label><input type="text" id="aa-displayname" placeholder="np. Moderator Jan..."></div>
+            <div class="modal-field"><label>Login</label><input type="text" id="aa-login" placeholder="np. jan123..." autocomplete="off"></div>
+            <div class="modal-field"><label>Hasło <span style="color:#999;font-weight:400;">(zostaw puste żeby nie zmieniać)</span></label><input type="password" id="aa-password" placeholder="Nowe hasło..." autocomplete="new-password"></div>
+            <div class="modal-field"><label>Opis</label><textarea id="aa-desc" rows="2" placeholder="np. Moderator serwera..." style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea></div>
+            <div class="modal-field"><label>Ranga</label>
+                <select id="aa-role" style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                    <option value="ChatMod">ChatMod</option><option value="Pomocnik">Pomocnik</option>
+                    <option value="Moderator">Moderator</option><option value="Admin">Admin</option>
+                    <option value="Zarządzający">Zarządzający</option>
+                </select>
+            </div>
+            <div class="modal-field"><label>Uprawnienia</label>
+                <div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.3rem;">
+                    <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;"><input type="checkbox" class="perm-checkbox" value="ban"> Bany</label>
+                    <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;"><input type="checkbox" class="perm-checkbox" value="unban"> Unban</label>
+                    <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;"><input type="checkbox" class="perm-checkbox" value="mute"> Muty</label>
+                    <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;"><input type="checkbox" class="perm-checkbox" value="unmute"> Unmute</label>
+                    <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;"><input type="checkbox" class="perm-checkbox" value="kick"> Kick</label>
+                    <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;"><input type="checkbox" class="perm-checkbox" value="warn"> Warny</label>
+                    <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;"><input type="checkbox" class="perm-checkbox" value="check"> Sprawdzanie</label>
+                    <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;"><input type="checkbox" class="perm-checkbox" value="players"> Gracze</label>
+                    <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;"><input type="checkbox" class="perm-checkbox" value="notes"> Notatki</label>
+                    <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;"><input type="checkbox" class="perm-checkbox" value="logs"> Logi</label>
+                    <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;"><input type="checkbox" class="perm-checkbox" value="shop"> Sklep</label>
+                    <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;"><input type="checkbox" class="perm-checkbox" value="site"> Strona</label>
+                    <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;"><input type="checkbox" class="perm-checkbox" value="media_manage"> Media</label>
+                    <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;"><input type="checkbox" class="perm-checkbox" value="evidence_view"> Pliki (podgląd)</label>
+                    <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;"><input type="checkbox" class="perm-checkbox" value="evidence_delete"> Pliki (usuń)</label>
+                    <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:rgba(139,92,246,.08);border:1.5px solid rgba(139,92,246,.25);padding:.35rem .75rem;border-radius:6px;color:#8b5cf6;"><input type="checkbox" class="perm-checkbox" value="ai_actions"> Akcje AI</label>
+                    <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:rgba(239,68,68,.06);border:1.5px solid rgba(239,68,68,.2);padding:.35rem .75rem;border-radius:6px;color:#dc2626;"><input type="checkbox" class="perm-checkbox" value="console"> Konsola</label>
+                    <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:rgba(239,68,68,.06);border:1.5px solid rgba(239,68,68,.2);padding:.35rem .75rem;border-radius:6px;color:#dc2626;"><input type="checkbox" class="perm-checkbox" value="op_manage"> OP gracza</label>
+                    <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:rgba(16,185,129,.06);border:1.5px solid rgba(16,185,129,.2);padding:.35rem .75rem;border-radius:6px;color:#059669;"><input type="checkbox" class="perm-checkbox" value="stats_edit"> Edycja CStats</label>
+                    <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:rgba(245,158,11,.06);border:1.5px solid rgba(245,158,11,.2);padding:.35rem .75rem;border-radius:6px;color:#d97706;"><input type="checkbox" class="perm-checkbox" value="cshop_manage"> CShop itemy</label>
+                    <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:rgba(245,158,11,.06);border:1.5px solid rgba(245,158,11,.2);padding:.35rem .75rem;border-radius:6px;color:#d97706;"><input type="checkbox" class="perm-checkbox" value="tax_manage"> CShop podatki</label>
+                    <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:rgba(59,130,246,.06);border:1.5px solid rgba(59,130,246,.2);padding:.35rem .75rem;border-radius:6px;color:#2563eb;"><input type="checkbox" class="perm-checkbox" value="rank_manage"> Rangi</label>
+                    <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;"><input type="checkbox" class="perm-checkbox" value="permissions_manage"> Uprawnienia rang</label>
+                    <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg);border:1.5px solid var(--border);padding:.35rem .75rem;border-radius:6px;"><input type="checkbox" class="perm-checkbox" value="admins_manage"> Zarządzanie adminami</label>
+                    <label style="display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;background:rgba(255,23,68,.08);border:1.5px solid rgba(255,23,68,.25);padding:.35rem .75rem;border-radius:6px;color:var(--accent);"><input type="checkbox" class="perm-checkbox" value="all"> ⚡ Pełny dostęp</label>
+                </div>
+            </div>
+            <div id="aa-msg" class="modal-msg" style="display:none;"></div>
+            <button class="modal-submit-btn" onclick="saveAdminAccount()"><i class="fa-solid fa-floppy-disk"></i> Zapisz</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: AKTUALNOŚĆ -->
+<div class="modal-overlay" id="news-modal" onclick="closeModal(event)">
+    <div class="modal-box" style="max-width:640px;">
+        <div class="modal-header">
+            <div class="modal-title" id="news-modal-title">Dodaj aktualność</div>
+            <button class="modal-close" onclick="document.getElementById('news-modal').classList.remove('open')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="news-id">
+            <div class="modal-field">
+                <label>Tytuł *</label>
+                <input type="text" id="news-title" placeholder="Tytuł aktualności...">
+            </div>
+            <div class="modal-field">
+                <label>Treść <span style="color:#999;font-weight:400;">(możesz używać HTML: &lt;b&gt;, &lt;i&gt;, &lt;img src="..."&gt; itp.)</span></label>
+                <textarea id="news-content" rows="7" placeholder="Wpisz treść aktualności..."
+                    style="width:100%;padding:.75rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.92rem;color:var(--text-primary);background:var(--bg-card);outline:none;font-family:var(--font);resize:vertical;line-height:1.6;"></textarea>
+            </div>
+            <div class="modal-field">
+                <label>Wgraj pliki <span style="color:#999;font-weight:400;">(zdjęcia, wideo, PDF — linki zostaną wstawione do treści)</span></label>
+                <input type="file" id="news-file-upload" multiple
+                    accept="image/*,video/*,.gif,.png,.jpg,.jpeg,.mp4,.webm,.pdf,.zip,.rar"
+                    style="width:100%;padding:.55rem .7rem;border:1.5px dashed var(--border);border-radius:var(--radius-sm);font-size:.88rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);"
+                    onchange="newsHandleFiles(this)">
+                <div id="news-upload-status" style="font-size:.78rem;color:var(--text-secondary);margin-top:.3rem;"></div>
+                <!-- Podgląd wgranych plików -->
+                <div id="news-file-previews" style="display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.5rem;"></div>
+            </div>
+            <div class="modal-field">
+                <label>Link do filmiku YouTube <span style="color:#999;font-weight:400;">(opcjonalny)</span></label>
+                <input type="text" id="news-video" placeholder="https://youtube.com/watch?v=...">
+            </div>
+            <div class="modal-field">
+                <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;">
+                    <input type="checkbox" id="news-pinned"> Przypnij na górze listy
+                </label>
+            </div>
+            <div id="news-msg" class="modal-msg" style="display:none;"></div>
+            <button class="modal-submit-btn" onclick="saveNews()">
+                <i class="fa-solid fa-floppy-disk"></i> Zapisz aktualność
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: PRODUKT SKLEPU -->
+<!-- MODAL: PRODUKT SKLEPU -->
+<div class="modal-overlay" id="shop-item-modal" onclick="closeModal(event)">
+    <div class="modal-box" style="max-width:700px;">
+        <div class="modal-header">
+            <div class="modal-title" id="shop-item-modal-title">Dodaj produkt</div>
+            <button class="modal-close" onclick="document.getElementById('shop-item-modal').classList.remove('open')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body" style="gap:.75rem;">
+            <input type="hidden" id="shop-item-id">
+            <div class="shop-modal-section">
+                <div class="shop-modal-section-title"><i class="fa-solid fa-info-circle" style="margin-right:.4rem;color:var(--accent-blue);"></i>Podstawowe informacje</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;">
+                    <div class="modal-field"><label>Nazwa produktu *</label><input type="text" id="shop-item-name" placeholder="np. VIP, Klucz Epicki..."></div>
+                    <div class="modal-field"><label>Kategoria *</label>
+                        <select id="shop-item-type" onchange="shopModalOnTypeChange()" style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                            <option value="ranga">&#x1F451; Ranga</option>
+                            <option value="klucz">&#x1F511; Klucz</option>
+                            <option value="zestaw">&#x1F4E6; Zestaw</option>
+                            <option value="item">&#x2728; Inne</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="shop-subcategory-field" class="modal-field" style="margin-top:.6rem;display:none;">
+                    <label>Podkategoria</label>
+                    <select id="shop-item-subcategory" style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                        <option value="">Brak podkategorii</option>
+                    </select>
+                </div>
+                <div id="shop-rarity-field" class="modal-field" style="margin-top:.6rem;display:none;">
+                    <label>Rzadkość</label>
+                    <div class="rarity-stars-edit" id="rarity-stars">
+                        <span class="rarity-star" data-val="1" onclick="setShopRarity(1)">&#9733;</span>
+                        <span class="rarity-star" data-val="2" onclick="setShopRarity(2)">&#9733;</span>
+                        <span class="rarity-star" data-val="3" onclick="setShopRarity(3)">&#9733;</span>
+                        <span class="rarity-star" data-val="4" onclick="setShopRarity(4)">&#9733;</span>
+                        <span class="rarity-star" data-val="5" onclick="setShopRarity(5)">&#9733;</span>
+                    </div>
+                    <input type="hidden" id="shop-item-rarity" value="1">
+                </div>
+                <div class="modal-field" style="margin-top:.6rem;">
+                    <label>Opis</label>
+                    <textarea id="shop-item-desc" rows="2" placeholder="np. Ranga premium na 30 dni..." style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea>
+                </div>
+            </div>
+            <div class="shop-modal-section">
+                <div class="shop-modal-section-title"><i class="fa-solid fa-tag" style="margin-right:.4rem;color:#10b981;"></i>Cena i widoczność</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.75rem;">
+                    <div class="modal-field"><label>Cena (PLN) *</label><input type="number" id="shop-item-price" min="0" step="0.01" placeholder="0.00"></div>
+                    <div class="modal-field"><label>Stara cena (przekreślona)</label><input type="number" id="shop-item-old-price" min="0" step="0.01" placeholder="0.00"></div>
+                    <div class="modal-field"><label>Kolejność sortowania</label><input type="number" id="shop-item-order" min="0" value="99"></div>
+                </div>
+                <div style="display:flex;gap:1rem;margin-top:.6rem;flex-wrap:wrap;">
+                    <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.88rem;font-weight:600;"><input type="checkbox" id="shop-item-active" checked> Produkt aktywny</label>
+                    <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.88rem;font-weight:600;"><input type="checkbox" id="shop-item-featured"> <span style="color:#f59e0b;">&#9733;</span> Wyróżniony</label>
+                </div>
+            </div>
+            <div class="shop-modal-section">
+                <div class="shop-modal-section-title"><i class="fa-solid fa-list-check" style="margin-right:.4rem;color:#8b5cf6;"></i>Bonusy / zawartość <span style="font-size:.7rem;font-weight:400;text-transform:none;color:var(--text-secondary);">(jeden bonus na linię)</span></div>
+                <textarea id="shop-item-items" rows="6" placeholder="Kit VIP co 23,5h&#10;Własny prefix na czacie&#10;Dostęp do /ec, /wb&#10;Itemy na rynku: 9" style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.88rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea>
+            </div>
+            <div class="shop-modal-section">
+                <div class="shop-modal-section-title"><i class="fa-solid fa-image" style="margin-right:.4rem;color:#3b82f6;"></i>Media</div>
+                <div class="modal-field">
+                    <label>URL obrazka / wideo</label>
+                    <div style="display:flex;gap:.5rem;">
+                        <input type="text" id="shop-item-media-url" placeholder="../images/vip.png lub URL..." style="flex:1;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                        <button type="button" class="tbl-btn" onclick="previewShopItemMedia()" title="Podgląd"><i class="fa-solid fa-eye"></i></button>
+                    </div>
+                </div>
+                <div class="modal-field" style="margin-top:.5rem;">
+                    <label>Lub wgraj plik</label>
+                    <input type="file" id="shop-item-media-file" accept="image/*,video/*,.gif,.webp,.png,.jpg,.jpeg,.mp4,.webm" onchange="previewShopMediaInput()" style="width:100%;padding:.55rem .7rem;border:1.5px dashed var(--border);border-radius:var(--radius-sm);font-size:.88rem;color:var(--text-primary);background:var(--bg);">
+                </div>
+                <div id="shop-item-media-preview" class="shop-modal-media-preview"></div>
+            </div>
+            <div id="shop-item-msg" class="modal-msg" style="display:none;"></div>
+            <button class="modal-submit-btn" onclick="saveShopItem()"><i class="fa-solid fa-floppy-disk"></i> Zapisz produkt</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: PERSONEL -->
+<div class="modal-overlay" id="personel-modal" onclick="closeModal(event)">
+    <div class="modal-box" style="max-width:560px;">
+        <div class="modal-header"><div class="modal-title" id="personel-modal-title">Dodaj członka</div><button class="modal-close" onclick="document.getElementById('personel-modal').classList.remove('open')"><i class="fa-solid fa-xmark"></i></button></div>
+        <div class="modal-body">
+            <input type="hidden" id="pm-id">
+            <div class="modal-field"><label>Nick Minecraft *</label><input type="text" id="pm-nick" placeholder="Nick gracza..."></div>
+            <div class="modal-field"><label>Ranga *</label>
+                <select id="pm-rank" style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);">
+                    <option value="ChatMod">ChatMod</option><option value="Moderator">Moderator</option><option value="Admin">Administrator</option><option value="Pomocnik">Pomocnik</option><option value="Technik">Technik</option><option value="Zarządzający">Zarządzający</option>
+                </select>
+            </div>
+            <div class="modal-field"><label>Opis</label><textarea id="pm-desc" rows="3" placeholder="Opis..." style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea></div>
+            <div class="modal-field"><label>Discord</label><input type="text" id="pm-dc" placeholder="URL lub nick Discord..."></div>
+            <div class="modal-field"><label>YouTube</label><input type="text" id="pm-yt" placeholder="URL YouTube..."></div>
+            <div class="modal-field"><label>TikTok</label><input type="text" id="pm-tt" placeholder="URL TikTok..."></div>
+            <div class="modal-field"><label>Data dołączenia</label><input type="date" id="pm-since" style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);"></div>
+            <div class="modal-field"><label>Kolejność</label><input type="number" id="pm-order" value="99" min="0" style="width:100px;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);"></div>
+            <div id="pm-msg" class="modal-msg" style="display:none;"></div>
+            <button class="modal-submit-btn" onclick="savePersonelMember()"><i class="fa-solid fa-floppy-disk"></i> Zapisz</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: TWÓRCA -->
+<div class="modal-overlay" id="creator-modal" onclick="closeModal(event)">
+    <div class="modal-box" style="max-width:520px;">
+        <div class="modal-header"><div class="modal-title" id="creator-modal-title">Dodaj twórcę</div><button class="modal-close" onclick="document.getElementById('creator-modal').classList.remove('open')"><i class="fa-solid fa-xmark"></i></button></div>
+        <div class="modal-body">
+            <input type="hidden" id="cm-id">
+            <div class="modal-field"><label>Nick Minecraft *</label><input type="text" id="cm-nick" placeholder="Nick twórcy..."></div>
+            <div class="modal-field"><label>Opis</label><textarea id="cm-desc" rows="3" placeholder="Opis twórcy..." style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);resize:vertical;"></textarea></div>
+            <div class="modal-field"><label>YouTube</label><input type="text" id="cm-yt" placeholder="URL YouTube..."></div>
+            <div class="modal-field"><label>TikTok</label><input type="text" id="cm-tt" placeholder="URL TikTok..."></div>
+            <div class="modal-field"><label>Discord</label><input type="text" id="cm-dc" placeholder="URL lub nick Discord..."></div>
+            <div id="cm-msg" class="modal-msg" style="display:none;"></div>
+            <button class="modal-submit-btn" style="background:linear-gradient(135deg,#aa00ff,#ff00ff);" onclick="saveCreator()"><i class="fa-solid fa-floppy-disk"></i> Zapisz</button>
+        </div>
+    </div>
+</div>
+
+<!-- STYLE: site-tab-btn -->
+<style>
+    .site-tab-btn { background:var(--bg);border:1.5px solid var(--border);color:var(--text-secondary);padding:.5rem 1.1rem;border-radius:var(--radius-sm);font-weight:700;font-size:.85rem;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:.45rem;font-family:var(--font); }
+    .site-tab-btn.active { background:var(--accent);border-color:var(--accent);color:#fff; }
+    .site-tab-btn:not(.active):hover { background:var(--bg-card);border-color:var(--accent);color:var(--accent); }
+    #news-editor:empty:before { content:attr(data-placeholder);color:var(--text-secondary);pointer-events:none; }
+    .rte-btn { background:transparent;border:1px solid transparent;border-radius:5px;color:var(--text-secondary);width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:.82rem;transition:all .15s;flex-shrink:0;padding:0; }
+    .rte-btn:hover { background:var(--bg-card);border-color:var(--border);color:var(--accent); }
+</style>
+
+<!-- Firebase module -->
+<script type="module" src="panel-core.js"></script>
+
+<!-- Funkcje globalne -->
+<script>
+    function togglePasswordVisibility() {
+        const i = document.getElementById('login-password'), ic = document.getElementById('pw-toggle-icon');
+        i.type = i.type === 'password' ? 'text' : 'password';
+        ic.className = i.type === 'password' ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash';
+    }
+    const BLOCK_KEY='ap_block', ATTEMPT_KEY='ap_attempts', MAX_KICK=3, MAX_BLOCK=10, BLOCK_MS=20*60*60*1000;
+    function checkBlocked() { const b=JSON.parse(localStorage.getItem(BLOCK_KEY)||'null'); if(!b)return false; if(Date.now()<b.until)return true; localStorage.removeItem(BLOCK_KEY);localStorage.removeItem(ATTEMPT_KEY);return false; }
+    function getAttempts() { return parseInt(localStorage.getItem(ATTEMPT_KEY)||'0'); }
+    window.recordFailedAttempt = function() {
+        const a = getAttempts()+1; localStorage.setItem(ATTEMPT_KEY,String(a));
+        if(a>=MAX_BLOCK){const u=Date.now()+BLOCK_MS;localStorage.setItem(BLOCK_KEY,JSON.stringify({until:u}));localStorage.removeItem(ATTEMPT_KEY);document.body.innerHTML='<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0f0c1a;flex-direction:column;gap:1.5rem;padding:2rem;text-align:center;"><div style="font-size:3rem;">⛔</div><div style="font-size:1.2rem;font-weight:800;color:#ef4444;">Dostęp zablokowany</div><div style="color:#9ca3af;">Przekroczono limit prób logowania.</div></div>';return;}
+        if(a>=MAX_KICK){document.body.innerHTML='<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0f0c1a;flex-direction:column;gap:1.5rem;padding:2rem;text-align:center;"><div style="font-size:3rem;">😤</div><div style="font-size:1.2rem;font-weight:800;color:#ef4444;">Zbyt wiele błędnych prób</div><button onclick="location.reload()" style="background:#ef4444;color:#fff;border:none;padding:.75rem 2rem;border-radius:8px;font-size:.95rem;font-weight:700;cursor:pointer;">Spróbuj ponownie</button></div>';return;}
+        const e=document.getElementById('login-error'); if(e){e.style.display='flex';e.innerHTML='<i class="fa-solid fa-circle-exclamation"></i> Błędny login lub hasło! (pozostało '+(MAX_KICK-a)+' prób)';}
+    };
+    function handleLogin(e) {
+        e.preventDefault();
+        if(checkBlocked()){alert('Konto zablokowane. Spróbuj za kilka godzin.');return;}
+        window.dispatchEvent(new CustomEvent('adminLogin',{detail:{login:document.getElementById('login-username').value.trim(),password:document.getElementById('login-password').value}}));
+    }
+    function handleLogout() {
+        document.body.classList.remove('auth-ready');
+        document.getElementById('login-username').value='';
+        document.getElementById('login-password').value='';
+    }
+    function switchPage(pageName) {
+        document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+        document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+        const btn=document.querySelector('.nav-btn[data-page="'+pageName+'"]');
+        const page=document.getElementById('page-'+pageName);
+        if(btn)btn.classList.add('active');
+        if(page)page.classList.add('active');
+        const titles={players:'Gracze',penalties:'Kary',action:'Nadaj karę',logs:'Logi Akcji',stats:'Statystyki Adminów',admins:'Administratorzy',permissions:'Uprawnienia',personel:'Personel',site:'Zarządzanie stroną',shop:'Sklep',guides:'Poradniki',files:'Pliki',info:'Informacje systemowe',plugins:'Pluginy',ai:'AI Asystent'};
+        document.getElementById('topbar-title').textContent=titles[pageName]||pageName;
+        if(pageName==='action'&&typeof window.apFilterPlayers==='function')window.apFilterPlayers();
+    }
+    function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');}
+    function closeModal(e){if(e.target.classList.contains('modal-overlay'))e.target.classList.remove('open');}
+    function closeActionModal(){document.getElementById('action-modal').classList.remove('open');}
+    function closePlayerDetail(){document.getElementById('player-detail-modal').classList.remove('open');}
+    function closeNoteModal(){document.getElementById('note-modal').classList.remove('open');}
+    window.switchPenaltyTab=function(tab){
+        document.getElementById('pen-panel-bans').style.display=tab==='bans'?'':'none';
+        document.getElementById('pen-panel-mutes').style.display=tab==='mutes'?'':'none';
+        const bb=document.getElementById('pen-tab-bans'),mb=document.getElementById('pen-tab-mutes');
+        if(bb){bb.style.background=tab==='bans'?'rgba(239,68,68,.12)':'';bb.style.color=tab==='bans'?'#dc2626':'var(--text-secondary)';}
+        if(mb){mb.style.background=tab==='mutes'?'rgba(245,158,11,.12)':'';mb.style.color=tab==='mutes'?'#d97706':'var(--text-secondary)';}
+    };
+    window.setAction=function(action){
+        window._selectedAction=action;
+        document.querySelectorAll('#modal-action-btns .action-btn').forEach(b=>b.classList.remove('selected'));
+        const btn=document.querySelector('#modal-action-btns .'+action+'-btn'); if(btn)btn.classList.add('selected');
+        const noDur=['unban','unmute','kick','warn','check','message'];
+        document.getElementById('duration-field').style.display=noDur.includes(action)?'none':'block';
+    };
+    window.setDuration=function(dur){
+        window._selectedDuration=dur;
+        document.querySelectorAll('#duration-field .dur-btn').forEach(b=>b.classList.remove('selected'));
+        event.target.classList.add('selected');
+        document.getElementById('duration-custom').value='';
+    };
+    window.apSetAction=function(action){
+        window._apAction=action;
+        document.querySelectorAll('#page-action .action-btn').forEach(b=>b.classList.remove('selected'));
+        const btn=document.querySelector('#page-action .'+action+'-btn'); if(btn)btn.classList.add('selected');
+        const noDur=['unban','unmute','kick','warn','check','message'];
+        const df=document.getElementById('ap-duration-field'); if(df)df.style.display=noDur.includes(action)?'none':'block';
+    };
+    window.apSetDuration=function(dur,btn){
+        window._apDuration=dur;
+        document.querySelectorAll('#ap-duration-field .dur-btn').forEach(b=>b.classList.remove('selected'));
+        if(btn)btn.classList.add('selected');
+        const c=document.getElementById('ap-duration-custom'); if(c)c.value='';
+    };
+    window.apSearchPlayer=function(nick){
+        const p=document.getElementById('ap-player-preview'); if(!p)return;
+        if(!nick||nick.length<2){p.style.display='none';return;}
+        p.style.display='flex';
+        p.innerHTML='<img src="https://mc-heads.net/avatar/'+encodeURIComponent(nick)+'/36" style="width:36px;height:36px;border-radius:6px;border:1px solid var(--border);image-rendering:pixelated;" onerror="this.src=\'https://mc-heads.net/avatar/Steve/36\'">'+'<span style="font-weight:700;font-size:.92rem;">'+nick+'</span>';
+    };
+    window.apSubmit=function(){window.dispatchEvent(new CustomEvent('apSubmitAction'));};
+    window.submitAction=function(){window.dispatchEvent(new CustomEvent('submitModalAction'));};
+    window.openActionModal=function(nick,uuid){
+        window._actionModalPlayer={nick,uuid}; window._selectedAction=null; window._selectedDuration=null;
+        document.getElementById('modal-title').textContent='Akcja na graczu: '+nick;
+        document.getElementById('modal-player-info').innerHTML='<img src="https://mc-heads.net/avatar/'+encodeURIComponent(nick)+'/36" style="width:36px;height:36px;border-radius:6px;border:1px solid var(--border);image-rendering:pixelated;" onerror="this.src=\'https://mc-heads.net/avatar/Steve/36\'"><div><div style="font-weight:700;">'+nick+'</div><div style="font-size:.72rem;color:var(--text-secondary);font-family:monospace;">'+(uuid||'UUID nieznany')+'</div></div>';
+        document.querySelectorAll('#modal-action-btns .action-btn').forEach(b=>b.classList.remove('selected'));
+        document.querySelectorAll('#duration-field .dur-btn').forEach(b=>b.classList.remove('selected'));
+        document.getElementById('action-reason').value='';
+        document.getElementById('duration-custom').value='';
+        document.getElementById('modal-msg').style.display='none';
+        document.getElementById('duration-field').style.display='block';
+        document.getElementById('action-modal').classList.add('open');
+    };
+    window.openPlayerDetail=function(id){window.dispatchEvent(new CustomEvent('openPlayerDetail',{detail:id}));};
+    document.addEventListener('click',function(e){
+        const sb=document.getElementById('sidebar'),tg=document.querySelector('.sidebar-toggle');
+        if(sb&&sb.classList.contains('open')&&!sb.contains(e.target)&&e.target!==tg)sb.classList.remove('open');
+    });
+</script>
+<!-- MODAL: PORADNIK KAR -->
+<div class="modal-overlay" id="punishment-guide-modal" onclick="closeModal(event)">
+    <div class="modal-box" style="max-width:800px;">
+        <div class="modal-header">
+            <div class="modal-title"><i class="fa-solid fa-book-open" style="color:var(--accent-blue);margin-right:.5rem;"></i>Poradnik kar</div>
+            <div style="display:flex;gap:.5rem;">
+                <button class="tbl-btn" id="guide-edit-btn" onclick="openGuideEditModal()" style="font-size:.78rem;"><i class="fa-solid fa-pen"></i> Edytuj</button>
+                <button class="modal-close" onclick="document.getElementById('punishment-guide-modal').classList.remove('open')"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+        </div>
+        <div class="modal-body">
+            <div id="punishment-guide-table" style="padding:0;"></div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>             style="width:100%;padding:.7rem .9rem .7rem 2.4rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.92rem;color:var(--text-primary);background:var(--bg);outline:none;font-family:var(--font);"
+                                oninput="apSearchPlayer(this.value)">
+                        </div>
+                        <div id="ap-player-preview" style="display:none;margin-top:.6rem;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:.7rem 1rem;align-items:center;gap:.75rem;"></div>
+                    </div>
+                    <div class="modal-field" style="margin-bottom:1.2rem;">
+                        <label>Rodzaj akcji</label>
+                        <div class="action-btns">
+                            <button class="action-btn ban-btn"    onclick="apSetAction('ban')"><i class="fa-solid fa-ban"></i> Ban</button>
+                            <button class="action-btn unban-btn"  onclick="apSetAction('unban')"><i class="fa-solid fa-ban" style="opacity:.4"></i> Unban</button>
+                            <button class="action-btn mute-btn"   onclick="apSetAction('mute')"><i class="fa-solid fa-microphone-slash"></i> Mute</button>
+                            <button class="action-btn unmute-btn" onclick="apSetAction('unmute')"><i class="fa-solid fa-microphone"></i> Unmute</button>
+                            <button class="action-btn kick-btn"   onclick="apSetAction('kick')"><i class="fa-solid fa-door-open"></i> Kick</button>
+                            <button class="action-btn warn-btn"   onclick="apSetAction('warn')"><i class="fa-solid fa-triangle-exclamation"></i> Na Ekran</button>
+                            <button class="action-btn check-btn"  onclick="apSetAction('check')"><i class="fa-solid fa-magnifying-glass"></i> Sprawdź</button>
+                            <button class="action-btn alts-btn"   onclick="checkAlts(true)" style="background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.3);color:#8b5cf6;"><i class="fa-solid fa-users-viewfinder"></i> Multikonta</button>
+                            <button class="action-btn message-btn" onclick="apSetAction('message')" style="background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3);color:#3b82f6;"><i class="fa-solid fa-envelope"></i> Wiadomość</button>
+                        </div>
+                    </div>
+                    <div class="modal-field" id="ap-duration-field" style="margin-bottom:1.2rem;">
+                        <label>Czas trwania</label>
+                        <div class="duration-options">
+                            <button class="dur-btn" onclick="apSetDuration('1h',this)">1h</button>
+                            <button class="dur-btn" onclick="apSetDuration('6h',this)">6h</button>
+                            <button class="dur-btn" onclick="apSetDuration('12h',this)">12h</button>
+                            <button class="dur-btn" onclick="apSetDuration('1d',this)">1 dzień</button>
+                            <button class="dur-btn" onclick="apSetDuration('3d',this)">3 dni</button>
+                          
