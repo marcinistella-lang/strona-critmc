@@ -2398,3 +2398,30 @@ select:focus {
     box-shadow: 0 0 0 3px rgba(139,92,246,.15);
     outline: none;
 }
+
+/* ── Checkboxy uprawnień w modalu admina ── */
+.perm-label {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    font-size: .82rem;
+    font-weight: 600;
+    cursor: pointer;
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    padding: .3rem .65rem;
+    border-radius: 6px;
+    transition: background .12s, border-color .12s;
+    user-select: none;
+}
+.perm-label:hover {
+    background: var(--bg-card);
+    border-color: var(--accent-blue);
+}
+.perm-label input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    accent-color: var(--accent-blue);
+    cursor: pointer;
+    flex-shrink: 0;
+}
