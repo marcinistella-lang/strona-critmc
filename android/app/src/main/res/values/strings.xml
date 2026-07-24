@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Dzienniczek i Notatnik</string>
+    <string name="title_activity_main">Dzienniczek i Notatnik</string>
+    <string name="package_name">pl.dzienniczek.notatnik</string>
+    <string name="custom_url_scheme">pl.dzienniczek.notatnik</string>
+</resources>
